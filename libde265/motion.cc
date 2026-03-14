@@ -347,9 +347,7 @@ void generate_inter_prediction_samples(base_context* ctx,
   // do this only without weighted prediction, because the weights/offsets may be different
   if (pps->weighted_pred_flag==0) {
     if (predFlag[0] && predFlag[1]) {
-      if (vi->refIdx[0] >= 0 && vi->refIdx[0] < MAX_NUM_REF_PICS &&
-          vi->refIdx[1] >= 0 && vi->refIdx[1] < MAX_NUM_REF_PICS &&
-          vi->mv[0].x == vi->mv[1].x &&
+      if (vi->mv[0].x == vi->mv[1].x &&
           vi->mv[0].y == vi->mv[1].y &&
           shdr->RefPicList[0][vi->refIdx[0]] ==
           shdr->RefPicList[1][vi->refIdx[1]]) {
@@ -380,13 +378,6 @@ void generate_inter_prediction_samples(base_context* ctx,
   for (int l=0;l<2;l++) {
     if (predFlag[l]) {
       // 8.5.3.2.1
-
-      if (vi->refIdx[l] < 0 || vi->refIdx[l] >= MAX_NUM_REF_PICS) {
-        img->integrity = INTEGRITY_DECODING_ERRORS;
-        ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
-        fill_pred_samples(l);
-        continue;
-      }
 
       const de265_image* refPic = ctx->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
 
@@ -1102,7 +1093,7 @@ void derive_zero_motion_vector_candidates(const slice_segment_header* shdr,
 
     if (shdr->slice_type==SLICE_TYPE_P) {
       newCand->refIdx[0] = refIdx;
-      newCand->refIdx[1] = -1;
+      newCand->refIdx[1] = 0;
       newCand->predFlag[0] = 1;
       newCand->predFlag[1] = 0;
     }
@@ -1635,7 +1626,7 @@ void get_merge_candidate_list(base_context* ctx,
         mergeCandList[i].predFlag[1] &&
         nPbW+nPbH==12)
       {
-        mergeCandList[i].refIdx[1]   = -1;
+        mergeCandList[i].refIdx[1]   = 0;
         mergeCandList[i].predFlag[1] = 0;
       }
   }
@@ -1663,7 +1654,7 @@ void derive_luma_motion_merge_mode(base_context* ctx,
   // 8.5.3.1.1 / 9.
 
   if (out_vi->predFlag[0] && out_vi->predFlag[1] && nPbW+nPbH==12) {
-    out_vi->refIdx[1] = -1;
+    out_vi->refIdx[1] = 0;
     out_vi->predFlag[1] = 0;
   }
 }
@@ -1750,21 +1741,11 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
       const de265_image* imgX = NULL;
       if (vi.predFlag[X]) {
-        // check for input data validity
-        if (vi.refIdx[X]<0 || vi.refIdx[X] >= MAX_NUM_REF_PICS) {
-          return;
-        }
-
         imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
       }
 
       const de265_image* imgY = NULL;
       if (vi.predFlag[Y]) {
-        // check for input data validity
-        if (vi.refIdx[Y]<0 || vi.refIdx[Y] >= MAX_NUM_REF_PICS) {
-          return;
-        }
-
         imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]);
       }
 
@@ -1803,7 +1784,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
       const PBMotion& vi = img->get_mv_info(xA[k],yA[k]);
       if (vi.predFlag[X]==1 &&
-          vi.refIdx[X] >= 0 && vi.refIdx[X] < MAX_NUM_REF_PICS &&
           shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi.refIdx[X] ]) {
 
         logtrace(LogMotion,"take A%D/L%d as A candidate with different POCs\n",k,X);
@@ -1814,7 +1794,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
         refPicList = X;
       }
       else if (vi.predFlag[Y]==1 &&
-               vi.refIdx[Y] >= 0 && vi.refIdx[Y] < MAX_NUM_REF_PICS &&
                shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[Y][ vi.refIdx[Y] ]) {
 
         logtrace(LogMotion,"take A%d/L%d as A candidate with different POCs\n",k,Y);
@@ -1903,19 +1882,11 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
       const de265_image* imgX = NULL;
       if (vi.predFlag[X]) {
-        if (vi.refIdx[X] < 0 || vi.refIdx[X] >= MAX_NUM_REF_PICS) {
-          return;
-        }
-
         imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
       }
 
       const de265_image* imgY = NULL;
       if (vi.predFlag[Y]) {
-        if (vi.refIdx[Y] < 0 || vi.refIdx[Y] >= MAX_NUM_REF_PICS) {
-          return;
-        }
-
         imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]);
       }
 
@@ -1965,13 +1936,6 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
         int Y=1-X;
 
         const PBMotion& vi = img->get_mv_info(xB[k],yB[k]);
-
-        if ((vi.predFlag[X] && (vi.refIdx[X] < 0 || vi.refIdx[X] >= MAX_NUM_REF_PICS)) ||
-            (vi.predFlag[Y] && (vi.refIdx[Y] < 0 || vi.refIdx[Y] >= MAX_NUM_REF_PICS))) {
-          img->integrity = INTEGRITY_DECODING_ERRORS;
-          ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
-          return; // error   // TODO: we actually should make sure that this is never set to an out-of-range value
-        }
 
         if (vi.predFlag[X]==1 &&
             shdr->LongTermRefPic[X][refIdxLX] == shdr->LongTermRefPic[X][ vi.refIdx[X] ]) {
@@ -2182,17 +2146,9 @@ void motion_vectors_and_ref_indices(base_context* ctx,
           (inter_pred_idc == PRED_L1 && l==1)) {
         out_vi->refIdx[l] = motion.refIdx[l];
         out_vi->predFlag[l] = 1;
-
-        if (motion.refIdx[l] < 0 || motion.refIdx[l] >= MAX_NUM_REF_PICS) {
-          out_vi->refIdx[l] = 0;
-
-          img->integrity = INTEGRITY_DECODING_ERRORS;
-          ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
-          return;
-        }
       }
       else {
-        out_vi->refIdx[l] = -1;
+        out_vi->refIdx[l] = 0;
         out_vi->predFlag[l] = 0;
       }
 

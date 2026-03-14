@@ -73,7 +73,7 @@ void get_merge_candidate_list_from_tree(encoder_context* ectx,
         mergeCandList[i].predFlag[1] &&
         nPbW+nPbH==12)
       {
-        mergeCandList[i].refIdx[1]   = -1;
+        mergeCandList[i].refIdx[1]   = 0;
         mergeCandList[i].predFlag[1] = 0;
       }
   }

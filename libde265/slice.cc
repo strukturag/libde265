@@ -4115,6 +4115,11 @@ void read_prediction_unit(thread_context* tctx,
       int ref_idx_l0 = decode_ref_idx_lX(tctx, shdr->num_ref_idx_l0_active);
 
       // NOTE: case for only one reference frame is handles in decode_ref_idx_lX()
+      if (ref_idx_l0 < 0 || ref_idx_l0 >= MAX_NUM_REF_PICS) {
+        tctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        tctx->decctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+        return;
+      }
       tctx->motion.refIdx[0] = ref_idx_l0;
 
       read_mvd_coding(tctx,x0,y0, 0);
@@ -4130,6 +4135,11 @@ void read_prediction_unit(thread_context* tctx,
       int ref_idx_l1 = decode_ref_idx_lX(tctx, shdr->num_ref_idx_l1_active);
 
       // NOTE: case for only one reference frame is handles in decode_ref_idx_lX()
+      if (ref_idx_l1 < 0 || ref_idx_l1 >= MAX_NUM_REF_PICS) {
+        tctx->img->integrity = INTEGRITY_DECODING_ERRORS;
+        tctx->decctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+        return;
+      }
       tctx->motion.refIdx[1] = ref_idx_l1;
 
       if (shdr->mvd_l1_zero_flag &&

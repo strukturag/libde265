@@ -38,7 +38,7 @@ class PBMotion
 {
  public:
   uint8_t predFlag[2];  // which of the two vectors is actually used
-  int8_t  refIdx[2];    // index into RefPicList
+  uint8_t refIdx[2];    // index into RefPicList (valid when predFlag set)
   MotionVector  mv[2];  // the absolute motion vectors
 
   bool operator==(const PBMotion&) const;
@@ -49,7 +49,7 @@ class PBMotionCoding
 {
  public:
   // index into RefPicList
-  int8_t  refIdx[2];
+  uint8_t refIdx[2];
 
   // motion vector difference
   int16_t mvd[2][2]; // [L0/L1][x/y]  (only in top left position - ???)
