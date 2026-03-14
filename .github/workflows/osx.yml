@@ -16,7 +16,7 @@ jobs:
           - { CC: "gcc", CXX: "g++", CMAKE: "cmake" }
     env: ${{ matrix.env }}
 
-    runs-on: macos-13
+    runs-on: macos-15
     steps:
     - uses: actions/checkout@v5
 
