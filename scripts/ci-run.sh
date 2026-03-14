@@ -76,6 +76,16 @@ fi
 
 if [ ! -z "$DECODESTREAMS" ]; then
     export LD_LIBRARY_PATH=$BUILD_ROOT/build/libde265/
+    echo "DEBUG: LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+    echo "DEBUG: dec265 binary:"
+    ls -la ./build/dec265/dec265
+    echo "DEBUG: libde265.so:"
+    ls -la ./build/libde265/libde265.so*
+    echo "DEBUG: ldd output:"
+    ldd ./build/dec265/dec265 || true
+    echo "DEBUG: quick smoke test:"
+    ./build/dec265/dec265 -q -c ./libde265-data/IDR-only/paris-352x288-intra.bin && echo "DEBUG: smoke test OK" || echo "DEBUG: smoke test FAILED with $?"
+    echo "DEBUG: starting decodestreams.py"
     python3 scripts/decodestreams.py $THREADING /var/lib/libde265-teststreams
 
     DECODEHASH=$(./build/dec265/dec265 testdata/girlshy.h265 -q -o - | md5sum - | cut -d " " -f1)
