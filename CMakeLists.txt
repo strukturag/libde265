@@ -46,6 +46,17 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter)
 endif()
 
+option(USE_IWYU "Run include-what-you-use analysis during build" OFF)
+if (USE_IWYU)
+  find_program(IWYU_PATH include-what-you-use)
+  if (IWYU_PATH)
+    set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE ${IWYU_PATH})
+    set(CMAKE_C_INCLUDE_WHAT_YOU_USE ${IWYU_PATH})
+  else()
+    message(WARNING "include-what-you-use not found, USE_IWYU ignored")
+  endif()
+endif()
+
 include (${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
 include (${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
 
