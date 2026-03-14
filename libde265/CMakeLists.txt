@@ -126,6 +126,11 @@ elseif (DE265_LOG_LEVEL MATCHES "trace")
 endif()
 
 
+set_target_properties(de265 PROPERTIES
+  VERSION "${DE265_LIBRARY_VERSION}"
+  SOVERSION "${DE265_SOVERSION}"
+)
+
 if (WIN32)
     set_target_properties(de265 PROPERTIES PREFIX "lib")
 endif()

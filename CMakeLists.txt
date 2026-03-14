@@ -5,14 +5,42 @@ project (libde265
     VERSION 1.0.16
 )
 
+# Auto-compute BCD-encoded numeric version from project version.
+# Each component is BCD-encoded: decimal 16 → 0x16.
+# Result: 1.0.16 → 0x01001600
+math(EXPR _maj_bcd "(${PROJECT_VERSION_MAJOR}/10)*16 + (${PROJECT_VERSION_MAJOR}%10)")
+math(EXPR _min_bcd "(${PROJECT_VERSION_MINOR}/10)*16 + (${PROJECT_VERSION_MINOR}%10)")
+math(EXPR _pat_bcd "(${PROJECT_VERSION_PATCH}/10)*16 + (${PROJECT_VERSION_PATCH}%10)")
+math(EXPR NUMERIC_VERSION "${_maj_bcd} * 16777216 + ${_min_bcd} * 65536 + ${_pat_bcd} * 256" OUTPUT_FORMAT HEXADECIMAL)
+set (PACKAGE_VERSION ${PROJECT_VERSION})
+
+# --- Shared library version (ABI versioning, independent of project version) ---
+#
+# This controls the shared library filename:
+#   libde265.so -> libde265.so.0 -> libde265.so.0.1.9
+#                  ^^^^^^^^^^^^^^    ^^^^^^^^^^^^^^^^^^
+#                  SOVERSION         VERSION
+#
+# VERSION is a three-part number: MAJOR.MINOR.PATCH
+#   - MAJOR = the ABI major version (same as SOVERSION).
+#             Bump when the ABI breaks (exported functions removed or signatures changed).
+#             Reset MINOR and PATCH to 0.
+#   - MINOR = backward-compatible ABI additions.
+#             Bump when new exported functions are added but old ones still work.
+#             Reset PATCH to 0.
+#   - PATCH = implementation-only changes (bug fixes, performance improvements).
+#             Bump when the ABI is unchanged.
+#
+# SOVERSION must always equal the MAJOR part of VERSION.
+# Programs linked against libde265.so.0 will work with any libde265.so.0.x.y.
+#
+set(DE265_SOVERSION 0)
+set(DE265_LIBRARY_VERSION "0.1.9")
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-# The version number.
-set (NUMERIC_VERSION 0x01001600)
-set (PACKAGE_VERSION ${PROJECT_VERSION})
 
 include (${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
 include (${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
