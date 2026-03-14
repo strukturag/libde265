@@ -24,6 +24,7 @@
 #include "sei.h"
 #include "deblock.h"
 
+#include <algorithm>
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -2069,53 +2070,32 @@ void error_queue::add_warning(de265_error warning, bool once)
   std::lock_guard<std::mutex> lock(m_mutex);
 
   // check if warning was already shown
-  bool add=true;
   if (once) {
-    for (int i=0;i<nWarningsShown;i++) {
-      if (warnings_shown[i] == warning) {
-        add=false;
-        break;
-      }
+    if (std::find(warnings_shown.begin(), warnings_shown.end(), warning) != warnings_shown.end()) {
+      return;
     }
+    warnings_shown.push_back(warning);
   }
-
-  if (!add) {
-    return;
-  }
-
-
-  // if this is a one-time warning, remember that it was shown
-
-  if (once) {
-    if (nWarningsShown < MAX_WARNINGS) {
-      warnings_shown[nWarningsShown++] = warning;
-    }
-  }
-
 
   // add warning to output queue
-
-  if (nWarnings == MAX_WARNINGS) {
-    warnings[MAX_WARNINGS-1] = DE265_WARNING_WARNING_BUFFER_FULL;
+  if (warnings.size() >= MAX_WARNINGS) {
+    warnings.back() = DE265_WARNING_WARNING_BUFFER_FULL;
     return;
   }
 
-  warnings[nWarnings++] = warning;
+  warnings.push_back(warning);
 }
-
-error_queue::error_queue() = default;
 
 de265_error error_queue::get_warning()
 {
   std::lock_guard<std::mutex> lock(m_mutex);
 
-  if (nWarnings==0) {
+  if (warnings.empty()) {
     return DE265_OK;
   }
 
-  de265_error warn = warnings[0];
-  nWarnings--;
-  memmove(warnings, &warnings[1], nWarnings*sizeof(de265_error));
+  de265_error warn = warnings.front();
+  warnings.erase(warnings.begin());
 
   return warn;
 }

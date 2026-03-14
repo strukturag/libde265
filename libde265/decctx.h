@@ -127,17 +127,13 @@ private:
 class error_queue
 {
  public:
-  error_queue();
-
   void add_warning(de265_error warning, bool once);
   de265_error get_warning();
 
  private:
   std::mutex m_mutex;
-  de265_error warnings[MAX_WARNINGS];
-  int nWarnings = 0;
-  de265_error warnings_shown[MAX_WARNINGS]; // warnings that have already occurred
-  int nWarningsShown = 0;
+  std::vector<de265_error> warnings;
+  std::vector<de265_error> warnings_shown; // warnings that have already occurred
 };
 
 
