@@ -231,7 +231,7 @@ public:
 
   void dump_slices() const {
     for (size_t i=0; i<slice_units.size(); i++) {
-      printf("[%zu] = %p\n",i,slice_units[i]);
+      printf("[%zu] = %p\n",i,static_cast<void*>(slice_units[i]));
     }
   }
 
