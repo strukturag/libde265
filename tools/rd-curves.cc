@@ -34,7 +34,7 @@
 
 #include <sys/time.h>
 
-#ifndef WIN32
+#if !defined(_WIN32) && !defined(WIN32)
 #include <sys/times.h>
 #endif
 
