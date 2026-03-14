@@ -31,6 +31,7 @@ EXTRA_DIST = \
   m4/visibility.m4 \
   Makefile.vc7 \
   CMakeLists.txt \
+  cmake/config.h.in \
   README.md \
   libde265.png \
   */COPYING
