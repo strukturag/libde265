@@ -246,6 +246,7 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
 
     free_image_buffer_idx = static_cast<uint8_t>(dpb_size);
     dpb.push_back(new de265_image);
+    err = DE265_OK;
   }
 
 
