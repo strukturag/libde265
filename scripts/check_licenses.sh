@@ -32,6 +32,7 @@ KNOWN_GOOD_FILES=(
 )
 
 IGNORE_FILES=(
+    '.gitattributes',
     '.gitignore',
     'appveyor.yml',
     'libde265.pc.in',
