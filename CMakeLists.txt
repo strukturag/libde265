@@ -42,6 +42,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter)
+endif()
+
 include (${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
 include (${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
 

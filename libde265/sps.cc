@@ -208,8 +208,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     separate_colour_plane_flag = 0;
   }
 
-  if (chroma_format_idc<0 ||
-      chroma_format_idc>3) {
+  if (chroma_format_idc>3) {
     errqueue->add_warning(DE265_WARNING_INVALID_CHROMA_FORMAT, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
@@ -1073,8 +1072,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
 
   out.write_uvlc(chroma_format_idc);
 
-  if (chroma_format_idc<0 ||
-      chroma_format_idc>3) {
+  if (chroma_format_idc>3) {
     errqueue->add_warning(DE265_WARNING_INVALID_CHROMA_FORMAT, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
