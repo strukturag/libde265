@@ -150,3 +150,11 @@ endif()
 if (ENABLE_TOOLS)
   add_subdirectory (tools)
 endif()
+
+add_custom_target(dist
+  COMMAND git archive --format=tar.gz --worktree-attributes
+    --prefix=${PROJECT_NAME}-${PROJECT_VERSION}/
+    -o ${CMAKE_BINARY_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.tar.gz HEAD
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMENT "Creating source tarball ${PROJECT_NAME}-${PROJECT_VERSION}.tar.gz"
+)
