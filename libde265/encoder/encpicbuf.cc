@@ -200,30 +200,22 @@ void encoder_picture_buffer::mark_encoding_finished(int frame_number)
 
   // first, mark all images unused
 
-#ifdef FOR_LOOP_AUTO_SUPPORT
-  FOR_LOOP(auto, imgdata, mImages) {
-#else
-  FOR_LOOP(image_data *, imgdata, mImages) {
-#endif
+  for (auto imgdata : mImages) {
     imgdata->mark_used = false;
   }
 
   // mark all images that will be used later
 
-  FOR_LOOP(int, f, data->ref0)     { get_picture(f)->mark_used=true; }
-  FOR_LOOP(int, f, data->ref1)     { get_picture(f)->mark_used=true; }
-  FOR_LOOP(int, f, data->longterm) { get_picture(f)->mark_used=true; }
-  FOR_LOOP(int, f, data->keep)     { get_picture(f)->mark_used=true; }
+  for (int f : data->ref0)     { get_picture(f)->mark_used=true; }
+  for (int f : data->ref1)     { get_picture(f)->mark_used=true; }
+  for (int f : data->longterm) { get_picture(f)->mark_used=true; }
+  for (int f : data->keep)     { get_picture(f)->mark_used=true; }
   data->mark_used=true;
 
   // copy over all images that we still keep
 
   std::deque<image_data*> newImageSet;
-#ifdef FOR_LOOP_AUTO_SUPPORT
-  FOR_LOOP(auto, imgdata, mImages) {
-#else
-  FOR_LOOP(image_data *, imgdata, mImages) {
-#endif
+  for (auto imgdata : mImages) {
     if (imgdata->mark_used || imgdata->is_in_output_queue) {
       imgdata->reconstruction->PicState = UsedForShortTermReference; // TODO: this is only a hack
 

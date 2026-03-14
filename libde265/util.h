@@ -64,39 +64,6 @@
 #define ALIGNED_8( var )  LIBDE265_DECLARE_ALIGNED( var, 8 )
 #define ALIGNED_4( var )  LIBDE265_DECLARE_ALIGNED( var, 4 )
 
-// C++11 specific features
-#if defined(_MSC_VER) || (!__clang__ && __GNUC__ && GCC_VERSION < 40600)
-#define FOR_LOOP(type, var, list)   for each (type var in list)
-#undef FOR_LOOP_AUTO_SUPPORT
-#else
-#define FOR_LOOP(type, var, list)   for (type var : list)
-#define FOR_LOOP_AUTO_SUPPORT 1
-#endif
-
-#ifdef USE_STD_TR1_NAMESPACE
-#include <tr1/memory>
-namespace std { using namespace std::tr1; }
-#endif
-
-#ifdef NEED_STD_MOVE_FALLBACK
-// Provide fallback variant of "std::move" for older compilers with
-// incomplete/broken C++11 support.
-namespace std {
-
-template<typename _Tp>
-inline typename std::remove_reference<_Tp>::type&& move(_Tp&& __t) {
-  return static_cast<typename std::remove_reference<_Tp>::type&&>(__t);
-}
-
-}  // namespace std
-#endif
-
-#ifdef NEED_NULLPTR_FALLBACK
-// Compilers with partial/incomplete support for C++11 don't know about
-// "nullptr". A simple alias should be fine for our use case.
-#define nullptr NULL
-#endif
-
 #ifdef _MSC_VER
   #ifdef _CPPRTTI
   #define RTTI_ENABLED

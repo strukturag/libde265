@@ -273,12 +273,7 @@ template <class T> class choice_option : public choice_option_base
   }
 
   void set_default(T val) {
-#ifdef FOR_LOOP_AUTO_SUPPORT
-    FOR_LOOP(auto, c, choices) {
-#else
-    for (typename std::vector< std::pair<std::string,T> >::const_iterator it=choices.begin(); it!=choices.end(); ++it) {
-      const std::pair<std::string,T> & c = *it;
-#endif
+    for (const auto& c : choices) {
       if (c.second == val) {
         defaultID = val;
         defaultValue = c.first;
@@ -300,12 +295,7 @@ template <class T> class choice_option : public choice_option_base
 
     validValue = false;
 
-#ifdef FOR_LOOP_AUTO_SUPPORT
-    FOR_LOOP(auto, c, choices) {
-#else
-    for (typename std::vector< std::pair<std::string,T> >::const_iterator it=choices.begin(); it!=choices.end(); ++it) {
-      const std::pair<std::string,T> & c = *it;
-#endif
+    for (const auto& c : choices) {
       if (val == c.first) {
         selectedID = c.second;
         validValue = true;
@@ -330,12 +320,7 @@ template <class T> class choice_option : public choice_option_base
   std::vector<std::string> get_choice_names() const
   {
     std::vector<std::string> names;
-#ifdef FOR_LOOP_AUTO_SUPPORT
-    FOR_LOOP(auto, p, choices) {
-#else
-    for (typename std::vector< std::pair<std::string,T> >::const_iterator it=choices.begin(); it!=choices.end(); ++it) {
-      const std::pair<std::string,T> & p = *it;
-#endif
+    for (const auto& p : choices) {
       names.push_back(p.first);
     }
     return names;
