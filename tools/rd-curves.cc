@@ -414,14 +414,14 @@ long ticks_per_second;
 
 void init_clock()
 {
-#ifndef WIN32
+#if !defined(_WIN32) && !defined(WIN32)
   ticks_per_second = sysconf(_SC_CLK_TCK);
 #endif
 }
 
 double get_cpu_time()
 {
-#ifndef WIN32
+#if !defined(_WIN32) && !defined(WIN32)
   struct tms t;
   times(&t);
   return double(t.tms_cutime)/ticks_per_second;
