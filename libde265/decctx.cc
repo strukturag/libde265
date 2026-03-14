@@ -267,39 +267,10 @@ decoder_context::decoder_context()
   img = NULL;
   previous_slice_header = nullptr;
 
-  /*
-  int PocLsbLt[MAX_NUM_REF_PICS];
-  int UsedByCurrPicLt[MAX_NUM_REF_PICS];
-  int DeltaPocMsbCycleLt[MAX_NUM_REF_PICS];
-  int CurrDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
-  int FollDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
-
-  int NumPocStCurrBefore;
-  int NumPocStCurrAfter;
-  int NumPocStFoll;
-  int NumPocLtCurr;
-  int NumPocLtFoll;
-
-  // These lists contain absolute POC values.
-  int PocStCurrBefore[MAX_NUM_REF_PICS]; // used for reference in current picture, smaller POC
-  int PocStCurrAfter[MAX_NUM_REF_PICS];  // used for reference in current picture, larger POC
-  int PocStFoll[MAX_NUM_REF_PICS]; // not used for reference in current picture, but in future picture
-  int PocLtCurr[MAX_NUM_REF_PICS]; // used in current picture
-  int PocLtFoll[MAX_NUM_REF_PICS]; // used in some future picture
-
-  // These lists contain indices into the DPB.
-  int RefPicSetStCurrBefore[DE265_DPB_SIZE];
-  int RefPicSetStCurrAfter[DE265_DPB_SIZE];
-  int RefPicSetStFoll[DE265_DPB_SIZE];
-  int RefPicSetLtCurr[DE265_DPB_SIZE];
-  int RefPicSetLtFoll[DE265_DPB_SIZE];
-
-
-  uint8_t nal_unit_type;
-
-  char IdrPicFlag;
-  char RapPicFlag;
-  */
+  // PocLsbLt, UsedByCurrPicLt, DeltaPocMsbCycleLt, CurrDeltaPocMsbPresentFlag,
+  // FollDeltaPocMsbPresentFlag, NumPocSt*, NumPocLt*, PocSt*, PocLt*,
+  // RefPicSet*, nal_unit_type, IdrPicFlag, RapPicFlag
+  // are all default-initialized in decctx.h
 
 
 
@@ -370,30 +341,14 @@ void decoder_context::reset()
 
   // --------------------------------------------------
 
-#if 0
-  ctx->end_of_stream = false;
-  ctx->pending_input_NAL = NULL;
-  ctx->current_vps = NULL;
-  ctx->current_sps = NULL;
-  ctx->current_pps = NULL;
-  ctx->num_worker_threads = 0;
-  ctx->current_image_poc_lsb = 0;
-  ctx->first_decoded_picture = 0;
-  ctx->NoRaslOutputFlag = 0;
-  ctx->HandleCraAsBlaFlag = 0;
-  ctx->FirstAfterEndOfSequenceNAL = 0;
-  ctx->PicOrderCntMsb = 0;
-  ctx->prevPicOrderCntLsb = 0;
-  ctx->prevPicOrderCntMsb = 0;
-  ctx->NumPocStCurrBefore=0;
-  ctx->NumPocStCurrAfter=0;
-  ctx->NumPocStFoll=0;
-  ctx->NumPocLtCurr=0;
-  ctx->NumPocLtFoll=0;
-  ctx->nal_unit_type=0;
-  ctx->IdrPicFlag=0;
-  ctx->RapPicFlag=0;
-#endif
+  NumPocStCurrBefore = 0;
+  NumPocStCurrAfter = 0;
+  NumPocStFoll = 0;
+  NumPocLtCurr = 0;
+  NumPocLtFoll = 0;
+  nal_unit_type = 0;
+  IdrPicFlag = 0;
+  RapPicFlag = 0;
 
   img = NULL;
 

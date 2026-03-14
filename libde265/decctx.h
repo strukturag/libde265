@@ -458,43 +458,43 @@ class decoder_context : public base_context {
   // --- motion compensation ---
 
  public:
-  int PocLsbLt[MAX_NUM_REF_PICS];
-  int UsedByCurrPicLt[MAX_NUM_REF_PICS];
-  int DeltaPocMsbCycleLt[MAX_NUM_REF_PICS];
+  int PocLsbLt[MAX_NUM_REF_PICS]{};
+  int UsedByCurrPicLt[MAX_NUM_REF_PICS]{};
+  int DeltaPocMsbCycleLt[MAX_NUM_REF_PICS]{};
  private:
-  int CurrDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
-  int FollDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS];
+  int CurrDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS]{};
+  int FollDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS]{};
 
   // The number of entries in the lists below.
-  int NumPocStCurrBefore;
-  int NumPocStCurrAfter;
-  int NumPocStFoll;
-  int NumPocLtCurr;
-  int NumPocLtFoll;
+  int NumPocStCurrBefore = 0;
+  int NumPocStCurrAfter = 0;
+  int NumPocStFoll = 0;
+  int NumPocLtCurr = 0;
+  int NumPocLtFoll = 0;
 
   // These lists contain absolute POC values.
-  int PocStCurrBefore[MAX_NUM_REF_PICS]; // used for reference in current picture, smaller POC
-  int PocStCurrAfter[MAX_NUM_REF_PICS];  // used for reference in current picture, larger POC
-  int PocStFoll[MAX_NUM_REF_PICS]; // not used for reference in current picture, but in future picture
-  int PocLtCurr[MAX_NUM_REF_PICS]; // used in current picture
-  int PocLtFoll[MAX_NUM_REF_PICS]; // used in some future picture
+  int PocStCurrBefore[MAX_NUM_REF_PICS]{}; // used for reference in current picture, smaller POC
+  int PocStCurrAfter[MAX_NUM_REF_PICS]{};  // used for reference in current picture, larger POC
+  int PocStFoll[MAX_NUM_REF_PICS]{}; // not used for reference in current picture, but in future picture
+  int PocLtCurr[MAX_NUM_REF_PICS]{}; // used in current picture
+  int PocLtFoll[MAX_NUM_REF_PICS]{}; // used in some future picture
 
   // These lists contain indices into the DPB.
-  int RefPicSetStCurrBefore[MAX_NUM_REF_PICS];
-  int RefPicSetStCurrAfter[MAX_NUM_REF_PICS];
-  int RefPicSetStFoll[MAX_NUM_REF_PICS];
-  int RefPicSetLtCurr[MAX_NUM_REF_PICS];
-  int RefPicSetLtFoll[MAX_NUM_REF_PICS];
+  int RefPicSetStCurrBefore[MAX_NUM_REF_PICS]{};
+  int RefPicSetStCurrAfter[MAX_NUM_REF_PICS]{};
+  int RefPicSetStFoll[MAX_NUM_REF_PICS]{};
+  int RefPicSetLtCurr[MAX_NUM_REF_PICS]{};
+  int RefPicSetLtFoll[MAX_NUM_REF_PICS]{};
 
 
   // --- parameters derived from parameter sets ---
 
   // NAL
 
-  uint8_t nal_unit_type;
+  uint8_t nal_unit_type = 0;
 
-  char IdrPicFlag;
-  char RapPicFlag;
+  char IdrPicFlag = 0;
+  char RapPicFlag = 0;
 
 
   // --- image unit queue ---
