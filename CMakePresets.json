@@ -1,0 +1,20 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "fuzzing",
+      "displayName": "Fuzzing",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-fuzzing",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BUILD_SHARED_LIBS": "OFF",
+        "WITH_FUZZERS": "ON",
+        "ENABLE_ENCODER": "OFF",
+        "ENABLE_SDL": "OFF"
+      }
+    }
+  ]
+}

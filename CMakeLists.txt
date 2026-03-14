@@ -151,6 +151,13 @@ option(ENABLE_DECODER "Enable Decoder" ON)
 option(ENABLE_ENCODER "Enable Encoder" OFF)
 option(ENABLE_SHERLOCK265 "Build sherlock265 visual inspection tool" OFF)
 option(ENABLE_TOOLS "Build tools" OFF)
+option(WITH_FUZZERS "Build the fuzzers" OFF)
+set(FUZZING_SANITIZER_OPTIONS "-fsanitize=address,shift,integer" "-fno-sanitize-recover=shift,integer" CACHE STRING "Sanitizer flags for fuzzing builds")
+
+if (WITH_FUZZERS)
+  add_compile_options("-fsanitize=fuzzer-no-link" ${FUZZING_SANITIZER_OPTIONS})
+  add_link_options(${FUZZING_SANITIZER_OPTIONS})
+endif()
 
 add_subdirectory (libde265)
 if (ENABLE_DECODER)
@@ -164,6 +171,9 @@ if (ENABLE_SHERLOCK265)
 endif()
 if (ENABLE_TOOLS)
   add_subdirectory (tools)
+endif()
+if (WITH_FUZZERS)
+  add_subdirectory (fuzzing)
 endif()
 
 add_custom_target(dist
