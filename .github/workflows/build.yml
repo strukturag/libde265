@@ -1,10 +1,6 @@
 name: build
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -13,7 +9,6 @@ jobs:
         env:
           - { CC: "gcc", CXX: "g++" }
           - { CC: "clang", CXX: "clang++" }
-          - { CMAKE: "cmake" }
     env: ${{ matrix.env }}
     runs-on: ubuntu-22.04
     steps:

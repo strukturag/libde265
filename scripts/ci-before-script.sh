@@ -29,11 +29,7 @@ if [ -z "$CURRENT_OS" ]; then
     fi
 fi
 
-if [ ! -z "$TARGET_HOST" ]; then
-    # Make sure the correct compiler will be used.
-    unset CC
-    unset CXX
-fi
+CMAKE_OPTS=""
 
 if [ "$CURRENT_OS" = "osx" ]; then
     HOMEBREW_PREFIX="$(brew --prefix)"
@@ -44,17 +40,16 @@ fi
 # Valgrind on Ubuntu 22.04 cannot handle DWARF5 debug info produced by clang.
 # Force DWARF4 so valgrind can read the debug info.
 if [ "$CURRENT_OS" = "linux" ] && [ "$CC" = "clang" ]; then
-    # We need to replicate the autotools defaults (-g -O2) because exporting
-    # CFLAGS/CXXFLAGS causes configure to use them verbatim instead of its
-    # own defaults. This can be simplified to just appending -gdwarf-4 once
-    # we migrate the CI build to cmake.
-    export CFLAGS="${CFLAGS:--g -O2} -gdwarf-4"
-    export CXXFLAGS="${CXXFLAGS:--g -O2} -gdwarf-4"
+    CMAKE_OPTS="$CMAKE_OPTS -DCMAKE_C_FLAGS=-gdwarf-4 -DCMAKE_CXX_FLAGS=-gdwarf-4"
 fi
 
-if [ -z "$CMAKE" ]; then
-    ./autogen.sh
-    ./configure --host=$TARGET_HOST
-else
-    cmake .
+# Select toolchain file for cross-compilation
+if [ "$WINE" = "wine" ]; then
+    CMAKE_OPTS="$CMAKE_OPTS -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/mingw-i686.cmake"
+elif [ "$WINE" = "wine64" ]; then
+    CMAKE_OPTS="$CMAKE_OPTS -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/mingw-x86_64.cmake"
+elif ( echo "$TARGET_HOST" | grep -q "^arm" ); then
+    CMAKE_OPTS="$CMAKE_OPTS -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/arm-linux-gnueabihf.cmake"
 fi
+
+cmake -B build -S . $CMAKE_OPTS

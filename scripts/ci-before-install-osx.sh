@@ -26,9 +26,7 @@ INSTALL_PACKAGES=
 while true; do echo "Still alive at $(date) ..."; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
 INSTALL_PACKAGES="$INSTALL_PACKAGES \
-    automake \
     ffmpeg \
-    libtool \
     pkg-config \
     qt@5 \
     sdl2 \
