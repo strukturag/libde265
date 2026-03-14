@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 H.265 video codec.
 Copyright (c) 2014 struktur AG, Joachim Bauch <bauch@struktur.de>
@@ -31,7 +31,7 @@ import time
 
 CPU_COUNT = multiprocessing is not None and multiprocessing.cpu_count() or 2
 if CPU_COUNT > 2:
-    THREAD_COUNT = CPU_COUNT / 2
+    THREAD_COUNT = CPU_COUNT // 2
 else:
     THREAD_COUNT = 2
 
@@ -46,7 +46,7 @@ CANCEL_TIMEOUT = 120
 DEFAULT_ROOT = '/var/lib/libde265-teststreams'
 
 def decode_file(filename, threads=None):
-    cmd = ['./dec265/dec265', '-q', '-c']
+    cmd = ['./build/dec265/dec265', '-q', '-c']
     if threads and threads > 0:
         cmd.append('-t')
         cmd.append(str(threads))
@@ -58,19 +58,19 @@ def decode_file(filename, threads=None):
         return (True, filename)
 
     if p.returncode < 0:
-        print '\rERROR: %s failed with signal %d (%r)' % (filename, -p.returncode, stdoutdata)
+        print('\rERROR: %s failed with signal %d (%r)' % (filename, -p.returncode, stdoutdata))
         return (False, filename)
     elif p.returncode > 0:
         basename = os.path.basename(filename)
         if basename[:3] == 'id:':
             # fuzzing files may be invalid
-            print '\rWARNING: %s failed with returncode %d' % (filename, p.returncode)
+            print('\rWARNING: %s failed with returncode %d' % (filename, p.returncode))
             return (True, filename)
         else:
-            print '\rERROR: %s failed with returncode %d (%r)' % (filename, p.returncode, stdoutdata)
+            print('\rERROR: %s failed with returncode %d (%r)' % (filename, p.returncode, stdoutdata))
             return (False, filename)
     else:
-        print 'OK: %s' % (filename)
+        print('OK: %s' % (filename))
         return (True, filename)
 
 class BaseProcessor(object):
@@ -159,12 +159,12 @@ if multiprocessing is not None:
                         prev_remaining = remaining
 
                     if now >= cancel_time:
-                        print 'Timeout while waiting for pending jobs, cancelling...'
+                        print('Timeout while waiting for pending jobs, cancelling...')
                         self.errors.append('Cancelled due to timeout, %d jobs were still pending' % (remaining))
                         self.pool.terminate()
                         break
                     elif remaining and now >= next_status:
-                        print 'Wait for %d pending jobs...' % (remaining)
+                        print('Wait for %d pending jobs...' % (remaining))
                         next_status = now + STATUS_INTERVAL
 
             self.pool.join()
@@ -193,24 +193,24 @@ def main():
             root = DEFAULT_ROOT
     else:
         root = DEFAULT_ROOT
-    
+
     filenames = glob.glob(os.path.join(root, '*.bin'))
-    print 'Processing %d streams in %s' % (len(filenames), root)
+    print('Processing %d streams in %s' % (len(filenames), root))
     if threads:
-        print 'Using %d processes with %s threads each' % (PROCESS_COUNT, threads)
+        print('Using %d processes with %s threads each' % (PROCESS_COUNT, threads))
     else:
-        print 'Using %d processes' % (PROCESS_COUNT)
-    
+        print('Using %d processes' % (PROCESS_COUNT))
+
     processor = ProcessorClass(filenames, threads)
     try:
         processor.run()
     except KeyboardInterrupt:
         processor.cancel()
-        print 'Cancelled...'
+        print('Cancelled...')
 
     if processor.errors:
-        print 'Found %d files with errors:' % (len(processor.errors))
-        print '\n'.join(sorted(processor.errors))
+        print('Found %d files with errors:' % (len(processor.errors)))
+        print('\n'.join(sorted(processor.errors)))
         sys.exit(1)
 
 if __name__ == '__main__':

@@ -35,12 +35,6 @@ if [ -z "$TARGET_HOST" ]; then
         "
 fi
 
-if [ -z "$TARGET_HOST" ] && [ -z "$DECODESTREAMS" ]; then
-    INSTALL_PACKAGES="$INSTALL_PACKAGES \
-        devscripts \
-        "
-fi
-
 if [ "$WINE" = "wine" ]; then
     sudo dpkg --add-architecture i386
     UPDATE_APT=1
@@ -75,13 +69,6 @@ if [ ! -z "$DECODESTREAMS" ]; then
     UPDATE_APT=1
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         $DECODESTREAMS \
-        python-is-python2 \
-        "
-fi
-
-if [ ! -z "$CMAKE" ]; then
-    INSTALL_PACKAGES="$INSTALL_PACKAGES \
-        cmake \
         "
 fi
 
