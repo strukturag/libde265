@@ -295,7 +295,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
       delta_poc_s0++;
       char used_by_curr_pic_s0_flag = get_bits(br,1);
 
-      out_set->DeltaPocS0[i]      = lastPocS - delta_poc_s0;
+      out_set->DeltaPocS0[i]      = lastPocS - static_cast<int>(delta_poc_s0);
       out_set->UsedByCurrPicS0[i] = used_by_curr_pic_s0_flag;
       lastPocS = out_set->DeltaPocS0[i];
     }
@@ -309,7 +309,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
       delta_poc_s1++;
       char used_by_curr_pic_s1_flag = get_bits(br,1);
 
-      out_set->DeltaPocS1[i]      = lastPocS + delta_poc_s1;
+      out_set->DeltaPocS1[i]      = lastPocS + static_cast<int>(delta_poc_s1);
       out_set->UsedByCurrPicS1[i] = used_by_curr_pic_s1_flag;
       lastPocS = out_set->DeltaPocS1[i];
     }

@@ -191,7 +191,7 @@ void de265_image::set_image_plane(int cIdx, uint8_t* mem, int stride, void *user
 
 de265_image::de265_image()
 {
-  ID = -1;
+  ID = std::numeric_limits<uint32_t>::max();
   removed_at_picture_id = 0; // picture not used, so we can assume it has been removed
 
   decctx = NULL;

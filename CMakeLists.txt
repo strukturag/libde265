@@ -152,7 +152,7 @@ option(ENABLE_ENCODER "Enable Encoder" OFF)
 option(ENABLE_SHERLOCK265 "Build sherlock265 visual inspection tool" OFF)
 option(ENABLE_TOOLS "Build tools" OFF)
 option(WITH_FUZZERS "Build the fuzzers" OFF)
-set(FUZZING_SANITIZER_OPTIONS "-fsanitize=address,shift,integer" "-fno-sanitize-recover=shift,integer" CACHE STRING "Sanitizer flags for fuzzing builds")
+set(FUZZING_SANITIZER_OPTIONS "-fsanitize=address,shift,integer" "-fno-sanitize=unsigned-shift-base" "-fno-sanitize-recover=shift,integer" CACHE STRING "Sanitizer flags for fuzzing builds")
 
 if (WITH_FUZZERS)
   add_compile_options("-fsanitize=fuzzer-no-link" ${FUZZING_SANITIZER_OPTIONS})
