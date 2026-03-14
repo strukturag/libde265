@@ -41,6 +41,7 @@ IGNORE_FILES=(
     'AUTHORS',
     'ChangeLog',
     'CMakeLists.txt',
+    'CMakePresets.json',
     'COPYING',
     'NEWS',
     'README.md',
