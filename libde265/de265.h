@@ -166,42 +166,42 @@ LIBDE265_API void de265_set_verbosity(int level);
    But you may want to check the chroma format anyway for future compatibility.
  */
 
-struct de265_image;
+typedef struct de265_image de265_image;
 
-enum de265_chroma {
+typedef enum de265_chroma {
   de265_chroma_mono=0,
   de265_chroma_420=1,
   de265_chroma_422=2,
   de265_chroma_444=3
-};
+} de265_chroma;
 
 typedef int64_t de265_PTS;
 
 
-LIBDE265_API int de265_get_image_width(const struct de265_image*,int channel);
-LIBDE265_API int de265_get_image_height(const struct de265_image*,int channel);
-LIBDE265_API enum de265_chroma de265_get_chroma_format(const struct de265_image*);
-LIBDE265_API int de265_get_bits_per_pixel(const struct de265_image*,int channel);
+LIBDE265_API int de265_get_image_width(const de265_image*,int channel);
+LIBDE265_API int de265_get_image_height(const de265_image*,int channel);
+LIBDE265_API de265_chroma de265_get_chroma_format(const de265_image*);
+LIBDE265_API int de265_get_bits_per_pixel(const de265_image*,int channel);
 /* The |out_stride| is returned as "bytes per line" if a non-NULL parameter is given. */
-LIBDE265_API const uint8_t* de265_get_image_plane(const struct de265_image*, int channel, int* out_stride);
-LIBDE265_API void* de265_get_image_plane_user_data(const struct de265_image*, int channel);
-LIBDE265_API de265_PTS de265_get_image_PTS(const struct de265_image*);
-LIBDE265_API void* de265_get_image_user_data(const struct de265_image*);
-LIBDE265_API void de265_set_image_user_data(struct de265_image*, void *user_data);
+LIBDE265_API const uint8_t* de265_get_image_plane(const de265_image*, int channel, int* out_stride);
+LIBDE265_API void* de265_get_image_plane_user_data(const de265_image*, int channel);
+LIBDE265_API de265_PTS de265_get_image_PTS(const de265_image*);
+LIBDE265_API void* de265_get_image_user_data(const de265_image*);
+LIBDE265_API void de265_set_image_user_data(de265_image*, void *user_data);
 
 /* Get NAL-header information of this frame. You can pass in NULL pointers if you
    do not need this piece of information.
  */
-LIBDE265_API void de265_get_image_NAL_header(const struct de265_image*,
+LIBDE265_API void de265_get_image_NAL_header(const de265_image*,
                                              int* nal_unit_type,
                                              const char** nal_unit_name, // textual description of 'nal_unit_type'
                                              int* nuh_layer_id,
                                              int* nuh_temporal_id);
 
-LIBDE265_API int de265_get_image_full_range_flag(const struct de265_image*);
-LIBDE265_API int de265_get_image_colour_primaries(const struct de265_image*);
-LIBDE265_API int de265_get_image_transfer_characteristics(const struct de265_image*);
-LIBDE265_API int de265_get_image_matrix_coefficients(const struct de265_image*);
+LIBDE265_API int de265_get_image_full_range_flag(const de265_image*);
+LIBDE265_API int de265_get_image_colour_primaries(const de265_image*);
+LIBDE265_API int de265_get_image_transfer_characteristics(const de265_image*);
+LIBDE265_API int de265_get_image_matrix_coefficients(const de265_image*);
 
 
 /* === decoder === */
@@ -299,12 +299,12 @@ LIBDE265_API void de265_reset(de265_decoder_context*);
 /* Return next decoded picture, if there is any. If no complete picture has been
    decoded yet, NULL is returned. You should call de265_release_next_picture() to
    advance to the next picture. */
-LIBDE265_API const struct de265_image* de265_peek_next_picture(de265_decoder_context*); // may return NULL
+LIBDE265_API const de265_image* de265_peek_next_picture(de265_decoder_context*); // may return NULL
 
 /* Get next decoded picture and remove this picture from the decoder output queue.
    Returns NULL is there is no decoded picture ready.
    You can use the picture only until you call any other de265_* function. */
-LIBDE265_API const struct de265_image* de265_get_next_picture(de265_decoder_context*); // may return NULL
+LIBDE265_API const de265_image* de265_get_next_picture(de265_decoder_context*); // may return NULL
 
 /* Release the current decoded picture for reuse in the decoder. You should not
    use the data anymore after calling this function. */
@@ -314,16 +314,16 @@ LIBDE265_API void de265_release_next_picture(de265_decoder_context*);
 LIBDE265_API de265_error de265_get_warning(de265_decoder_context*);
 
 
-enum de265_image_format {
+typedef enum de265_image_format {
   de265_image_format_mono8    = 1,
   de265_image_format_YUV420P8 = 2,
   de265_image_format_YUV422P8 = 3,
   de265_image_format_YUV444P8 = 4
-};
+} de265_image_format;
 
-struct de265_image_spec
+typedef struct de265_image_spec
 {
-  enum de265_image_format format;
+  de265_image_format format;
   int width;
   int height;
   int alignment;
@@ -337,27 +337,27 @@ struct de265_image_spec
 
   int visible_width;  // convenience, width  - crop_left - crop_right
   int visible_height; // convenience, height - crop_top - crop_bottom
-};
+} de265_image_spec;
 
-struct de265_image_allocation
+typedef struct de265_image_allocation
 {
   int  (*get_buffer)(de265_decoder_context* ctx, // first parameter deprecated
-                     struct de265_image_spec* spec,
-                     struct de265_image* img,
+                     de265_image_spec* spec,
+                     de265_image* img,
                      void* userdata);
   void (*release_buffer)(de265_decoder_context* ctx, // first parameter deprecated
-                         struct de265_image* img,
+                         de265_image* img,
                          void* userdata);
-};
+} de265_image_allocation;
 
 /* The user data pointer will be given to the get_buffer() and release_buffer() functions
    in de265_image_allocation. */
 LIBDE265_API void de265_set_image_allocation_functions(de265_decoder_context*,
-                                                       struct de265_image_allocation*,
+                                                       de265_image_allocation*,
                                                        void* userdata);
-LIBDE265_API const struct de265_image_allocation *de265_get_default_image_allocation_functions(void);
+LIBDE265_API const de265_image_allocation *de265_get_default_image_allocation_functions(void);
 
-LIBDE265_API void de265_set_image_plane(struct de265_image* img, int cIdx, void* mem, int stride, void *userdata);
+LIBDE265_API void de265_set_image_plane(de265_image* img, int cIdx, void* mem, int stride, void *userdata);
 
 
 /* --- frame dropping API ---
@@ -389,7 +389,7 @@ LIBDE265_API int  de265_change_framerate(de265_decoder_context*,int more_vs_less
 
 /* --- decoding parameters --- */
 
-enum de265_param {
+typedef enum de265_param {
   DE265_DECODER_PARAM_BOOL_SEI_CHECK_HASH=0, // (bool) Perform SEI hash check on decoded pictures.
   DE265_DECODER_PARAM_DUMP_SPS_HEADERS=1,    // (int)  Dump headers to specified file-descriptor.
   DE265_DECODER_PARAM_DUMP_VPS_HEADERS=2,
@@ -402,10 +402,10 @@ enum de265_param {
   DE265_DECODER_PARAM_DISABLE_SAO=8           // (bool)  disable SAO filter
   //DE265_DECODER_PARAM_DISABLE_MC_RESIDUAL_IDCT=9,     // (bool)  disable decoding of IDCT residuals in MC blocks
   //DE265_DECODER_PARAM_DISABLE_INTRA_RESIDUAL_IDCT=10  // (bool)  disable decoding of IDCT residuals in MC blocks
-};
+} de265_param;
 
 // sorted such that a large ID includes all optimizations from lower IDs
-enum de265_acceleration {
+typedef enum de265_acceleration {
   de265_acceleration_SCALAR = 0, // only fallback implementation
   de265_acceleration_MMX  = 10,
   de265_acceleration_SSE  = 20,
@@ -416,16 +416,16 @@ enum de265_acceleration {
   de265_acceleration_ARM  = 70,
   de265_acceleration_NEON = 80,
   de265_acceleration_AUTO = 10000
-};
+} de265_acceleration;
 
 
 /* Set decoding parameters. */
-LIBDE265_API void de265_set_parameter_bool(de265_decoder_context*, enum de265_param param, int value);
+LIBDE265_API void de265_set_parameter_bool(de265_decoder_context*, de265_param param, int value);
 
-LIBDE265_API void de265_set_parameter_int(de265_decoder_context*, enum de265_param param, int value);
+LIBDE265_API void de265_set_parameter_int(de265_decoder_context*, de265_param param, int value);
 
 /* Get decoding parameters. */
-LIBDE265_API int  de265_get_parameter_bool(de265_decoder_context*, enum de265_param param);
+LIBDE265_API int  de265_get_parameter_bool(de265_decoder_context*, de265_param param);
 
 
 
