@@ -154,8 +154,9 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
   seq_parameter_set* sps = ctx->get_sps((int)pps->seq_parameter_set_id);
   assert(sps);
 
-  shdr->luma_log2_weight_denom = uvlc = get_uvlc(br);
+  uvlc = get_uvlc(br);
   if (uvlc>7) return false;
+  shdr->luma_log2_weight_denom = uvlc;
 
   if (sps->chroma_format_idc != 0) {
     svlc = get_svlc(br);
@@ -724,7 +725,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
           }
       }
 
-      if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
+      if ((uvlc = get_uvlc(br)) == UVLC_ERROR || uvlc > 5) {
 	ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
 	return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
@@ -2451,7 +2452,7 @@ static int decode_coeff_abs_level_greater2(thread_context* tctx,
 
 #define MAX_PREFIX (15+3)
 
-static int16_t decode_coeff_abs_level_remaining(thread_context* tctx,
+static int32_t decode_coeff_abs_level_remaining(thread_context* tctx,
                                                 int cRiceParam)
 {
   logtrace(LogSlice,"# decode_coeff_abs_level_remaining\n");
@@ -2466,7 +2467,7 @@ static int16_t decode_coeff_abs_level_remaining(thread_context* tctx,
 
   // prefix = nb. 1 bits
 
-  int16_t value;
+  int32_t value;
 
   if (prefix <= 3) {
     // when code only TR part (level < TRMax)
@@ -3346,7 +3347,7 @@ int residual_coding(thread_context* tctx,
       for (int n=0;n<nCoefficients;n++) {
         int16_t baseLevel = coeff_value[n];
 
-        int16_t coeff_abs_level_remaining;
+        int32_t coeff_abs_level_remaining;
 
         // printf("coeff %d/%d, uiRiceParam: %d\n",n,nCoefficients,uiGoRiceParam);
 
@@ -3387,7 +3388,7 @@ int residual_coding(thread_context* tctx,
         logtrace(LogSlice, "coeff_abs_level_remaining=%d\n",coeff_abs_level_remaining);
 
 
-        int16_t currCoeff = baseLevel + coeff_abs_level_remaining;
+        int32_t currCoeff = baseLevel + coeff_abs_level_remaining;
         if (coeff_sign[n]) {
           currCoeff = -currCoeff;
         }
@@ -3411,7 +3412,7 @@ int residual_coding(thread_context* tctx,
         xC = (S.x<<2) + ScanOrderPos[p].x;
         yC = (S.y<<2) + ScanOrderPos[p].y;
 
-        tctx->coeffList[cIdx][ tctx->nCoeff[cIdx] ] = currCoeff;
+        tctx->coeffList[cIdx][ tctx->nCoeff[cIdx] ] = Clip3(-32768, 32767, currCoeff);
         tctx->coeffPos [cIdx][ tctx->nCoeff[cIdx] ] = xC + yC*CoeffStride;
         tctx->nCoeff[cIdx]++;
 
@@ -4051,8 +4052,8 @@ void read_mvd_coding(thread_context* tctx,
   }
 
   //set_mvd(tctx->decctx, x0,y0, refList, value[0],value[1]);
-  tctx->motion.mvd[refList][0] = value[0];
-  tctx->motion.mvd[refList][1] = value[1];
+  tctx->motion.mvd[refList][0] = Clip3(-32768, 32767, value[0]);
+  tctx->motion.mvd[refList][1] = Clip3(-32768, 32767, value[1]);
 
   logtrace(LogSlice, "MVD[%d;%d|%d] = %d;%d\n",x0,y0,refList, value[0],value[1]);
 }

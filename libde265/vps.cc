@@ -137,6 +137,10 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
 
+    if (v1 > 16 || v2 > v1) {
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+
     layer[i].vps_max_dec_pic_buffering = v1;
     layer[i].vps_max_num_reorder_pics  = v2;
     layer[i].vps_max_latency_increase  = v3;
