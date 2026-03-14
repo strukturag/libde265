@@ -34,8 +34,6 @@ KNOWN_GOOD_FILES=(
 IGNORE_FILES=(
     '.gitignore',
     'appveyor.yml',
-    'build.bat',
-    'configure.ac',
     'libde265.pc.in',
     'libde265.png',
     'valgrind.supp',
@@ -43,12 +41,9 @@ IGNORE_FILES=(
     'ChangeLog',
     'CMakeLists.txt',
     'COPYING',
-    'Makefile.am',
-    'Makefile.vc7',
     'NEWS',
     'README.md',
-    'testdata/girlshy.h265',
-    'config.h.in'
+    'testdata/girlshy.h265'
 )
 
 FOUND=

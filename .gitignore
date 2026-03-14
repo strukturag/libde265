@@ -1,24 +1,11 @@
-.deps
-.libs
-.dirstamp
-.gitignore
-*.o
-*.lo
 *~
-Makefile
-Makefile.in
-config.log
-config.h
-config.status
-config.guess
-config.sub
-stamp-h1
-configure
+*.o
 *.obj
-*.la
-de265-config.h
-libde265.pc
 *.DS_Store
+
+# cmake
+/build
+/_build
 
 # MSVC
 *.sln
@@ -26,32 +13,10 @@ libde265.pc
 *.suo
 *.vcproj*
 
-# Automake generated files
-/m4/libtool.m4
-/m4/ltoptions.m4
-/m4/ltsugar.m4
-/m4/ltversion.m4
-/m4/lt~obsolete.m4
-/aclocal.m4
-/ar-lib
-/autom4te.cache/
-/missing
-/install-sh
-/INSTALL
-/test-driver
-/compile
-/depcomp
-/libtool
-/ltmain.sh
-/stamp-h1
-/test-suite.log
-/build
-/_build
-
 # ctags
 tags
 
-# other
+# build outputs
 acceleration-speed/acceleration_speed
 dec265/dec265
 dec265/hdrcopy

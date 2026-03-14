@@ -36,7 +36,7 @@ jobs:
     - name: Build with Coverity build tool
       run: |
         export PATH=`pwd`/coverity_tool/bin:$PATH
-        cov-build --dir cov-int make
+        cov-build --dir cov-int cmake --build build
 
     - name: Submit build result to Coverity Scan
       run: |
