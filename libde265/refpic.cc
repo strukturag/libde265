@@ -104,7 +104,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
 
   if (inter_ref_pic_set_prediction_flag) {
-    int vlc;
+    uint32_t vlc;
 
     /* Only for the last ref_pic_set (that's the one coded in the slice header),
        we can specify relative to which reference set we code the set. */
@@ -112,7 +112,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     int delta_idx;
     if (sliceRefPicSet) { // idxRps == num_short_term_ref_pic_sets) {
       delta_idx = vlc = get_uvlc(br);
-      if (delta_idx==UVLC_ERROR) {
+      if (vlc==UVLC_ERROR) {
         return false;
       }
 
@@ -252,8 +252,8 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     // --- first, read the number of past and future frames in this set ---
 
-    int num_negative_pics = get_uvlc(br);
-    int num_positive_pics = get_uvlc(br);
+    uint32_t num_negative_pics = get_uvlc(br);
+    uint32_t num_positive_pics = get_uvlc(br);
 
     if (num_negative_pics == UVLC_ERROR ||
         num_positive_pics == UVLC_ERROR) {
@@ -264,7 +264,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     // total number of reference pictures may not exceed buffer capacity
     if (num_negative_pics + num_positive_pics >
-        sps->sps_max_dec_pic_buffering[ sps->sps_max_sub_layers-1 ]) {
+        (uint32_t)sps->sps_max_dec_pic_buffering[ sps->sps_max_sub_layers-1 ]) {
 
       out_set->NumNegativePics = 0;
       out_set->NumPositivePics = 0;
@@ -289,8 +289,8 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     // past frames
 
     int lastPocS=0;
-    for (int i=0;i<num_negative_pics;i++) {
-      int  delta_poc_s0 = get_uvlc(br);
+    for (uint32_t i=0;i<num_negative_pics;i++) {
+      uint32_t delta_poc_s0 = get_uvlc(br);
       if (delta_poc_s0==UVLC_ERROR) { return false; }
       delta_poc_s0++;
       char used_by_curr_pic_s0_flag = get_bits(br,1);
@@ -303,8 +303,8 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     // future frames
 
     lastPocS=0;
-    for (int i=0;i<num_positive_pics;i++) {
-      int  delta_poc_s1 = get_uvlc(br);
+    for (uint32_t i=0;i<num_positive_pics;i++) {
+      uint32_t delta_poc_s1 = get_uvlc(br);
       if (delta_poc_s1==UVLC_ERROR) { return false; }
       delta_poc_s1++;
       char used_by_curr_pic_s1_flag = get_bits(br,1);

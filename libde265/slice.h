@@ -151,20 +151,20 @@ public:
 
   char first_slice_segment_in_pic_flag;
   char no_output_of_prior_pics_flag;
-  int  slice_pic_parameter_set_id;
+  uint8_t slice_pic_parameter_set_id; // [0;63]
   char dependent_slice_segment_flag;
   uint32_t slice_segment_address;
 
-  int  slice_type;
+  uint8_t slice_type;                  // [0;2]
   char pic_output_flag;
   char colour_plane_id;
   int  slice_pic_order_cnt_lsb;
   char short_term_ref_pic_set_sps_flag;
   ref_pic_set slice_ref_pic_set;
 
-  int  short_term_ref_pic_set_idx;
-  int  num_long_term_sps;
-  int  num_long_term_pics;
+  uint8_t short_term_ref_pic_set_idx;
+  uint8_t num_long_term_sps;        // [0;32]
+  uint8_t num_long_term_pics;       // [0;32]
 
   uint8_t lt_idx_sps[MAX_NUM_REF_PICS];
   int     poc_lsb_lt[MAX_NUM_REF_PICS];
@@ -178,8 +178,8 @@ public:
   char slice_sao_chroma_flag;
 
   char num_ref_idx_active_override_flag;
-  int  num_ref_idx_l0_active; // [1;16]
-  int  num_ref_idx_l1_active; // [1;16]
+  uint8_t num_ref_idx_l0_active; // [1;16]
+  uint8_t num_ref_idx_l1_active; // [1;16]
 
   char ref_pic_list_modification_flag_l0;
   char ref_pic_list_modification_flag_l1;
@@ -189,7 +189,7 @@ public:
   char mvd_l1_zero_flag;
   char cabac_init_flag;
   char collocated_from_l0_flag;
-  int  collocated_ref_idx;
+  uint8_t collocated_ref_idx;         // [0;15]
 
   // --- pred_weight_table ---
 
@@ -205,7 +205,7 @@ public:
   int8_t  ChromaOffset[2][16][2];
 
 
-  int  five_minus_max_num_merge_cand;
+  uint8_t five_minus_max_num_merge_cand; // [0;5]
   int  slice_qp_delta;
 
   int  slice_cb_qp_offset;

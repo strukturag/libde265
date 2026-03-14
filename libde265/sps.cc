@@ -179,7 +179,7 @@ void seq_parameter_set::set_resolution(int w,int h)
 
 de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 {
-  int vlc;
+  uint32_t vlc;
 
   video_parameter_set_id = get_bits(br,4);
   sps_max_sub_layers     = get_bits(br,3) +1;
@@ -881,7 +881,7 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 
       char scaling_list_pred_mode_flag = get_bits(br,1);
       if (!scaling_list_pred_mode_flag) {
-        int scaling_list_pred_matrix_id_delta = get_uvlc(br);
+        uint32_t scaling_list_pred_matrix_id_delta = get_uvlc(br);
 
         if (scaling_list_pred_matrix_id_delta == UVLC_ERROR) {
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
@@ -892,7 +892,7 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
           scaling_list_pred_matrix_id_delta *= 3;
         }
 
-        if (scaling_list_pred_matrix_id_delta > matrixId) {
+        if (scaling_list_pred_matrix_id_delta > (uint32_t)matrixId) {
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
 

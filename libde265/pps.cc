@@ -48,12 +48,12 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
 {
   const seq_parameter_set* sps = ctx->get_sps(pps->seq_parameter_set_id);
 
-  int uvlc;
+  uint32_t uvlc;
 
   if (pps->transform_skip_enabled_flag) {
     uvlc = get_uvlc(br);
     if (uvlc == UVLC_ERROR ||
-        uvlc+2 > sps->Log2MaxTrafoSize) {
+        uvlc+2 > (uint32_t)sps->Log2MaxTrafoSize) {
 
       // Note: this is out of spec, but the conformance stream
       // PERSIST_RPARAM_A_RExt_Sony_2 codes a too large value.
@@ -80,7 +80,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
   if (chroma_qp_offset_list_enabled_flag) {
     uvlc = get_uvlc(br);
     if (uvlc == UVLC_ERROR ||
-        uvlc > sps->log2_diff_max_min_luma_coding_block_size) {
+        uvlc > (uint32_t)sps->log2_diff_max_min_luma_coding_block_size) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
@@ -98,9 +98,9 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
     chroma_qp_offset_list_len = uvlc+1;
 
     for (int i=0;i<chroma_qp_offset_list_len;i++) {
-      int svlc;
+      int32_t svlc;
       svlc = get_svlc(br);
-      if (svlc == UVLC_ERROR ||
+      if (svlc == SVLC_ERROR ||
           svlc < -12 || svlc > 12) {
         ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
         return false;
@@ -109,7 +109,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
       cb_qp_offset_list[i] = svlc;
 
       svlc = get_svlc(br);
-      if (svlc == UVLC_ERROR ||
+      if (svlc == SVLC_ERROR ||
           svlc < -12 || svlc > 12) {
         ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
         return false;
@@ -122,7 +122,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
 
   uvlc = get_uvlc(br);
   if (uvlc == UVLC_ERROR ||
-      uvlc > libde265_max(0, sps->BitDepth_Y-10)) {
+      uvlc > (uint32_t)libde265_max(0, sps->BitDepth_Y-10)) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }
@@ -131,7 +131,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
 
   uvlc = get_uvlc(br);
   if (uvlc == UVLC_ERROR ||
-      uvlc > libde265_max(0, sps->BitDepth_C-10)) {
+      uvlc > (uint32_t)libde265_max(0, sps->BitDepth_C-10)) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }
@@ -272,7 +272,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   reset();
 
 
-  int uvlc;
+  uint32_t uvlc;
   pic_parameter_set_id = uvlc = get_uvlc(br);
   if (uvlc >= DE265_MAX_PPS_SETS ||
       uvlc == UVLC_ERROR) {
@@ -314,33 +314,45 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
   sps = ctx->get_shared_sps(seq_parameter_set_id);
 
-  if ((pic_init_qp = get_svlc(br)) == UVLC_ERROR) {
-    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
-    return false;
+  {
+    int32_t svlc;
+    if ((svlc = get_svlc(br)) == SVLC_ERROR) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      return false;
+    }
+    pic_init_qp = svlc + 26;
   }
-  pic_init_qp += 26;
 
   constrained_intra_pred_flag = get_bits(br,1);
   transform_skip_enabled_flag = get_bits(br,1);
   cu_qp_delta_enabled_flag = get_bits(br,1);
 
   if (cu_qp_delta_enabled_flag) {
-    if ((diff_cu_qp_delta_depth = get_uvlc(br)) == UVLC_ERROR) {
+    if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
+    diff_cu_qp_delta_depth = uvlc;
   } else {
     diff_cu_qp_delta_depth = 0;
   }
 
-  if ((pic_cb_qp_offset = get_svlc(br)) == UVLC_ERROR) {
-    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
-    return false;
+  {
+    int32_t svlc;
+    if ((svlc = get_svlc(br)) == SVLC_ERROR) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      return false;
+    }
+    pic_cb_qp_offset = svlc;
   }
 
-  if ((pic_cr_qp_offset = get_svlc(br)) == UVLC_ERROR) {
-    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
-    return false;
+  {
+    int32_t svlc;
+    if ((svlc = get_svlc(br)) == SVLC_ERROR) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      return false;
+    }
+    pic_cr_qp_offset = svlc;
   }
 
   pps_slice_chroma_qp_offsets_present_flag = get_bits(br,1);
@@ -354,21 +366,19 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   // --- tiles ---
 
   if (tiles_enabled_flag) {
-    num_tile_columns = get_uvlc(br);
-    if (num_tile_columns == UVLC_ERROR ||
-	num_tile_columns+1 > DE265_MAX_TILE_COLUMNS) {
+    if ((uvlc = get_uvlc(br)) == UVLC_ERROR ||
+	uvlc+1 > DE265_MAX_TILE_COLUMNS) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
-    num_tile_columns++;
+    num_tile_columns = uvlc+1;
 
-    num_tile_rows = get_uvlc(br);
-    if (num_tile_rows == UVLC_ERROR ||
-	num_tile_rows+1 > DE265_MAX_TILE_ROWS) {
+    if ((uvlc = get_uvlc(br)) == UVLC_ERROR ||
+	uvlc+1 > DE265_MAX_TILE_ROWS) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
-    num_tile_rows++;
+    num_tile_rows = uvlc+1;
 
     uniform_spacing_flag = get_bits(br,1);
 
@@ -378,12 +388,11 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
       for (int i=0; i<num_tile_columns-1; i++)
         {
-          colWidth[i] = get_uvlc(br);
-          if (colWidth[i] == UVLC_ERROR) {
+          if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
 	    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
 	    return false;
 	  }
-          colWidth[i]++;
+          colWidth[i] = uvlc+1;
 
           lastColumnWidth -= colWidth[i];
         }
@@ -396,12 +405,11 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
       for (int i=0; i<num_tile_rows-1; i++)
         {
-          rowHeight[i] = get_uvlc(br);
-          if (rowHeight[i] == UVLC_ERROR) {
+          if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
 	    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
 	    return false;
 	  }
-          rowHeight[i]++;
+          rowHeight[i] = uvlc+1;
           lastRowHeight -= rowHeight[i];
         }
 
@@ -437,19 +445,20 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
     deblocking_filter_override_enabled_flag = get_bits(br,1);
     pic_disable_deblocking_filter_flag = get_bits(br,1);
     if (!pic_disable_deblocking_filter_flag) {
-      beta_offset = get_svlc(br);
-      if (beta_offset == UVLC_ERROR) {
-	ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
-	return false;
-      }
-      beta_offset *= 2;
+      {
+        int32_t svlc;
+        if ((svlc = get_svlc(br)) == SVLC_ERROR) {
+	  ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+	  return false;
+        }
+        beta_offset = svlc * 2;
 
-      tc_offset   = get_svlc(br);
-      if (tc_offset == UVLC_ERROR) {
-	ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
-	return false;
+        if ((svlc = get_svlc(br)) == SVLC_ERROR) {
+	  ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+	  return false;
+        }
+        tc_offset = svlc * 2;
       }
-      tc_offset   *= 2;
     }
   }
   else {
@@ -485,12 +494,11 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
 
   lists_modification_present_flag = get_bits(br,1);
-  log2_parallel_merge_level = get_uvlc(br);
-  if (log2_parallel_merge_level == UVLC_ERROR) {
+  if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }
-  log2_parallel_merge_level += 2;
+  log2_parallel_merge_level = uvlc + 2;
 
   if (log2_parallel_merge_level-2 > sps->log2_min_luma_coding_block_size-3 +1 +
       sps->log2_diff_max_min_luma_coding_block_size) {

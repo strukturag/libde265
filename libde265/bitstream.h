@@ -29,8 +29,12 @@
 #include <stdint.h>
 
 
-#define MAX_UVLC_LEADING_ZEROS 20
-#define UVLC_ERROR -99999
+// HEVC (ITU-T H.265, E.3.3) allows ue(v) values up to 2^32-2 (e.g. bit_rate_value_minus1),
+// which requires 31 leading zeros in the exp-Golomb code. 32 leading zeros would give a
+// minimum codeNum of 2^32-1, which exceeds every syntax element's valid range.
+#define MAX_UVLC_LEADING_ZEROS 31
+#define UVLC_ERROR UINT32_MAX
+#define SVLC_ERROR INT32_MIN
 
 
 typedef struct {
@@ -52,8 +56,8 @@ void skip_bits(bitreader*, int n);
 void skip_bits_fast(bitreader*, int n);
 void skip_to_byte_boundary(bitreader*);
 void prepare_for_CABAC(bitreader*);
-int  get_uvlc(bitreader*);  // may return UVLC_ERROR
-int  get_svlc(bitreader*);  // may return UVLC_ERROR
+uint32_t get_uvlc(bitreader*);  // may return UVLC_ERROR
+int32_t  get_svlc(bitreader*);  // may return SVLC_ERROR
 
 bool check_rbsp_trailing_bits(bitreader*); // return true if remaining filler bits are all zero
 

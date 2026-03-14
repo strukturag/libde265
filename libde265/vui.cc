@@ -78,7 +78,7 @@ video_usability_information::video_usability_information() = default;
 
 de265_error video_usability_information::hrd_parameters(error_queue* errqueue, bitreader* br, const seq_parameter_set* sps)
 {
-  int vlc;
+  uint32_t vlc;
 
   nal_hrd_parameters_present_flag = get_bits(br, 1);
   vcl_hrd_parameters_present_flag = get_bits(br, 1);
@@ -164,7 +164,7 @@ de265_error video_usability_information::hrd_parameters(error_queue* errqueue, b
 de265_error video_usability_information::read(error_queue* errqueue, bitreader* br,
                                               const seq_parameter_set* sps)
 {
-  int vlc;
+  uint32_t vlc;
 
 
   // --- sample aspect ratio (SAR) ---

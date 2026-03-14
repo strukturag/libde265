@@ -101,7 +101,7 @@ void video_parameter_set::set_defaults(enum profile_idc profile, int level_major
 
 de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
 {
-  int vlc;
+  uint32_t vlc;
 
   video_parameter_set_id = vlc = get_bits(reader, 4);
   if (vlc >= DE265_MAX_VPS_SETS) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
@@ -154,9 +154,8 @@ if (layer[i].vps_max_dec_pic_buffering == UVLC_ERROR ||
   vps_max_layer_id = get_bits(reader,6);
   vps_num_layer_sets = get_uvlc(reader);
 
-  if (vps_num_layer_sets+1<0 ||
-      vps_num_layer_sets+1>=1024 ||
-      vps_num_layer_sets == UVLC_ERROR) {
+  if (vps_num_layer_sets == UVLC_ERROR ||
+      vps_num_layer_sets+1>=1024) {
     errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
