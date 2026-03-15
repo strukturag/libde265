@@ -180,6 +180,7 @@ static uint32_t compute_checksum_8bit(uint8_t* data,int w,int h,int stride, int 
   return sum & 0xFFFFFFFF;
 }
 
+/*
 static inline uint16_t crc_process_byte(uint16_t crc, uint8_t byte)
 {
   for (int bit=0;bit<8;bit++) {
@@ -194,7 +195,6 @@ static inline uint16_t crc_process_byte(uint16_t crc, uint8_t byte)
   return crc;
 }
 
-/*
 static uint16_t compute_CRC_8bit_old(const uint8_t* data,int w,int h,int stride)
 {
   uint16_t crc = 0xFFFF;
