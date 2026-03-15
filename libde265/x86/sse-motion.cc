@@ -45,11 +45,11 @@ ALIGNED_16(const int8_t) epel_filters[7][16] = {
 };
 
 static const uint8_t qpel_extra_before[4] = { 0, 3, 3, 2 };
-static const uint8_t qpel_extra_after[4] = { 0, 3, 4, 4 };
+//static const uint8_t qpel_extra_after[4] = { 0, 3, 4, 4 };
 static const uint8_t qpel_extra[4] = { 0, 6, 7, 6 };
 
 static const int epel_extra_before = 1;
-static const int epel_extra_after = 2;
+//static const int epel_extra_after = 2;
 static const int epel_extra = 3;
 
 #define MAX_PB_SIZE 64
