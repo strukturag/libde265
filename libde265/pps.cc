@@ -292,19 +292,19 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   num_extra_slice_header_bits = get_bits(br,3);
   sign_data_hiding_flag = get_bits(br,1);
   cabac_init_present_flag = get_bits(br,1);
-  num_ref_idx_l0_default_active = uvlc = get_uvlc(br);
-  if (uvlc == UVLC_ERROR) {
+  uvlc = get_uvlc(br);
+  if (uvlc == UVLC_ERROR || uvlc > 15) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }
-  num_ref_idx_l0_default_active++;
+  num_ref_idx_l0_default_active = uvlc + 1;
 
-  num_ref_idx_l1_default_active = uvlc = get_uvlc(br);
-  if (uvlc == UVLC_ERROR) {
+  uvlc = get_uvlc(br);
+  if (uvlc == UVLC_ERROR || uvlc > 15) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }
-  num_ref_idx_l1_default_active++;
+  num_ref_idx_l1_default_active = uvlc + 1;
 
 
   if (!ctx->has_sps(seq_parameter_set_id)) {
@@ -328,7 +328,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   cu_qp_delta_enabled_flag = get_bits(br,1);
 
   if (cu_qp_delta_enabled_flag) {
-    if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
+    if ((uvlc = get_uvlc(br)) == UVLC_ERROR || uvlc > 6) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }

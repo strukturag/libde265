@@ -243,20 +243,23 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
     conf_win_bottom_offset= 0;
   }
 
-  READ_VLC_OFFSET(bit_depth_luma,  uvlc, 8);
-  READ_VLC_OFFSET(bit_depth_chroma,uvlc, 8);
-  if (bit_depth_luma > 16 ||
-      bit_depth_chroma > 16) {
+  if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > 8) {
     errqueue->add_warning(DE265_WARNING_SPS_HEADER_INVALID, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
+  bit_depth_luma = vlc + 8;
 
-  READ_VLC_OFFSET(log2_max_pic_order_cnt_lsb, uvlc, 4);
-  if (log2_max_pic_order_cnt_lsb<4 ||
-      log2_max_pic_order_cnt_lsb>16) {
+  if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > 8) {
     errqueue->add_warning(DE265_WARNING_SPS_HEADER_INVALID, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
+  bit_depth_chroma = vlc + 8;
+
+  if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > 12) {
+    errqueue->add_warning(DE265_WARNING_SPS_HEADER_INVALID, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+  log2_max_pic_order_cnt_lsb = vlc + 4;
   MaxPicOrderCntLsb = 1<<(log2_max_pic_order_cnt_lsb);
 
 
