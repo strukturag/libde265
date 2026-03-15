@@ -2,10 +2,8 @@ add_library(arm OBJECT arm.cc arm.h)
 
 if(HAVE_NEON)
   add_library(arm_neon OBJECT
-    asm.S
     cpudetect.S
     hevcdsp_qpel_neon.S
-    neon.S
   )
 
   target_compile_options(arm_neon PRIVATE
