@@ -1750,7 +1750,8 @@ void decoder_context::run_postprocessing_filters_parallel(image_unit* imgunit)
     //apply_sample_adaptive_offset(img);
   }
 
-  img->wait_for_completion();
+  if (waitForCompletion)
+    img->wait_for_completion();
 }
 
 /*
