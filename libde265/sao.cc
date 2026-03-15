@@ -502,7 +502,6 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 
   int nRows = sps.PicHeightInCtbsY;
 
-  int n=0;
   img->thread_start(nRows);
 
   for (int y=0;y<nRows;y++)
@@ -517,7 +516,6 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
 
       imgunit->tasks.push_back(task);
       add_task(&ctx->thread_pool_, task);
-      n++;
     }
 
   /* Currently need barrier here because when are finished, we have to swap the pixel

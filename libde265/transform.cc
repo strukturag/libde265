@@ -688,7 +688,6 @@ void quant_coefficients(//encoder_context* ectx,
   int rnd = (intra ? 171 : 85) << (qBits-9);
 
   int x, y;
-  int uiAcSum = 0;
 
   int nStride = (1<<log2TrSize);
 
@@ -702,7 +701,6 @@ void quant_coefficients(//encoder_context* ectx,
       sign   = (level < 0 ? -1: 1);
 
       level = (abs_value(level) * uiQ + rnd ) >> qBits;
-      uiAcSum += level;
       level *= sign;
       out_coeff[blockPos] = Clip3(-32768, 32767, level);
       //logtrace(LogTransform,"%d\n", out_coeff[blockPos]);
