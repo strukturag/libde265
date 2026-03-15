@@ -378,8 +378,20 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   if (pcm_enabled_flag) {
     pcm_sample_bit_depth_luma = get_bits(br,4)+1;
     pcm_sample_bit_depth_chroma = get_bits(br,4)+1;
-    READ_VLC_OFFSET(log2_min_pcm_luma_coding_block_size, uvlc, 3);
-    READ_VLC(log2_diff_max_min_pcm_luma_coding_block_size, uvlc);
+    int log2PcmCbSizeMax = std::min(static_cast<int>(log2_min_luma_coding_block_size +
+                                                      log2_diff_max_min_luma_coding_block_size), 5);
+
+    if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc + 3 > static_cast<uint32_t>(log2PcmCbSizeMax)) {
+      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+    log2_min_pcm_luma_coding_block_size = vlc + 3;
+
+    if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > static_cast<uint32_t>(log2PcmCbSizeMax - log2_min_pcm_luma_coding_block_size)) {
+      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+    log2_diff_max_min_pcm_luma_coding_block_size = vlc;
     pcm_loop_filter_disable_flag = get_bits(br,1);
 
     if (pcm_sample_bit_depth_luma > bit_depth_luma) {

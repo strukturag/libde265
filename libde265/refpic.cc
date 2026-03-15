@@ -129,9 +129,10 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     int RIdx = idxRps - delta_idx; // this is our source set, which we will modify (TODO: change type to uint8_t)
 
     int delta_rps_sign = get_bits(br,1);
-    int abs_delta_rps  = vlc = get_uvlc(br);
-    if (vlc==UVLC_ERROR) { return false; }
-    abs_delta_rps++;
+    vlc = get_uvlc(br);
+    // abs_delta_rps_minus1 shall be in [0, 2^15-1] (Sec. 7.4.8)
+    if (vlc==UVLC_ERROR || vlc > 32767) { return false; }
+    uint16_t abs_delta_rps = vlc + 1;
     int DeltaRPS = (delta_rps_sign ? -abs_delta_rps : abs_delta_rps);
 
     // bits are stored in this order:
