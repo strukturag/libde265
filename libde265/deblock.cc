@@ -1002,7 +1002,6 @@ void add_deblocking_tasks(image_unit* imgunit)
 
   int nRows = img->get_sps().PicHeightInCtbsY;
 
-  int n=0;
   img->thread_start(nRows*2);
 
   for (int pass=0;pass<2;pass++)
@@ -1017,7 +1016,6 @@ void add_deblocking_tasks(image_unit* imgunit)
 
           imgunit->tasks.push_back(task);
           add_task(&ctx->thread_pool_, task);
-          n++;
         }
     }
 }
