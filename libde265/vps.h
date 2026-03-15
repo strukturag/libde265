@@ -154,7 +154,7 @@ public:
   char     vps_poc_proportional_to_timing_flag;
   uint32_t vps_num_ticks_poc_diff_one;
 
-  uint8_t vps_num_hrd_parameters;  // currently [0;1]
+  uint16_t vps_num_hrd_parameters;  // [0;vps_num_layer_sets]
 
   std::vector<uint16_t> hrd_layer_set_idx;  // max size = 1024
   std::vector<char>     cprms_present_flag; // max size = 1024
