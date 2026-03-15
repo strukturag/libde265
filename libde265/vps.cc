@@ -185,7 +185,13 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
     vps_poc_proportional_to_timing_flag = get_bits(reader,1);
 
     if (vps_poc_proportional_to_timing_flag) {
-      vps_num_ticks_poc_diff_one = get_uvlc(reader)+1;
+      vlc = get_uvlc(reader);
+      if (vlc == UVLC_ERROR) {
+        errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      }
+      vps_num_ticks_poc_diff_one = vlc + 1;
+
       vlc = get_uvlc(reader);
 
       if (vlc == UVLC_ERROR || vlc > vps_num_layer_sets) {
