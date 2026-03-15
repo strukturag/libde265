@@ -886,6 +886,12 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
   compute_derived_values(pps.get());
 
+  // SliceQpY shall be in [-QpBdOffsetY, 51] (Sec. 7.4.7.1)
+  if (SliceQPY < -sps->QpBdOffset_Y || SliceQPY > 51) {
+    ctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
   *continueDecoding = true;
   return DE265_OK;
 }
@@ -3588,6 +3594,13 @@ int read_transform_unit(thread_context* tctx,
       int cu_qp_delta_sign = 0;
       if (cu_qp_delta_abs) {
         cu_qp_delta_sign = decode_CABAC_bypass(&tctx->cabac_decoder);
+      }
+
+      // CuQpDeltaVal shall be in [-(26 + QpBdOffsetY/2), 25 + QpBdOffsetY/2] (Sec. 7.4.9.10)
+      int maxCuQpDeltaAbs = 25 + tctx->img->get_sps().QpBdOffset_Y / 2;
+      if (cu_qp_delta_abs > maxCuQpDeltaAbs) {
+        tctx->decctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
 
       tctx->IsCuQpDeltaCoded = 1;

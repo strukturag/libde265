@@ -146,10 +146,9 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
   int QPY = ((qPY_PRED + tctx->CuQpDelta + 52+2*sps.QpBdOffset_Y) %
              (52 + sps.QpBdOffset_Y)) - sps.QpBdOffset_Y;
 
+  assert(QPY >= -sps.QpBdOffset_Y && QPY <= 51);
+
   tctx->qPYPrime = QPY + sps.QpBdOffset_Y;
-  if (tctx->qPYPrime<0) {
-    tctx->qPYPrime=0;
-  }
 
   int qPiCb = Clip3(-sps.QpBdOffset_C,57, QPY+pps.pic_cb_qp_offset + shdr->slice_cb_qp_offset + tctx->CuQpOffsetCb);
   int qPiCr = Clip3(-sps.QpBdOffset_C,57, QPY+pps.pic_cr_qp_offset + shdr->slice_cr_qp_offset + tctx->CuQpOffsetCr);

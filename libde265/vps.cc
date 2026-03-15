@@ -198,7 +198,12 @@ de265_error video_parameter_set::read(error_queue* errqueue, bitreader* reader)
       cprms_present_flag.resize(vps_num_hrd_parameters);
 
       for (int i=0; i<vps_num_hrd_parameters; i++) {
-        hrd_layer_set_idx[i] = get_uvlc(reader);
+        vlc = get_uvlc(reader);
+        if (vlc == UVLC_ERROR || vlc > 1023) {
+          errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+          return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+        }
+        hrd_layer_set_idx[i] = vlc;
 
         if (i > 0) {
           cprms_present_flag[i] = get_bits(reader,1);
