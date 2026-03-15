@@ -503,7 +503,8 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
       if (sps->long_term_ref_pics_present_flag) {
         if (sps->num_long_term_ref_pics_sps > 0) {
-          if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
+          if ((uvlc = get_uvlc(br)) == UVLC_ERROR ||
+              uvlc > sps->num_long_term_ref_pics_sps) {
             return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
           }
           num_long_term_sps = uvlc;
@@ -512,7 +513,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
           num_long_term_sps = 0;
         }
 
-        if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
+        if ((uvlc = get_uvlc(br)) == UVLC_ERROR || uvlc > MAX_NUM_LT_REF_PICS_SPS) {
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
         num_long_term_pics = uvlc;

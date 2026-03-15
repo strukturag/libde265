@@ -215,18 +215,15 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   // --- picture size ---
 
-  READ_VLC(pic_width_in_luma_samples,  uvlc);
-  READ_VLC(pic_height_in_luma_samples, uvlc);
-
-  if (pic_width_in_luma_samples  == 0 ||
-      pic_height_in_luma_samples == 0) {
+  if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc == 0 || vlc > MAX_PICTURE_WIDTH) {
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
+  pic_width_in_luma_samples = vlc;
 
-  if (pic_width_in_luma_samples > MAX_PICTURE_WIDTH ||
-      pic_height_in_luma_samples> MAX_PICTURE_HEIGHT) {
+  if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc == 0 || vlc > MAX_PICTURE_HEIGHT) {
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
+  pic_height_in_luma_samples = vlc;
 
   conformance_window_flag = get_bits(br,1);
 
@@ -285,7 +282,11 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
     // sps_max_num_reorder_pics[i]
 
-    READ_VLC(sps_max_num_reorder_pics[i], uvlc);
+    if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > sps_max_dec_pic_buffering[i]) {
+      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+    sps_max_num_reorder_pics[i] = vlc;
 
 
     // sps_max_latency_increase[i]
@@ -419,10 +420,10 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
 
   if (long_term_ref_pics_present_flag) {
 
-    READ_VLC(num_long_term_ref_pics_sps, uvlc);
-    if (num_long_term_ref_pics_sps > MAX_NUM_LT_REF_PICS_SPS) {
+    if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > MAX_NUM_LT_REF_PICS_SPS) {
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
+    num_long_term_ref_pics_sps = vlc;
 
     for (int i = 0; i < num_long_term_ref_pics_sps; i++ ) {
       lt_ref_pic_poc_lsb_sps[i] = get_bits(br, log2_max_pic_order_cnt_lsb);
