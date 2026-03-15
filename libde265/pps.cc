@@ -273,19 +273,19 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
 
   uint32_t uvlc;
-  pic_parameter_set_id = uvlc = get_uvlc(br);
-  if (uvlc >= DE265_MAX_PPS_SETS ||
-      uvlc == UVLC_ERROR) {
+  uvlc = get_uvlc(br);
+  if (uvlc == UVLC_ERROR || uvlc >= DE265_MAX_PPS_SETS) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return false;
   }
+  pic_parameter_set_id = uvlc;
 
-  seq_parameter_set_id = uvlc = get_uvlc(br);
-  if (uvlc >= DE265_MAX_SPS_SETS ||
-      uvlc == UVLC_ERROR) {
+  uvlc = get_uvlc(br);
+  if (uvlc == UVLC_ERROR || uvlc >= DE265_MAX_SPS_SETS) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     return false;
   }
+  seq_parameter_set_id = uvlc;
 
   dependent_slice_segments_enabled_flag = get_bits(br,1);
   output_flag_present_flag = get_bits(br,1);
@@ -494,7 +494,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
 
   lists_modification_present_flag = get_bits(br,1);
-  if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
+  if ((uvlc = get_uvlc(br)) == UVLC_ERROR || uvlc > 4) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }

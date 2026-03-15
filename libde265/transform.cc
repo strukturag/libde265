@@ -256,7 +256,7 @@ void cross_comp_pred(const thread_context* tctx, int32_t* residual, int nT)
       */
 
       residual[y*nT+x] += (tctx->ResScaleVal *
-                           ((tctx->residual_luma[y*nT+x] << BitDepthC ) >> BitDepthY ) ) >> 3;
+                           static_cast<int32_t>((static_cast<uint32_t>(tctx->residual_luma[y*nT+x]) << BitDepthC ) >> BitDepthY ) ) >> 3;
     }
 }
 

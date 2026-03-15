@@ -624,14 +624,14 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         slice_type == SLICE_TYPE_B) {
       num_ref_idx_active_override_flag = get_bits(br,1);
       if (num_ref_idx_active_override_flag) {
-        if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
+        if ((uvlc = get_uvlc(br)) == UVLC_ERROR || uvlc > 15) {
 	  ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 	}
         num_ref_idx_l0_active = uvlc + 1;
 
         if (slice_type == SLICE_TYPE_B) {
-          if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
+          if ((uvlc = get_uvlc(br)) == UVLC_ERROR || uvlc > 15) {
 	    ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
 	    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 	  }
@@ -642,9 +642,6 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         num_ref_idx_l0_active = pps->num_ref_idx_l0_default_active;
         num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
       }
-
-      if (num_ref_idx_l0_active > 16) { return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; }
-      if (num_ref_idx_l1_active > 16) { return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; }
 
       NumPocTotalCurr = CurrRps.NumPocTotalCurr_shortterm_only + NumLtPics;
 
