@@ -310,35 +310,35 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
     motion_vectors_over_pic_boundaries_flag = get_bits(br,1);
     restricted_ref_pic_lists_flag = get_bits(br,1);
 
-    READ_VLC(min_spatial_segmentation_idc, uvlc);
-    if (min_spatial_segmentation_idc > 4095) {
+    if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > 4095) {
       errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-      min_spatial_segmentation_idc = 0;
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
+    min_spatial_segmentation_idc = vlc;
 
-    READ_VLC(max_bytes_per_pic_denom, uvlc);
-    if (max_bytes_per_pic_denom > 16) {
+    if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > 16) {
       errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-      max_bytes_per_pic_denom = 2;
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
+    max_bytes_per_pic_denom = vlc;
 
-    READ_VLC(max_bits_per_min_cu_denom, uvlc);
-    if (max_bits_per_min_cu_denom > 16) {
+    if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > 16) {
       errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-      max_bits_per_min_cu_denom = 1;
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
+    max_bits_per_min_cu_denom = vlc;
 
-    READ_VLC(log2_max_mv_length_horizontal, uvlc);
-    if (log2_max_mv_length_horizontal > 15) {
+    if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > 15) {
       errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-      log2_max_mv_length_horizontal = 15;
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
+    log2_max_mv_length_horizontal = vlc;
 
-    READ_VLC(log2_max_mv_length_vertical, uvlc);
-    if (log2_max_mv_length_vertical > 15) {
+    if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > 15) {
       errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-      log2_max_mv_length_vertical = 15;
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
+    log2_max_mv_length_vertical = vlc;
   }
   else {
     tiles_fixed_structure_flag = false;
