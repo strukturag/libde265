@@ -588,6 +588,10 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
             ctx->DeltaPocMsbCycleLt[i] = delta_poc_msb_cycle_lt[i];
           }
           else {
+            if (delta_poc_msb_cycle_lt[i] > UINT32_MAX - ctx->DeltaPocMsbCycleLt[i - 1]) {
+              ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+              return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+            }
             ctx->DeltaPocMsbCycleLt[i] = (delta_poc_msb_cycle_lt[i] +
                                           ctx->DeltaPocMsbCycleLt[i - 1]);
           }
@@ -815,42 +819,35 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
   }
 
   if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag) {
-    if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
+
+    // compute the spec limit for num_entry_point_offsets
+
+    int maxEntryPointOffsets;
+    if (!pps->tiles_enabled_flag && pps->entropy_coding_sync_enabled_flag) {
+      maxEntryPointOffsets = sps->PicHeightInCtbsY - 1;
+    }
+    else if (pps->tiles_enabled_flag && !pps->entropy_coding_sync_enabled_flag) {
+      maxEntryPointOffsets = pps->num_tile_columns * pps->num_tile_rows - 1;
+    }
+    else {
+      maxEntryPointOffsets = pps->num_tile_columns * sps->PicHeightInCtbsY - 1;
+    }
+
+    if ((uvlc = get_uvlc(br)) == UVLC_ERROR ||
+        uvlc > static_cast<uint32_t>(maxEntryPointOffsets)) {
       ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
     num_entry_point_offsets = uvlc;
 
-    if (pps->entropy_coding_sync_enabled_flag) {
-      // check num_entry_points for valid range
-
-      int firstCTBRow = slice_segment_address / sps->PicWidthInCtbsY;
-      int lastCTBRow = firstCTBRow + num_entry_point_offsets;
-      if (lastCTBRow >= sps->PicHeightInCtbsY) {
-        ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
-        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-      }
-    }
-
-    if (pps->tiles_enabled_flag) {
-      if (num_entry_point_offsets > pps->num_tile_columns * pps->num_tile_rows) {
-        ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
-        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-      }
-    }
-
     entry_point_offset.resize(num_entry_point_offsets);
 
     if (num_entry_point_offsets > 0) {
-      if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
+      if ((uvlc = get_uvlc(br)) == UVLC_ERROR || uvlc > 31) {
         ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
         return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
       offset_len = uvlc + 1;
-
-      if (offset_len > 32) {
-        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-      }
 
       for (int i = 0; i < num_entry_point_offsets; i++) {
         {

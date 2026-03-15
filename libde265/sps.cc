@@ -322,7 +322,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   }
   log2_min_luma_coding_block_size = vlc + 3;
 
-  if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > 6 - log2_min_luma_coding_block_size) {
+  if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > static_cast<uint32_t>(6 - log2_min_luma_coding_block_size)) {
     errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
@@ -334,7 +334,7 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   }
   log2_min_transform_block_size = vlc + 2;
 
-  if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > 5 - log2_min_transform_block_size) {
+  if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > static_cast<uint32_t>(5 - log2_min_transform_block_size)) {
     errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }

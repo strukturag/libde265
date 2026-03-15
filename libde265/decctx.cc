@@ -1367,8 +1367,12 @@ de265_error decoder_context::process_reference_picture_set(slice_segment_header*
 
         if (hdr->delta_poc_msb_present_flag[i]) {
           int currentPictureMSB = img->PicOrderCntVal - hdr->slice_pic_order_cnt_lsb;
+          if (DeltaPocMsbCycleLt[i] > static_cast<uint32_t>(INT32_MAX) / current_sps->MaxPicOrderCntLsb) {
+            add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+            return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+          }
           pocLt += currentPictureMSB
-            - DeltaPocMsbCycleLt[i] * current_sps->MaxPicOrderCntLsb;
+            - static_cast<int>(DeltaPocMsbCycleLt[i] * current_sps->MaxPicOrderCntLsb);
         }
 
         if (UsedByCurrPicLt[i]) {

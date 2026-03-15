@@ -456,7 +456,7 @@ class decoder_context : public base_context {
  public:
   int PocLsbLt[MAX_NUM_REF_PICS]{};
   int UsedByCurrPicLt[MAX_NUM_REF_PICS]{};
-  int DeltaPocMsbCycleLt[MAX_NUM_REF_PICS]{};
+  uint32_t DeltaPocMsbCycleLt[MAX_NUM_REF_PICS]{};
  private:
   int CurrDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS]{};
   int FollDeltaPocMsbPresentFlag[MAX_NUM_REF_PICS]{};
