@@ -144,7 +144,7 @@ void slice_segment_header::set_defaults()
 }
 
 
-bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_context* ctx)
+de265_error read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_context* ctx)
 {
   uint32_t uvlc;
   int32_t svlc;
@@ -155,17 +155,17 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
   assert(sps);
 
   uvlc = get_uvlc(br);
-  if (uvlc>7) return false;
+  if (uvlc>7) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   shdr->luma_log2_weight_denom = uvlc;
 
   if (sps->chroma_format_idc != 0) {
     svlc = get_svlc(br);
     svlc += shdr->luma_log2_weight_denom;
-    if (svlc<0 || svlc>7) return false;
+    if (svlc<0 || svlc>7) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     shdr->ChromaLog2WeightDenom = svlc;
   }
 
-  int sumWeightFlags = 0;
+  int sumWeightFlags[2] {};
 
   for (int l=0;l<=1;l++)
     if (l==0 || (l==1 && shdr->slice_type == SLICE_TYPE_B))
@@ -174,13 +174,13 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 
         for (int i=0;i<=num_ref;i++) {
           shdr->luma_weight_flag[l][i] = get_bits(br,1);
-          if (shdr->luma_weight_flag[l][i]) sumWeightFlags++;
+          if (shdr->luma_weight_flag[l][i]) sumWeightFlags[l]++;
         }
 
         if (sps->chroma_format_idc != 0) {
           for (int i=0;i<=num_ref;i++) {
             shdr->chroma_weight_flag[l][i] = get_bits(br,1);
-            if (shdr->chroma_weight_flag[l][i]) sumWeightFlags+=2;
+            if (shdr->chroma_weight_flag[l][i]) sumWeightFlags[l]+=2;
           }
         }
 
@@ -190,14 +190,14 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
             // delta_luma_weight
 
             svlc = get_svlc(br);
-            if (svlc < -128 || svlc > 127) return false;
+            if (svlc < -128 || svlc > 127) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 
             shdr->LumaWeight[l][i] = (1<<shdr->luma_log2_weight_denom) + svlc;
 
             // luma_offset
 
             svlc = get_svlc(br);
-            if (svlc < -sps->WpOffsetHalfRangeY || svlc > sps->WpOffsetHalfRangeY-1) return false;
+            if (svlc < -sps->WpOffsetHalfRangeY || svlc > sps->WpOffsetHalfRangeY-1) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
             shdr->luma_offset[l][i] = svlc;
           }
           else {
@@ -210,7 +210,7 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
               // delta_chroma_weight
 
               svlc = get_svlc(br);
-              if (svlc < -128 || svlc >  127) return false;
+              if (svlc < -128 || svlc >  127) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 
               shdr->ChromaWeight[l][i][j] = (1<<shdr->ChromaLog2WeightDenom) + svlc;
 
@@ -218,7 +218,7 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
 
               svlc = get_svlc(br);
               if (svlc < -4*sps->WpOffsetHalfRangeC ||
-                  svlc >  4*sps->WpOffsetHalfRangeC-1) return false;
+                  svlc >  4*sps->WpOffsetHalfRangeC-1) return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
 
               svlc = Clip3(-sps->WpOffsetHalfRangeC,
                           sps->WpOffsetHalfRangeC-1,
@@ -238,9 +238,17 @@ bool read_pred_weight_table(bitreader* br, slice_segment_header* shdr, decoder_c
         }
       }
 
-  // TODO: bitstream conformance requires that 'sumWeightFlags<=24'
+  // check sumWeightFlags against limits (H.265, Section 7.4.7.3)
 
-  return true;
+  if (shdr->slice_type == SLICE_TYPE_P && sumWeightFlags[0] > 24) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
+  if (shdr->slice_type == SLICE_TYPE_B && sumWeightFlags[0] + sumWeightFlags[1] > 24) {
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
+  return DE265_OK;
 }
 
 
@@ -713,42 +721,45 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       }
 
 
-      if ((pps->weighted_pred_flag   && slice_type == SLICE_TYPE_P) ||
+      if ((pps->weighted_pred_flag && slice_type == SLICE_TYPE_P) ||
           (pps->weighted_bipred_flag && slice_type == SLICE_TYPE_B)) {
-
-        if (!read_pred_weight_table(br,this,ctx))
-          {
-	    ctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-	    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-          }
+        de265_error err = read_pred_weight_table(br, this, ctx);
+        if (err) {
+          ctx->add_warning(err, false);
+          return err;
+        }
       }
 
       if ((uvlc = get_uvlc(br)) == UVLC_ERROR || uvlc > 5) {
-	ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
-	return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+        ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
+
       five_minus_max_num_merge_cand = uvlc;
-      MaxNumMergeCand = 5-five_minus_max_num_merge_cand;
+      MaxNumMergeCand = 5 - five_minus_max_num_merge_cand;
     }
 
     if ((svlc = get_svlc(br)) == SVLC_ERROR) {
       ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
+
     slice_qp_delta = svlc;
     //logtrace(LogSlice,"slice_qp_delta: %d\n",shdr->slice_qp_delta);
 
     if (pps->pps_slice_chroma_qp_offsets_present_flag) {
       if ((svlc = get_svlc(br)) == SVLC_ERROR) {
-	ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
-	return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+        ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
+
       slice_cb_qp_offset = svlc;
 
       if ((svlc = get_svlc(br)) == SVLC_ERROR) {
-	ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
-	return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+        ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
+
       slice_cr_qp_offset = svlc;
     }
     else {
@@ -1150,7 +1161,7 @@ de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& ou
 
         assert(0);
         /* TODO
-        if (!read_pred_weight_table(br,this,ctx))
+        if (read_pred_weight_table(br,this,ctx) != DE265_OK)
           {
 	    ctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
 	    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
