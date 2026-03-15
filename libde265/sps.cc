@@ -340,6 +340,12 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   }
   log2_diff_max_min_transform_block_size = vlc;
 
+  // log2_min_transform_block_size must not exceed the max coding block size (Log2CtbSizeY)
+  if (log2_min_transform_block_size > log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size) {
+    errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+
   uint32_t maxDepth = log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size
                     - log2_min_transform_block_size;
 
