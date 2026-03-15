@@ -1750,6 +1750,10 @@ void decoder_context::run_postprocessing_filters_parallel(image_unit* imgunit)
     //apply_sample_adaptive_offset(img);
   }
 
+  // The original intention was to skip wait_for_completion() if there is no SAO task,
+  // but it does not work as intended. (TODO: check why)
+  (void)waitForCompletion;
+
   img->wait_for_completion();
 }
 
