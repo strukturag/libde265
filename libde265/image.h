@@ -83,10 +83,10 @@ class decoder_context;
 template <class DataUnit> class MetaDataArray
 {
  public:
-  MetaDataArray() { data=NULL; data_size=0; log2unitSize=0; width_in_units=0; height_in_units=0; }
+  MetaDataArray() = default;
   ~MetaDataArray() { free(data); }
 
-  LIBDE265_CHECK_RESULT bool alloc(int w,int h, int _log2unitSize) {
+  LIBDE265_CHECK_RESULT bool alloc(int w,int h, uint8_t _log2unitSize) {
     int size = w*h;
 
     if (size != data_size) {
@@ -147,11 +147,11 @@ template <class DataUnit> class MetaDataArray
   int size() const { return data_size; }
 
   // private:
-  DataUnit* data;
-  int data_size;
-  uint8_t log2unitSize;
-  int width_in_units;
-  int height_in_units;
+  DataUnit* data = nullptr;
+  int data_size = 0;
+  uint8_t log2unitSize = 0;
+  int width_in_units = 0;
+  int height_in_units = 0;
 };
 
 #define SET_CB_BLK(x,y,log2BlkWidth,  Field,value)              \
@@ -221,7 +221,7 @@ struct de265_image {
   ~de265_image();
 
 
-  de265_error alloc_image(int w,int h, enum de265_chroma c,
+  de265_error alloc_image(int w,int h, de265_chroma c,
                           std::shared_ptr<const seq_parameter_set> sps,
                           bool allocMetadata,
                           decoder_context* dctx,
@@ -304,7 +304,7 @@ struct de265_image {
   int get_width (int cIdx=0) const { return cIdx==0 ? width  : chroma_width;  }
   int get_height(int cIdx=0) const { return cIdx==0 ? height : chroma_height; }
 
-  enum de265_chroma get_chroma_format() const { return chroma_format; }
+  de265_chroma get_chroma_format() const { return chroma_format; }
 
   int get_bit_depth(int cIdx) const {
     if (cIdx==0) return sps->BitDepth_Y;
@@ -348,7 +348,7 @@ private:
   uint8_t* pixels[3];
   uint8_t  bpp_shift[3];  // 0 for 8 bit, 1 for 16 bit
 
-  enum de265_chroma chroma_format;
+  de265_chroma chroma_format;
 
   int width, height;  // size in luma pixels
 
@@ -375,7 +375,7 @@ public:
 
   int  picture_order_cnt_lsb;
   int  PicOrderCntVal;
-  enum PictureState PicState;
+  PictureState PicState;
   bool PicOutputFlag;
 
   uint32_t removed_at_picture_id;
@@ -484,20 +484,20 @@ public:
 
   // --- CB metadata access ---
 
-  void set_pred_mode(int x,int y, int log2BlkWidth, enum PredMode mode)
+  void set_pred_mode(int x,int y, int log2BlkWidth, PredMode mode)
   {
     SET_CB_BLK(x,y,log2BlkWidth, PredMode, mode);
   }
 
-  void fill_pred_mode(enum PredMode mode)
+  void fill_pred_mode(PredMode mode)
   {
     for (int i=0;i<cb_info.data_size;i++)
       { cb_info[i].PredMode = MODE_INTRA; }
   }
 
-  enum PredMode get_pred_mode(int x,int y) const
+  PredMode get_pred_mode(int x,int y) const
   {
-    return (enum PredMode)cb_info.get(x,y).PredMode;
+    return (PredMode)cb_info.get(x,y).PredMode;
   }
 
   uint8_t get_cu_skip_flag(int x,int y) const
@@ -545,23 +545,23 @@ public:
 
   int  get_log2CbSize(int x0, int y0) const
   {
-    return (enum PredMode)cb_info.get(x0,y0).log2CbSize;
+    return (PredMode)cb_info.get(x0,y0).log2CbSize;
   }
 
   // coordinates in CB units
   int  get_log2CbSize_cbUnits(int xCb, int yCb) const
   {
-    return (enum PredMode)cb_info[ xCb + yCb*cb_info.width_in_units ].log2CbSize;
+    return (PredMode)cb_info[ xCb + yCb*cb_info.width_in_units ].log2CbSize;
   }
 
-  void set_PartMode(int x,int y, enum PartMode mode)
+  void set_PartMode(int x,int y, PartMode mode)
   {
     cb_info.get(x,y).PartMode = mode;
   }
 
-  enum PartMode get_PartMode(int x,int y) const
+  PartMode get_PartMode(int x,int y) const
   {
-    return (enum PartMode)cb_info.get(x,y).PartMode;
+    return (PartMode)cb_info.get(x,y).PartMode;
   }
 
   void set_ctDepth(int x,int y, int log2BlkWidth, int depth)
@@ -622,7 +622,7 @@ public:
 
   // --- intraPredMode metadata access ---
 
-  enum IntraPredMode get_IntraPredMode(int x,int y) const
+  IntraPredMode get_IntraPredMode(int x,int y) const
   {
     uint8_t ipm = intraPredMode.get(x,y);
 
@@ -631,17 +631,17 @@ public:
       ipm = 0;
     }
 
-    return static_cast<enum IntraPredMode>(ipm);
+    return static_cast<IntraPredMode>(ipm);
   }
 
-  enum IntraPredMode get_IntraPredMode_atIndex(int idx) const
+  IntraPredMode get_IntraPredMode_atIndex(int idx) const
   {
     uint8_t ipm = intraPredMode[idx];
     if (ipm > 34) { ipm = 0; }
-    return static_cast<enum IntraPredMode>(ipm);
+    return static_cast<IntraPredMode>(ipm);
   }
 
-  void set_IntraPredMode(int PUidx,int log2blkSize, enum IntraPredMode mode)
+  void set_IntraPredMode(int PUidx,int log2blkSize, IntraPredMode mode)
   {
     int pbSize = 1<<(log2blkSize - intraPredMode.log2unitSize);
 
@@ -651,7 +651,7 @@ public:
   }
 
   void set_IntraPredMode(int x0,int y0,int log2blkSize,
-                         enum IntraPredMode mode)
+                         IntraPredMode mode)
   {
     int pbSize = 1<<(log2blkSize - intraPredMode.log2unitSize);
     int PUidx  = (x0>>sps->Log2MinPUSize) + (y0>>sps->Log2MinPUSize)*sps->PicWidthInMinPUs;
@@ -668,9 +668,9 @@ public:
   }
 
 
-  enum IntraPredMode get_IntraPredModeC(int x,int y) const
+  IntraPredMode get_IntraPredModeC(int x,int y) const
   {
-    return (enum IntraPredMode)(intraPredModeC.get(x,y) & 0x3f);
+    return (IntraPredMode)(intraPredModeC.get(x,y) & 0x3f);
   }
 
   bool is_IntraPredModeC_Mode4(int x,int y) const
@@ -678,7 +678,7 @@ public:
     return intraPredModeC.get(x,y) & 0x80;
   }
 
-  void set_IntraPredModeC(int x0,int y0,int log2blkSize, enum IntraPredMode mode,
+  void set_IntraPredModeC(int x0,int y0,int log2blkSize, IntraPredMode mode,
                           bool is_mode4)
   {
     uint8_t combinedValue = mode;
