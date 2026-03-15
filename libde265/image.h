@@ -149,7 +149,7 @@ template <class DataUnit> class MetaDataArray
   // private:
   DataUnit* data;
   int data_size;
-  int log2unitSize;
+  uint8_t log2unitSize;
   int width_in_units;
   int height_in_units;
 };
