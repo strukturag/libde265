@@ -467,7 +467,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 
   // modify entry_point_offsets
 
-  int headerLength = reader.data - nal->data();
+  uint32_t headerLength = reader.data - nal->data();
   for (int i=0;i<shdr->num_entry_point_offsets;i++) {
     shdr->entry_point_offset[i] -= nal->num_skipped_bytes_before(shdr->entry_point_offset[i],
                                                                  headerLength);

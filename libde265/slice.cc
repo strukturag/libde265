@@ -703,7 +703,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
         if ((collocated_from_l0_flag && num_ref_idx_l0_active > 1) ||
             (!collocated_from_l0_flag && num_ref_idx_l1_active > 1)) {
-          if ((uvlc = get_uvlc(br)) == UVLC_ERROR) {
+          if ((uvlc = get_uvlc(br)) == UVLC_ERROR || uvlc > 15) {
             ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
             return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
           }
@@ -858,6 +858,10 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         }
 
         if (i > 0) {
+          if (entry_point_offset[i] > UINT32_MAX - entry_point_offset[i - 1]) {
+            ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+            return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+          }
           entry_point_offset[i] += entry_point_offset[i - 1];
         }
       }
@@ -1223,7 +1227,7 @@ de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& ou
 
       for (int i = 0; i < num_entry_point_offsets; i++) {
         {
-          int prev = 0;
+          uint32_t prev = 0;
           if (i > 0) prev = entry_point_offset[i - 1];
           out.write_bits(entry_point_offset[i] - prev - 1, offset_len);
         }

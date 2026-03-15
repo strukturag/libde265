@@ -79,7 +79,7 @@ void put_weighted_bipred_8_fallback(uint8_t *dst, ptrdiff_t dststride,
 {
   assert(log2WD>=1); // TODO
 
-  const int rnd = ((o1+o2+1) << log2WD);
+  const int rnd = static_cast<int>(static_cast<unsigned int>(o1+o2+1) << log2WD);
 
   for (int y=0;y<height;y++) {
     const int16_t* in1 = &src1[y*srcstride];
@@ -212,7 +212,7 @@ void put_weighted_bipred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
 {
   assert(log2WD>=1); // TODO
 
-  const int rnd = ((o1+o2+1) << log2WD);
+  const int rnd = static_cast<int>(static_cast<unsigned int>(o1+o2+1) << log2WD);
 
   for (int y=0;y<height;y++) {
     const int16_t* in1 = &src1[y*srcstride];

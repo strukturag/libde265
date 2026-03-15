@@ -60,15 +60,15 @@ class NAL_unit {
 
   // --- skipped stuffing bytes ---
 
-  int num_skipped_bytes_before(int byte_position, int headerLength) const;
-  int  num_skipped_bytes() const { return skipped_bytes.size(); }
+  uint32_t num_skipped_bytes_before(uint32_t byte_position, uint32_t headerLength) const;
+  uint32_t num_skipped_bytes() const { return skipped_bytes.size(); }
 
   //void clear_skipped_bytes() { skipped_bytes.clear(); }
 
   /* Mark a byte as skipped. It is assumed that the byte is already removed
      from the input data. The NAL data is not modified.
   */
-  void insert_skipped_byte(int pos);
+  void insert_skipped_byte(uint32_t pos);
 
   /* Remove all stuffing bytes from NAL data. The NAL data is modified and
      the removed bytes are marked as skipped bytes.
@@ -80,7 +80,7 @@ class NAL_unit {
   int data_size = 0;
   int capacity = 0;
 
-  std::vector<int> skipped_bytes; // up to position[x], there were 'x' skipped bytes
+  std::vector<uint32_t> skipped_bytes; // up to position[x], there were 'x' skipped bytes
 };
 
 

@@ -53,13 +53,9 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
   if (pps->transform_skip_enabled_flag) {
     uvlc = get_uvlc(br);
     if (uvlc == UVLC_ERROR ||
-        uvlc+2 > (uint32_t)sps->Log2MaxTrafoSize) {
-
-      // Note: this is out of spec, but the conformance stream
-      // PERSIST_RPARAM_A_RExt_Sony_2 codes a too large value.
-
-      //ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
-      //return false;
+        uvlc > (uint32_t)sps->Log2MaxTrafoSize - 2) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      return false;
     }
 
     log2_max_transform_skip_block_size = uvlc+2;

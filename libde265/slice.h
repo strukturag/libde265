@@ -222,7 +222,7 @@ public:
 
   int  num_entry_point_offsets;
   int  offset_len;
-  std::vector<int> entry_point_offset;
+  std::vector<uint32_t> entry_point_offset;
 
   int  slice_segment_header_extension_length;
 

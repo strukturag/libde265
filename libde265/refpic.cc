@@ -288,30 +288,41 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     // past frames
 
-    int lastPocS=0;
+    int16_t lastPocS=0;
     for (uint32_t i=0;i<num_negative_pics;i++) {
       uint32_t delta_poc_s0 = get_uvlc(br);
       if (delta_poc_s0==UVLC_ERROR) { return false; }
       delta_poc_s0++;
       char used_by_curr_pic_s0_flag = get_bits(br,1);
 
-      out_set->DeltaPocS0[i]      = lastPocS - static_cast<int>(delta_poc_s0);
+      if (delta_poc_s0 > static_cast<uint32_t>(lastPocS - INT16_MIN)) {
+        errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+        return false;
+      }
+      // cast to int because delta_poc_s0 can be up to 32768 when lastPocS==0
+      int16_t pocS = lastPocS - static_cast<int>(delta_poc_s0);
+      out_set->DeltaPocS0[i]      = pocS;
       out_set->UsedByCurrPicS0[i] = used_by_curr_pic_s0_flag;
-      lastPocS = out_set->DeltaPocS0[i];
+      lastPocS = pocS;
     }
 
     // future frames
 
-    lastPocS=0;
+    lastPocS = 0;
     for (uint32_t i=0;i<num_positive_pics;i++) {
       uint32_t delta_poc_s1 = get_uvlc(br);
       if (delta_poc_s1==UVLC_ERROR) { return false; }
       delta_poc_s1++;
       char used_by_curr_pic_s1_flag = get_bits(br,1);
 
-      out_set->DeltaPocS1[i]      = lastPocS + static_cast<int>(delta_poc_s1);
+      if (delta_poc_s1 > static_cast<uint32_t>(INT16_MAX - lastPocS)) {
+        errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+        return false;
+      }
+      int16_t pocS = lastPocS + static_cast<int16_t>(delta_poc_s1);
+      out_set->DeltaPocS1[i]      = pocS;
       out_set->UsedByCurrPicS1[i] = used_by_curr_pic_s1_flag;
-      lastPocS = out_set->DeltaPocS1[i];
+      lastPocS = pocS;
     }
   }
 

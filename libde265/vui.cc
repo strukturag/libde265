@@ -248,8 +248,17 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
 
   chroma_loc_info_present_flag = get_bits(br, 1);
   if (chroma_loc_info_present_flag) {
-    READ_VLC(chroma_sample_loc_type_top_field, uvlc);
-    READ_VLC(chroma_sample_loc_type_bottom_field, uvlc);
+    if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > 5) {
+      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+    chroma_sample_loc_type_top_field = vlc;
+
+    if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > 5) {
+      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+    chroma_sample_loc_type_bottom_field = vlc;
   }
   else {
     chroma_sample_loc_type_top_field = 0;

@@ -340,8 +340,20 @@ de265_error seq_parameter_set::read(error_queue* errqueue, bitreader* br)
   }
   log2_diff_max_min_transform_block_size = vlc;
 
-  READ_VLC(max_transform_hierarchy_depth_inter, uvlc);
-  READ_VLC(max_transform_hierarchy_depth_intra, uvlc);
+  uint32_t maxDepth = log2_min_luma_coding_block_size + log2_diff_max_min_luma_coding_block_size
+                    - log2_min_transform_block_size;
+
+  if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > maxDepth) {
+    errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+  max_transform_hierarchy_depth_inter = vlc;
+
+  if ((vlc = get_uvlc(br)) == UVLC_ERROR || vlc > maxDepth) {
+    errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+  }
+  max_transform_hierarchy_depth_intra = vlc;
 
   scaling_list_enable_flag = get_bits(br,1);
 
