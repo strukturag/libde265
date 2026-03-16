@@ -27,37 +27,37 @@
 
 void profile_data::set_defaults(enum profile_idc profile, int level_major, int level_minor)
 {
-  profile_present_flag = 1;
+  profile_present_flag = true;
 
   profile_space = 0;
-  tier_flag = 0;
+  tier_flag = false;
   profile_idc = profile;
 
   for (int i=0;i<32;i++) {
-    profile_compatibility_flag[i]=0;
+    profile_compatibility_flag[i]=false;
   }
 
   switch (profile) {
   case Profile_Main:
-    profile_compatibility_flag[Profile_Main]=1;
-    profile_compatibility_flag[Profile_Main10]=1;
+    profile_compatibility_flag[Profile_Main]=true;
+    profile_compatibility_flag[Profile_Main10]=true;
     break;
   case Profile_Main10:
-    profile_compatibility_flag[Profile_Main10]=1;
+    profile_compatibility_flag[Profile_Main10]=true;
     break;
   default:
     assert(0);
   }
 
-  progressive_source_flag = 0;
-  interlaced_source_flag  = 0;
-  non_packed_constraint_flag = 0;
-  frame_only_constraint_flag = 0;
+  progressive_source_flag = false;
+  interlaced_source_flag  = false;
+  non_packed_constraint_flag = false;
+  frame_only_constraint_flag = false;
 
 
   // --- level ---
 
-  level_present_flag = 1;
+  level_present_flag = true;
   level_idc = level_major*30 + level_minor*3;
 }
 
@@ -406,8 +406,8 @@ void profile_data::write(CABAC_encoder& out) const
 
 void profile_tier_level::write(CABAC_encoder& out, int max_sub_layers) const
 {
-  assert(general.profile_present_flag==true);
-  assert(general.level_present_flag==true);
+  assert(general.profile_present_flag);
+  assert(general.level_present_flag);
 
   general.write(out);
 
