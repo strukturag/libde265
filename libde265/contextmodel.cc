@@ -25,12 +25,6 @@
 
 bool D = false;
 
-context_model_table::context_model_table()
-  : model(nullptr), refcnt(nullptr)
-{
-}
-
-
 context_model_table::context_model_table(const context_model_table& src)
 {
   if (D) printf("%p c'tor = %p\n",static_cast<void*>(this),static_cast<const void*>(&src));
