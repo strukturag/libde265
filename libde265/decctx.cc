@@ -1622,6 +1622,11 @@ bool decoder_context::construct_reference_picture_lists(slice_segment_header* hd
   for (rIdx=0; rIdx<hdr->num_ref_idx_l0_active; rIdx++) {
     int idx = hdr->ref_pic_list_modification_flag_l0 ? hdr->list_entry_l0[rIdx] : rIdx;
 
+    if (idx >= NumRpsCurrTempList0) {
+      add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
+      return false;
+    }
+
     hdr->RefPicList[0][rIdx] = RefPicListTemp0[idx];
     hdr->LongTermRefPic[0][rIdx] = isLongTerm[0][idx];
 
@@ -1674,6 +1679,11 @@ bool decoder_context::construct_reference_picture_lists(slice_segment_header* hd
     assert(hdr->num_ref_idx_l1_active <= 16);
     for (rIdx=0; rIdx<hdr->num_ref_idx_l1_active; rIdx++) {
       int idx = hdr->ref_pic_list_modification_flag_l1 ? hdr->list_entry_l1[rIdx] : rIdx;
+
+      if (idx >= NumRpsCurrTempList1) {
+        add_warning(DE265_WARNING_FAULTY_REFERENCE_PICTURE_LIST, false);
+        return false;
+      }
 
       hdr->RefPicList[1][rIdx] = RefPicListTemp1[idx];
       hdr->LongTermRefPic[1][rIdx] = isLongTerm[1][idx];
