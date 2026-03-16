@@ -94,26 +94,26 @@ constexpr int MAX_THREADS = 32;
 class thread_pool
 {
  public:
+  de265_error start(int num_threads);
+  void        stop(); // do not process remaining tasks
+  void        add_task(thread_task* task);
+
+
   bool stopped;
 
   std::deque<thread_task*> tasks;  // we are not the owner
 
-  std::thread thread[MAX_THREADS];
-  int num_threads;
-
   int num_threads_working;
-
-  int ctbx[MAX_THREADS]; // the CTB the thread is working on
-  int ctby[MAX_THREADS];
 
   std::mutex  mutex;
   std::condition_variable  cond_var;
+
+private:
+  std::thread thread[MAX_THREADS];
+  int num_threads;
+
+  //int ctbx[MAX_THREADS]; // the CTB the thread is working on
+  //int ctby[MAX_THREADS];
 };
-
-
-de265_error start_thread_pool(thread_pool* pool, int num_threads);
-void        stop_thread_pool(thread_pool* pool); // do not process remaining tasks
-
-void        add_task(thread_pool* pool, thread_task* task); // TOCO: can make thread_task const
 
 #endif

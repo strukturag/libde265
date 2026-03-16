@@ -173,62 +173,62 @@ static void worker_thread(thread_pool* pool)
 }
 
 
-de265_error start_thread_pool(thread_pool* pool, int num_threads)
+de265_error thread_pool::start(int num_threads_to_start)
 {
   de265_error err = DE265_OK;
 
   // limit number of threads to maximum
 
-  if (num_threads > MAX_THREADS) {
-    num_threads = MAX_THREADS;
+  if (num_threads_to_start > MAX_THREADS) {
+    num_threads_to_start = MAX_THREADS;
     err = DE265_WARNING_NUMBER_OF_THREADS_LIMITED_TO_MAXIMUM;
   }
 
-  pool->num_threads = 0; // will be increased below
+  num_threads = 0; // will be increased below
 
   {
-    std::unique_lock<std::mutex> lock(pool->mutex);
+    std::unique_lock<std::mutex> lock(mutex);
 
-    pool->num_threads_working = 0;
-    pool->stopped = false;
+    num_threads_working = 0;
+    stopped = false;
   }
 
   // start worker threads
 
-  for (int i=0; i<num_threads; i++) {
-    pool->thread[i] = std::thread(worker_thread, pool);
-    pool->num_threads++;
+  for (int i=0; i<num_threads_to_start; i++) {
+    thread[i] = std::thread(worker_thread, this);
+    num_threads++;
   }
 
   return err;
 }
 
 
-void stop_thread_pool(thread_pool* pool)
+void thread_pool::stop()
 {
   {
-    std::unique_lock<std::mutex> lock(pool->mutex);
-    pool->stopped = true;
+    std::unique_lock<std::mutex> lock(mutex);
+    stopped = true;
   }
 
-  pool->cond_var.notify_all();
+  cond_var.notify_all();
 
-  for (int i=0;i<pool->num_threads;i++) {
-    pool->thread[i].join();
+  for (int i=0;i<num_threads;i++) {
+    thread[i].join();
   }
 }
 
 
-void   add_task(thread_pool* pool, thread_task* task)
+void thread_pool::add_task(thread_task* task)
 {
-  std::unique_lock<std::mutex> lock(pool->mutex);
+  std::unique_lock<std::mutex> lock(mutex);
 
-  if (!pool->stopped) {
+  if (!stopped) {
 
-    pool->tasks.push_back(task);
+    tasks.push_back(task);
 
     // wake up one thread
 
-    pool->cond_var.notify_one();
+    cond_var.notify_one();
   }
 }

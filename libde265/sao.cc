@@ -515,7 +515,7 @@ bool add_sao_tasks(image_unit* imgunit, int saoInputProgress)
       task->inputProgress = saoInputProgress;
 
       imgunit->tasks.push_back(task);
-      add_task(&ctx->thread_pool_, task);
+      ctx->thread_pool_.add_task(task);
     }
 
   /* Currently need barrier here because when are finished, we have to swap the pixel
