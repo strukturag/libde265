@@ -28,17 +28,24 @@ build_script:
   - cmake --build build --config %CONFIGURATION%
 
 before_test:
-  - ps: if($env:ARCH -eq "ARM64") { return }
-  - copy /y build\dec265\%CONFIGURATION%\dec265.exe build
-  - copy /y build\enc265\%CONFIGURATION%\enc265.exe build
-  - copy /y build\libde265\%CONFIGURATION%\libde265.dll build
+  - ps: >-
+      if($env:ARCH -ne "ARM64") {
+        copy build\dec265\$env:CONFIGURATION\dec265.exe build;
+        copy build\libde265\$env:CONFIGURATION\libde265.dll build
+      }
 
 test_script:
-  - ps: if($env:ARCH -eq "ARM64") { return }
-  - build\dec265.exe -q -c -f 100 libde265-data\IDR-only\paris-352x288-intra.bin
-  - build\dec265.exe -t 4 -q -c -f 100 libde265-data\IDR-only\paris-352x288-intra.bin
-  - build\dec265.exe -q -c -f 100 libde265-data\RandomAccess\paris-ra-wpp.bin
-  - build\dec265.exe -t 4 -q -c -f 100 libde265-data\RandomAccess\paris-ra-wpp.bin
+  - ps: >-
+      if($env:ARCH -ne "ARM64") {
+        & build\dec265.exe -q -c -f 100 libde265-data\IDR-only\paris-352x288-intra.bin;
+        if($LASTEXITCODE -ne 0) { throw "dec265 failed" };
+        & build\dec265.exe -t 4 -q -c -f 100 libde265-data\IDR-only\paris-352x288-intra.bin;
+        if($LASTEXITCODE -ne 0) { throw "dec265 failed" };
+        & build\dec265.exe -q -c -f 100 libde265-data\RandomAccess\paris-ra-wpp.bin;
+        if($LASTEXITCODE -ne 0) { throw "dec265 failed" };
+        & build\dec265.exe -t 4 -q -c -f 100 libde265-data\RandomAccess\paris-ra-wpp.bin;
+        if($LASTEXITCODE -ne 0) { throw "dec265 failed" }
+      }
 
 artifacts:
   - path: build
