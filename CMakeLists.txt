@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.16.3)
 
 project (libde265
     LANGUAGES C CXX
-    VERSION 1.0.16
+    VERSION 1.0.17
 )
 
 # Auto-compute BCD-encoded numeric version from project version.
@@ -35,7 +35,7 @@ set (PACKAGE_VERSION ${PROJECT_VERSION})
 # Programs linked against libde265.so.0 will work with any libde265.so.0.x.y.
 #
 set(DE265_SOVERSION 0)
-set(DE265_LIBRARY_VERSION "0.1.9")
+set(DE265_LIBRARY_VERSION "0.1.10")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
