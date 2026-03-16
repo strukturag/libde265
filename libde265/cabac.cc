@@ -422,9 +422,9 @@ int  decode_CABAC_TR_bypass(CABAC_decoder* decoder, int cRiceParam, int cTRMax)
 }
 
 
-int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k)
+uint32_t  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k)
 {
-  int base=0;
+  uint32_t base=0;
   int n=k;
 
   for (;;)
@@ -441,7 +441,7 @@ int  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k)
       }
     }
 
-  int suffix = decode_CABAC_FL_bypass(decoder, n);
+  uint32_t suffix = decode_CABAC_FL_bypass(decoder, n);
   return base + suffix;
 }
 

@@ -1900,7 +1900,9 @@ static inline int decode_coded_sub_block_flag(thread_context* tctx,
 }
 
 
-static int decode_cu_qp_delta_abs(thread_context* tctx)
+static const uint8_t CABAC_QP_DELTA_ABS_ERROR = 0xFF;
+
+static uint8_t decode_cu_qp_delta_abs(thread_context* tctx)
 {
   logtrace(LogSlice, "# cu_qp_delta_abs\n");
 
@@ -1911,8 +1913,8 @@ static int decode_cu_qp_delta_abs(thread_context* tctx)
     return 0;
   }
 
-  int prefix = 1;
-  for (int i = 0; i < 4; i++) {
+  uint8_t prefix = 1;
+  for (uint8_t i = 0; i < 4; i++) {
     bit = decode_CABAC_bit(&tctx->cabac_decoder,
                            &tctx->ctx_model[CONTEXT_MODEL_CU_QP_DELTA_ABS + 1]);
     if (bit == 0) { break; }
@@ -1920,7 +1922,8 @@ static int decode_cu_qp_delta_abs(thread_context* tctx)
   }
 
   if (prefix == 5) {
-    int value = decode_CABAC_EGk_bypass(&tctx->cabac_decoder, 0);
+    uint32_t value = decode_CABAC_EGk_bypass(&tctx->cabac_decoder, 0);
+    if (value >= 250) { return CABAC_QP_DELTA_ABS_ERROR; }
     logtrace(LogSymbols, "$1 cu_qp_delta_abs=%d\n", value + 5);
     return value + 5;
   }
@@ -3590,7 +3593,12 @@ int read_transform_unit(thread_context* tctx,
 
     if (tctx->img->get_pps().cu_qp_delta_enabled_flag &&
         !tctx->IsCuQpDeltaCoded) {
-      int cu_qp_delta_abs = decode_cu_qp_delta_abs(tctx);
+      uint8_t cu_qp_delta_abs = decode_cu_qp_delta_abs(tctx);
+      if (cu_qp_delta_abs == CABAC_QP_DELTA_ABS_ERROR) {
+        tctx->decctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      }
+
       int cu_qp_delta_sign = 0;
       if (cu_qp_delta_abs) {
         cu_qp_delta_sign = decode_CABAC_bypass(&tctx->cabac_decoder);
