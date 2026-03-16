@@ -53,7 +53,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
   if (pps->transform_skip_enabled_flag) {
     uvlc = get_uvlc(br);
     if (uvlc == UVLC_ERROR ||
-        uvlc > (uint32_t)sps->Log2MaxTrafoSize - 2) {
+        uvlc > static_cast<uint32_t>(sps->Log2MaxTrafoSize) - 2) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
@@ -76,7 +76,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
   if (chroma_qp_offset_list_enabled_flag) {
     uvlc = get_uvlc(br);
     if (uvlc == UVLC_ERROR ||
-        uvlc > (uint32_t)sps->log2_diff_max_min_luma_coding_block_size) {
+        uvlc > static_cast<uint32_t>(sps->log2_diff_max_min_luma_coding_block_size)) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
@@ -118,7 +118,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
 
   uvlc = get_uvlc(br);
   if (uvlc == UVLC_ERROR ||
-      uvlc > (uint32_t)libde265_max(0, sps->BitDepth_Y-10)) {
+      uvlc > static_cast<uint32_t>(libde265_max(0, sps->BitDepth_Y-10))) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }
@@ -127,7 +127,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
 
   uvlc = get_uvlc(br);
   if (uvlc == UVLC_ERROR ||
-      uvlc > (uint32_t)libde265_max(0, sps->BitDepth_C-10)) {
+      uvlc > static_cast<uint32_t>(libde265_max(0, sps->BitDepth_C-10))) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }
@@ -187,7 +187,7 @@ pic_parameter_set::~pic_parameter_set()
 void pic_parameter_set::set_defaults(enum PresetSet)
 {
   pps_read = false;
-  sps = NULL;
+  sps = nullptr;
 
   pic_parameter_set_id = 0;
   seq_parameter_set_id = 0;
@@ -546,7 +546,7 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 
     // set columns widths
 
-    int *const colPos = (int *)alloca((num_tile_columns+1) * sizeof(int));
+    int *const colPos = static_cast<int*>(alloca((num_tile_columns+1) * sizeof(int)));
 
     for (int i=0;i<=num_tile_columns;i++) {
       colPos[i] = i*sps->PicWidthInCtbsY / num_tile_columns;
@@ -557,7 +557,7 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
 
     // set row heights
 
-    int *const rowPos = (int *)alloca((num_tile_rows+1) * sizeof(int));
+    int *const rowPos = static_cast<int*>(alloca((num_tile_rows+1) * sizeof(int)));
 
     for (int i=0;i<=num_tile_rows;i++) {
       rowPos[i] = i*sps->PicHeightInCtbsY / num_tile_rows;

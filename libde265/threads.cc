@@ -89,7 +89,7 @@ void printblks(const thread_pool* pool)
   printf("active threads: %d  queue len: %d\n",pool->num_threads_working,pool->num_tasks);
 
   char *const p = (char *)alloca(w * h * sizeof(char));
-  assert(p != NULL);
+  assert(p != nullptr);
   memset(p,' ',w*h);
 
   for (int i=0;i<pool->num_tasks;i++) {

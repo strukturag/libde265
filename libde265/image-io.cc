@@ -34,7 +34,7 @@ ImageSource::~ImageSource() { }
 
 
 ImageSource_YUV::ImageSource_YUV()
-  : mFH(NULL)
+  : mFH(nullptr)
 {
 }
 
@@ -49,10 +49,10 @@ ImageSource_YUV::~ImageSource_YUV()
 
 bool ImageSource_YUV::set_input_file(const char* filename, int w,int h)
 {
-  assert(mFH==NULL);
+  assert(mFH==nullptr);
 
   mFH = fopen(filename,"rb");
-  if (mFH==NULL) {
+  if (mFH==nullptr) {
     return false;
   }
 
@@ -66,11 +66,11 @@ bool ImageSource_YUV::set_input_file(const char* filename, int w,int h)
 
 de265_image* ImageSource_YUV::read_next_image()
 {
-  if (mReachedEndOfFile) return NULL;
+  if (mReachedEndOfFile) return nullptr;
 
   de265_image* img = new de265_image;
-  img->alloc_image(width,height,de265_chroma_420, NULL, false,
-                   NULL, /*NULL,*/ 0, NULL, false);
+  img->alloc_image(width,height,de265_chroma_420, nullptr, false,
+                   nullptr, /*nullptr,*/ 0, nullptr, false);
   assert(img); // TODO: error handling
 
   // --- load image ---
@@ -105,7 +105,7 @@ check_eof:
   if (feof(mFH)) {
     mReachedEndOfFile = true;
     delete img;
-    return NULL;
+    return nullptr;
   }
   else {
     return img;
@@ -150,7 +150,7 @@ int ImageSource_YUV::get_height() const
 
 ImageSink::~ImageSink() { }
 
-ImageSink_YUV::ImageSink_YUV() : mFH(NULL) { }
+ImageSink_YUV::ImageSink_YUV() : mFH(nullptr) { }
 
 
 ImageSink_YUV::~ImageSink_YUV()
@@ -162,7 +162,7 @@ ImageSink_YUV::~ImageSink_YUV()
 
 bool ImageSink_YUV::set_filename(const char* filename)
 {
-  assert(mFH==NULL);
+  assert(mFH==nullptr);
 
   mFH = fopen(filename,"wb");
 
@@ -203,7 +203,7 @@ void ImageSink_YUV::send_image(const de265_image* img)
 PacketSink::~PacketSink() { }
 
 PacketSink_File::PacketSink_File()
-  : mFH(NULL)
+  : mFH(nullptr)
 {
 }
 
@@ -218,7 +218,7 @@ LIBDE265_API PacketSink_File::~PacketSink_File()
 
 LIBDE265_API void PacketSink_File::set_filename(const char* filename)
 {
-  assert(mFH==NULL);
+  assert(mFH==nullptr);
 
   mFH = fopen(filename,"wb");
 }

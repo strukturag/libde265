@@ -36,7 +36,7 @@ static de265_error read_sei_decoded_picture_hash(bitreader* reader, sei_message*
 
   seihash->hash_type = (enum sei_decoded_picture_hash_type)get_bits(reader,8);
 
-  if (sps==NULL) {
+  if (sps==nullptr) {
     return DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI;
   }
 
@@ -121,7 +121,7 @@ raw_hash_data::raw_hash_data(int w, int stride)
 {
   mWidth=w;
   mStride=stride;
-  mMem = NULL;
+  mMem = nullptr;
 }
 
 raw_hash_data::~raw_hash_data()
@@ -139,7 +139,7 @@ raw_hash_data::data_chunk raw_hash_data::prepare_8bit(const uint8_t* data,int y)
 
 raw_hash_data::data_chunk raw_hash_data::prepare_16bit(const uint8_t* data,int y)
 {
-  if (mMem == NULL) {
+  if (mMem == nullptr) {
     mMem = new uint8_t[2*mWidth];
   }
 

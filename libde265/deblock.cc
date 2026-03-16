@@ -360,7 +360,7 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
 	      }
 	    }
 	    else {
-	      bS = 0; // if shdrP==NULL or shdrQ==NULL
+	      bS = 0; // if shdrP==nullptr or shdrQ==nullptr
 	    }
 
             /*

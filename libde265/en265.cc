@@ -32,14 +32,14 @@ LIBDE265_API en265_encoder_context* en265_new_encoder(void)
   }
 
   encoder_context* ectx = new encoder_context();
-  return (en265_encoder_context*)ectx;
+  return reinterpret_cast<en265_encoder_context*>(ectx);
 }
 
 
 LIBDE265_API de265_error en265_free_encoder(en265_encoder_context* e)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
   delete ectx;
 
   return de265_free();
@@ -54,7 +54,7 @@ LIBDE265_API void en265_set_image_release_function(en265_encoder_context* e,
                                                    void* alloc_userdata)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   ectx->param_image_allocation_userdata = alloc_userdata;
   ectx->release_func = release_func;
@@ -68,7 +68,7 @@ LIBDE265_API de265_error en265_parse_command_line_parameters(en265_encoder_conte
                                                              int* argc, char** argv)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   //if (!ectx->params_config.parse_command_line_params(argc,argv, &ectx->params, true)) {
   int first_idx=1;
@@ -83,7 +83,7 @@ LIBDE265_API de265_error en265_parse_command_line_parameters(en265_encoder_conte
 LIBDE265_API void en265_show_parameters(en265_encoder_context* e)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   //ectx->params_config.show_params(&ectx->params);
 
@@ -94,7 +94,7 @@ LIBDE265_API void en265_show_parameters(en265_encoder_context* e)
 LIBDE265_API const char** en265_list_parameters(en265_encoder_context* e)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   return ectx->params_config.get_parameter_string_table();
 }
@@ -104,7 +104,7 @@ LIBDE265_API enum en265_parameter_type en265_get_parameter_type(en265_encoder_co
                                                                 const char* parametername)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   return ectx->params_config.get_parameter_type(parametername);
 }
@@ -114,7 +114,7 @@ LIBDE265_API de265_error en265_set_parameter_bool(en265_encoder_context* e,
                                                   const char* param,int value)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   return ectx->params_config.set_bool(param,value) ? DE265_OK : DE265_ERROR_PARAMETER_PARSING;
 }
@@ -124,7 +124,7 @@ LIBDE265_API de265_error en265_set_parameter_int(en265_encoder_context* e,
                                                  const char* param,int value)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   return ectx->params_config.set_int(param,value) ? DE265_OK : DE265_ERROR_PARAMETER_PARSING;
 }
@@ -133,7 +133,7 @@ LIBDE265_API de265_error en265_set_parameter_string(en265_encoder_context* e,
                                                     const char* param,const char* value)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   return ectx->params_config.set_string(param,value) ? DE265_OK : DE265_ERROR_PARAMETER_PARSING;
 }
@@ -142,7 +142,7 @@ LIBDE265_API de265_error en265_set_parameter_choice(en265_encoder_context* e,
                                                     const char* param,const char* value)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   return ectx->params_config.set_choice(param,value) ? DE265_OK : DE265_ERROR_PARAMETER_PARSING;
 }
@@ -152,7 +152,7 @@ LIBDE265_API const char** en265_list_parameter_choices(en265_encoder_context* e,
                                                        const char* parametername)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   return ectx->params_config.get_parameter_choices_table(parametername);
 }
@@ -165,7 +165,7 @@ LIBDE265_API const char** en265_list_parameter_choices(en265_encoder_context* e,
 LIBDE265_API de265_error en265_start_encoder(en265_encoder_context* e, int number_of_threads)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   ectx->start_encoder();
 
@@ -178,7 +178,7 @@ LIBDE265_API struct de265_image* en265_allocate_image(en265_encoder_context* e,
                                                       de265_PTS pts, void* image_userdata)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   de265_image* img = new de265_image;
   if (img->alloc_image(width,height,de265_chroma_420, NULL, false,
@@ -218,7 +218,7 @@ LIBDE265_API de265_error en265_push_image(en265_encoder_context* e,
                                           struct de265_image* img)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   ectx->sop->insert_new_input_image(img);
   return DE265_OK;
@@ -228,7 +228,7 @@ LIBDE265_API de265_error en265_push_image(en265_encoder_context* e,
 LIBDE265_API de265_error en265_push_eof(en265_encoder_context* e)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   ectx->sop->insert_end_of_stream();
   return DE265_OK;
@@ -258,7 +258,7 @@ LIBDE265_API int  en265_current_input_queue_length(en265_encoder_context*)
 LIBDE265_API de265_error en265_encode(en265_encoder_context* e)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   while (ectx->picbuf.have_more_frames_to_encode())
     {
@@ -278,7 +278,7 @@ LIBDE265_API enum en265_encoder_state en265_get_encoder_state(en265_encoder_cont
 LIBDE265_API struct en265_packet* en265_get_packet(en265_encoder_context* e, int timeout_ms)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   assert(timeout_ms==0); // TODO: blocking not implemented yet
 
@@ -296,7 +296,7 @@ LIBDE265_API struct en265_packet* en265_get_packet(en265_encoder_context* e, int
 LIBDE265_API void en265_free_packet(en265_encoder_context* e, struct en265_packet* pck)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   // Do not delete images here. They are owned by the EncPicBuf.
   //delete   pck->input_image;
@@ -315,7 +315,7 @@ LIBDE265_API void en265_free_packet(en265_encoder_context* e, struct en265_packe
 LIBDE265_API int en265_number_of_queued_packets(en265_encoder_context* e)
 {
   assert(e);
-  encoder_context* ectx = (encoder_context*)e;
+  encoder_context* ectx = reinterpret_cast<encoder_context*>(e);
 
   return ectx->output_packets.size();
 }

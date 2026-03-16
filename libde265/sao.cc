@@ -137,7 +137,7 @@ void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
 
             slice_segment_header* sliceHeader = img->get_SliceHeader(xS<<chromashiftW,
                                                                      yS<<chromashiftH);
-            if (sliceHeader==NULL) { return; }
+            if (sliceHeader==nullptr) { return; }
 
             int sliceAddrRS = sliceHeader->SliceAddrRS;
             if (sliceAddrRS <  ctbSliceAddrRS &&
@@ -271,8 +271,8 @@ void apply_sao(de265_image* img, int xCtb,int yCtb,
 {
   if (img->high_bit_depth(cIdx)) {
     apply_sao_internal<uint16_t>(img,xCtb,yCtb, shdr,cIdx,nSW,nSH,
-                                 (uint16_t*)in_img, in_stride,
-                                 (uint16_t*)out_img,out_stride);
+                                 reinterpret_cast<const uint16_t*>(in_img), in_stride,
+                                 reinterpret_cast<uint16_t*>(out_img),out_stride);
   }
   else {
     apply_sao_internal<uint8_t>(img,xCtb,yCtb, shdr,cIdx,nSW,nSH,
@@ -336,7 +336,7 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
   int chromaImageSize = img->get_image_stride(1) * img->get_height(1) * img->get_bytes_per_pixel(1);
 
   uint8_t* inputCopy = new uint8_t[ libde265_max(lumaImageSize, chromaImageSize) ];
-  if (inputCopy == NULL) {
+  if (inputCopy == nullptr) {
     img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
     return;
   }
@@ -356,7 +356,7 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
       for (int xCtb=0; xCtb<sps.PicWidthInCtbsY; xCtb++)
         {
           const slice_segment_header* shdr = img->get_SliceHeaderCtb(xCtb,yCtb);
-          if (shdr==NULL) {
+          if (shdr==nullptr) {
 	    delete[] inputCopy;
 	    return;
 	  }
@@ -439,7 +439,7 @@ void thread_task_sao::work()
   for (int xCtb=0; xCtb<sps.PicWidthInCtbsY; xCtb++)
     {
       const slice_segment_header* shdr = img->get_SliceHeaderCtb(xCtb,ctb_y);
-      if (shdr==NULL) {
+      if (shdr==nullptr) {
         break;
       }
 

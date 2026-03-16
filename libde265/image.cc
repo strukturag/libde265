@@ -53,9 +53,9 @@
 #define FREE_ALIGNED(mem)                      _aligned_free((mem))
 #elif defined(HAVE_POSIX_MEMALIGN)
 static inline void *ALLOC_ALIGNED(size_t alignment, size_t size) {
-    void *mem = NULL;
+    void *mem = nullptr;
     if (posix_memalign(&mem, alignment, size) != 0) {
-        return NULL;
+        return nullptr;
     }
     return mem;
 };
@@ -74,21 +74,21 @@ LIBDE265_API void* de265_alloc_image_plane(struct de265_image* img, int cIdx,
   int stride = (img->get_width(cIdx) + alignment-1) / alignment * alignment;
   int height = img->get_height(cIdx);
 
-  uint8_t* p = (uint8_t *)ALLOC_ALIGNED_16(stride * height + MEMORY_PADDING);
+  uint8_t* p = static_cast<uint8_t*>(ALLOC_ALIGNED_16(stride * height + MEMORY_PADDING));
 
-  if (p==NULL) { return NULL; }
+  if (p==nullptr) { return nullptr; }
 
   img->set_image_plane(cIdx, p, stride, userdata);
 
   // copy input data if provided
 
-  if (inputdata != NULL) {
+  if (inputdata != nullptr) {
     if (inputstride == stride) {
       memcpy(p, inputdata, stride*height);
     }
     else {
       for (int y=0;y<height;y++) {
-        memcpy(p+y*stride, ((char*)inputdata) + inputstride*y, inputstride);
+        memcpy(p+y*stride, static_cast<char*>(inputdata) + inputstride*y, inputstride);
       }
     }
   }
@@ -99,7 +99,7 @@ LIBDE265_API void* de265_alloc_image_plane(struct de265_image* img, int cIdx,
 
 LIBDE265_API void de265_free_image_plane(struct de265_image* img, int cIdx)
 {
-  uint8_t* p = (uint8_t*)img->get_image_plane(cIdx);
+  uint8_t* p = img->get_image_plane(cIdx);
   assert(p);
   FREE_ALIGNED(p);
 }
@@ -126,18 +126,18 @@ static int  de265_image_get_buffer(de265_decoder_context* ctx,
   bool alloc_failed = false;
 
   uint8_t* p[3] = { 0,0,0 };
-  p[0] = (uint8_t *)ALLOC_ALIGNED_16(luma_height   * luma_bpl   + MEMORY_PADDING);
-  if (p[0]==NULL) { alloc_failed=true; }
+  p[0] = static_cast<uint8_t*>(ALLOC_ALIGNED_16(luma_height   * luma_bpl   + MEMORY_PADDING));
+  if (p[0]==nullptr) { alloc_failed=true; }
 
   if (img->get_chroma_format() != de265_chroma_mono) {
-    p[1] = (uint8_t *)ALLOC_ALIGNED_16(chroma_height * chroma_bpl + MEMORY_PADDING);
-    p[2] = (uint8_t *)ALLOC_ALIGNED_16(chroma_height * chroma_bpl + MEMORY_PADDING);
+    p[1] = static_cast<uint8_t*>(ALLOC_ALIGNED_16(chroma_height * chroma_bpl + MEMORY_PADDING));
+    p[2] = static_cast<uint8_t*>(ALLOC_ALIGNED_16(chroma_height * chroma_bpl + MEMORY_PADDING));
 
-    if (p[1]==NULL || p[2]==NULL) { alloc_failed=true; }
+    if (p[1]==nullptr || p[2]==nullptr) { alloc_failed=true; }
   }
   else {
-    p[1] = NULL;
-    p[2] = NULL;
+    p[1] = nullptr;
+    p[2] = nullptr;
     chroma_stride = 0;
   }
 
@@ -150,9 +150,9 @@ static int  de265_image_get_buffer(de265_decoder_context* ctx,
     return 0;
   }
 
-  img->set_image_plane(0, p[0], luma_stride, NULL);
-  img->set_image_plane(1, p[1], chroma_stride, NULL);
-  img->set_image_plane(2, p[2], chroma_stride, NULL);
+  img->set_image_plane(0, p[0], luma_stride, nullptr);
+  img->set_image_plane(1, p[1], chroma_stride, nullptr);
+  img->set_image_plane(2, p[2], chroma_stride, nullptr);
 
   img->fill_image(0,0,0);
 
@@ -163,7 +163,7 @@ static void de265_image_release_buffer(de265_decoder_context* ctx,
                                        de265_image* img, void* userdata)
 {
   for (int i=0;i<3;i++) {
-    uint8_t* p = (uint8_t*)img->get_image_plane(i);
+    uint8_t* p = img->get_image_plane(i);
     if (p) {
       FREE_ALIGNED(p);
     }
@@ -192,26 +192,26 @@ de265_image::de265_image()
   ID = std::numeric_limits<uint32_t>::max();
   removed_at_picture_id = 0; // picture not used, so we can assume it has been removed
 
-  decctx = NULL;
-  //encctx = NULL;
+  decctx = nullptr;
+  //encctx = nullptr;
 
-  //encoder_image_release_func = NULL;
+  //encoder_image_release_func = nullptr;
 
-  //alloc_functions.get_buffer = NULL;
-  //alloc_functions.release_buffer = NULL;
+  //alloc_functions.get_buffer = nullptr;
+  //alloc_functions.release_buffer = nullptr;
 
   for (int c=0;c<3;c++) {
-    pixels[c] = NULL;
-    pixels_confwin[c] = NULL;
-    plane_user_data[c] = NULL;
+    pixels[c] = nullptr;
+    pixels_confwin[c] = nullptr;
+    plane_user_data[c] = nullptr;
   }
 
   width=height=0;
 
   pts = 0;
-  user_data = NULL;
+  user_data = nullptr;
 
-  ctb_progress = NULL;
+  ctb_progress = nullptr;
 
   integrity = INTEGRITY_NOT_DECODED;
 
@@ -351,8 +351,8 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
   spec.visible_height= height_confwin;
 
 
-  BitDepth_Y = (sps==NULL) ? 8 : sps->BitDepth_Y;
-  BitDepth_C = (sps==NULL) ? 8 : sps->BitDepth_C;
+  BitDepth_Y = (sps==nullptr) ? 8 : sps->BitDepth_Y;
+  BitDepth_C = (sps==nullptr) ? 8 : sps->BitDepth_C;
 
   bpp_shift[0] = (BitDepth_Y <= 8) ? 0 : 1;
   bpp_shift[1] = (BitDepth_C <= 8) ? 0 : 1;
@@ -361,7 +361,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
   // allocate memory and set conformance window pointers
 
-  void* alloc_userdata = NULL;
+  void* alloc_userdata = nullptr;
   if (decctx) alloc_userdata = decctx->param_image_allocation_userdata;
   // if (encctx) alloc_userdata = encctx->param_image_allocation_userdata; // actually not needed
 
@@ -371,12 +371,12 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
     // if we do not provide a release function, use our own
 
-    if (encoder_image_release_func == NULL) {
+    if (encoder_image_release_func == nullptr) {
       image_allocation_functions = de265_image::default_image_allocation;
     }
     else {
-      image_allocation_functions.get_buffer     = NULL;
-      image_allocation_functions.release_buffer = NULL;
+      image_allocation_functions.get_buffer     = nullptr;
+      image_allocation_functions.release_buffer = nullptr;
     }
   }
   else*/ if (decctx && useCustomAllocFunc) {
@@ -388,7 +388,7 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
 
   bool mem_alloc_success = true;
 
-  if (image_allocation_functions.get_buffer != NULL) {
+  if (image_allocation_functions.get_buffer != nullptr) {
     mem_alloc_success = image_allocation_functions.get_buffer(decctx, &spec, this,
                                                               alloc_userdata);
 
@@ -399,8 +399,8 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
       pixels_confwin[2] = pixels[2] + left + top*chroma_stride;
     }
     else {
-      pixels_confwin[1] = NULL;
-      pixels_confwin[2] = NULL;
+      pixels_confwin[1] = nullptr;
+      pixels_confwin[2] = nullptr;
     }
 
     // check for memory shortage
@@ -496,7 +496,7 @@ void de265_image::release()
   if (pixels[0])
     {
       /*
-      if (encoder_image_release_func != NULL) {
+      if (encoder_image_release_func != nullptr) {
         encoder_image_release_func(encctx, this,
                                    encctx->param_image_allocation_userdata);
       }
@@ -504,13 +504,13 @@ void de265_image::release()
         image_allocation_functions.release_buffer(decctx, this,
                                                   decctx ?
                                                   decctx->param_image_allocation_userdata :
-                                                  NULL);
+                                                  nullptr);
       }
 
       for (int i=0;i<3;i++)
         {
-          pixels[i] = NULL;
-          pixels_confwin[i] = NULL;
+          pixels[i] = nullptr;
+          pixels_confwin[i] = nullptr;
         }
     }
 
@@ -554,7 +554,7 @@ void de265_image::fill_plane(int channel, int value)
     if (channel==0) {
       // copy value into first row
       for (int x = 0; x < width; x++) {
-        *(uint16_t*) (&pixels[channel][2 * x]) = v;
+        *reinterpret_cast<uint16_t*>(&pixels[channel][2 * x]) = v;
       }
 
       // copy first row into remaining rows
@@ -565,7 +565,7 @@ void de265_image::fill_plane(int channel, int value)
     else {
       // copy value into first row
       for (int x = 0; x < chroma_width; x++) {
-        *(uint16_t*) (&pixels[channel][2 * x]) = v;
+        *reinterpret_cast<uint16_t*>(&pixels[channel][2 * x]) = v;
       }
 
       // copy first row into remaining rows
@@ -739,13 +739,13 @@ void de265_image::wait_for_progress(thread_task* task, int ctbx,int ctby, int pr
 
 void de265_image::wait_for_progress(thread_task* task, int ctbAddrRS, int progress)
 {
-  if (task==NULL) { return; }
+  if (task==nullptr) { return; }
 
   de265_progress_lock* progresslock = &ctb_progress[ctbAddrRS];
   if (progresslock->get_progress() < progress) {
     thread_blocks();
 
-    assert(task!=NULL);
+    assert(task!=nullptr);
     task->state = thread_task::Blocked;
 
     /* TODO: check whether we are the first blocked task in the list.

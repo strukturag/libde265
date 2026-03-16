@@ -71,7 +71,7 @@ void* alloc_pool::new_obj(const size_t size)
       if (DEBUG_MEMORY) { fprintf(stderr,"additional block allocated in memory pool\n"); }
     }
     else {
-      return NULL;
+      return nullptr;
     }
   }
 

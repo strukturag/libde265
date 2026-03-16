@@ -209,7 +209,7 @@ void mc_chroma(const base_context* ctx,
         yIntOffsC>=0 && nPbHC+yIntOffsC<=hC) {
       ctx->acceleration.put_hevc_epel(out, out_stride,
                                       &ref[xIntOffsC + yIntOffsC*ref_stride], ref_stride,
-                                      nPbWC,nPbHC, 0,0, NULL, bit_depth_C);
+                                      nPbWC,nPbHC, 0,0, nullptr, bit_depth_C);
     }
     else
       {
@@ -1463,8 +1463,8 @@ void derive_combined_bipredictive_merging_candidates(const base_context* ctx,
       logtrace(LogMotion,"l0Cand:\n"); logmvcand(l0Cand);
       logtrace(LogMotion,"l1Cand:\n"); logmvcand(l1Cand);
 
-      const de265_image* img0 = l0Cand.predFlag[0] ? ctx->get_image(shdr->RefPicList[0][l0Cand.refIdx[0]]) : NULL;
-      const de265_image* img1 = l1Cand.predFlag[1] ? ctx->get_image(shdr->RefPicList[1][l1Cand.refIdx[1]]) : NULL;
+      const de265_image* img0 = l0Cand.predFlag[0] ? ctx->get_image(shdr->RefPicList[0][l0Cand.refIdx[0]]) : nullptr;
+      const de265_image* img1 = l1Cand.predFlag[1] ? ctx->get_image(shdr->RefPicList[1][l1Cand.refIdx[1]]) : nullptr;
 
       if (l0Cand.predFlag[0] && !img0) {
         return; // TODO error
@@ -1724,7 +1724,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
 
   // the POC we want to reference in this PB
   const de265_image* tmpimg = ctx->get_image(shdr->RefPicList[X][ refIdxLX ]);
-  if (tmpimg==NULL) { return; }
+  if (tmpimg==nullptr) { return; }
   const int referenced_POC = tmpimg->PicOrderCntVal;
 
   for (int k=0;k<=1;k++) {
@@ -1739,12 +1739,12 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       logtrace(LogMotion,"MVP A%d=\n",k);
       logmvcand(vi);
 
-      const de265_image* imgX = NULL;
+      const de265_image* imgX = nullptr;
       if (vi.predFlag[X]) {
         imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
       }
 
-      const de265_image* imgY = NULL;
+      const de265_image* imgY = nullptr;
       if (vi.predFlag[Y]) {
         imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]);
       }
@@ -1880,12 +1880,12 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
       logtrace(LogMotion,"MVP B%d=\n",k);
       logmvcand(vi);
 
-      const de265_image* imgX = NULL;
+      const de265_image* imgX = nullptr;
       if (vi.predFlag[X]) {
         imgX = ctx->get_image(shdr->RefPicList[X][ vi.refIdx[X] ]);
       }
 
-      const de265_image* imgY = NULL;
+      const de265_image* imgY = nullptr;
       if (vi.predFlag[Y]) {
         imgY = ctx->get_image(shdr->RefPicList[Y][ vi.refIdx[Y] ]);
       }
@@ -1968,7 +1968,7 @@ void derive_spatial_luma_vector_prediction(base_context* ctx,
         int isLongTermB = shdr->LongTermRefPic[refPicList][refIdxB ];
         int isLongTermX = shdr->LongTermRefPic[X         ][refIdxLX];
 
-        if (refPicB==NULL || refPicX==NULL) {
+        if (refPicB==nullptr || refPicX==nullptr) {
           img->decctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED,false);
           img->integrity = INTEGRITY_DECODING_ERRORS;
         }

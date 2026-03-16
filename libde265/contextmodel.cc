@@ -26,7 +26,7 @@
 bool D = false;
 
 context_model_table::context_model_table()
-  : model(NULL), refcnt(NULL)
+  : model(nullptr), refcnt(nullptr)
 {
 }
 

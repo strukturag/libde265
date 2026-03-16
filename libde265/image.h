@@ -91,7 +91,7 @@ template <class DataUnit> class MetaDataArray
     if (size != data_size) {
       free(data);
       data = (DataUnit*)calloc(size, sizeof(DataUnit));
-      if (data == NULL) {
+      if (data == nullptr) {
         data_size = 0;
         return false;
       }
@@ -103,7 +103,7 @@ template <class DataUnit> class MetaDataArray
 
     log2unitSize = _log2unitSize;
 
-    return data != NULL;
+    return data != nullptr;
   }
 
   void clear() {
@@ -543,13 +543,13 @@ public:
 
   int  get_log2CbSize(int x0, int y0) const
   {
-    return (PredMode)cb_info.get(x0,y0).log2CbSize;
+    return cb_info.get(x0,y0).log2CbSize;
   }
 
   // coordinates in CB units
   int  get_log2CbSize_cbUnits(int xCb, int yCb) const
   {
-    return (PredMode)cb_info[ xCb + yCb*cb_info.width_in_units ].log2CbSize;
+    return cb_info[ xCb + yCb*cb_info.width_in_units ].log2CbSize;
   }
 
   void set_PartMode(int x,int y, PartMode mode)

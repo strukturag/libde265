@@ -81,7 +81,7 @@ enum PartMode
     PART_nRx2N = 7
   };
 
-const char* part_mode_name(enum PartMode);
+const char* part_mode_name(PartMode);
 
 
 enum PredMode

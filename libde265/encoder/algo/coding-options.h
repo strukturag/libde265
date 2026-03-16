@@ -104,7 +104,7 @@ class CodingOption
 {
  public:
   CodingOption() {
-    mParent = nullptr;
+    mParent = NULL;
     mOptionIdx = 0;
   }
 

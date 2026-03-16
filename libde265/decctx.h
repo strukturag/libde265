@@ -115,7 +115,7 @@ public:
 
   image_unit* imgunit = nullptr;
   slice_unit* sliceunit = nullptr;
-  thread_task* task; // executing thread_task or NULL if not multi-threaded
+  thread_task* task; // executing thread_task or nullptr if not multi-threaded
 
   thread_context(const thread_context&) = delete;
   thread_context& operator=(const thread_context&) = delete;

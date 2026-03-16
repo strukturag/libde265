@@ -172,7 +172,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     // positive list
     for (int j=nPositiveRIdx-1;j>=0;j--) {
-      assert(RIdx >= 0 && (size_t)RIdx < sets.size());
+      assert(RIdx >= 0 && static_cast<size_t>(RIdx) < sets.size());
       assert(j>=0 && j < MAX_NUM_REF_PICS);
 
       int dPoc = sets[RIdx].DeltaPocS1[j] + DeltaRPS; // new delta
@@ -266,7 +266,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     // total number of reference pictures may not exceed buffer capacity
     if (num_negative_pics + num_positive_pics >
-        (uint32_t)sps->sps_max_dec_pic_buffering[ sps->sps_max_sub_layers-1 ]) {
+        static_cast<uint32_t>(sps->sps_max_dec_pic_buffering[ sps->sps_max_sub_layers-1 ])) {
 
       out_set->NumNegativePics = 0;
       out_set->NumPositivePics = 0;

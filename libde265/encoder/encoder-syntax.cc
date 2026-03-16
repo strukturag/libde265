@@ -1431,9 +1431,9 @@ void encode_prediction_unit(encoder_context* ectx,
 
     /*
 enum InterPredIdc
-    PRED_L0=0,
-    PRED_L1=1,
-    PRED_BI=2
+    InterPredIdc::PRED_L0=0,
+    InterPredIdc::PRED_L1=1,
+    InterPredIdc::PRED_BI=2
     */
   }
 }

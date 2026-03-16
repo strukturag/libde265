@@ -168,7 +168,7 @@ void print_border(pixel_t* data, uint8_t* available, int nT)
       logtrace(LogIntraPred," ");
     }
 
-    if (available==NULL || available[i]) {
+    if (available==nullptr || available[i]) {
       logtrace(LogIntraPred,"%02x",data[i]);
     }
     else {
@@ -254,7 +254,7 @@ void intra_prediction_sample_filtering(const seq_parameter_set& sps,
 
 
   logtrace(LogIntraPred,"post filtering: ");
-  print_border(p,NULL,nT);
+  print_border(p,nullptr,nT);
   logtrace(LogIntraPred,"\n");
 }
 
@@ -666,11 +666,11 @@ void intra_border_computer<pixel_t>::reference_sample_substitution()
   }
 
   logtrace(LogIntraPred,"availableN: ");
-  print_border(available,NULL,nT);
+  print_border(available,nullptr,nT);
   logtrace(LogIntraPred,"\n");
 
   logtrace(LogIntraPred,"output:     ");
-  print_border(out_border,NULL,nT);
+  print_border(out_border,nullptr,nT);
   logtrace(LogIntraPred,"\n");
 }
 

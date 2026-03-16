@@ -271,7 +271,7 @@ Algo_TB_IntraPredMode_BruteForce::analyze(encoder_context* ectx,
   }
 
   assert(false);
-  return nullptr;
+  return NULL;
 }
 
 
@@ -390,7 +390,7 @@ Algo_TB_IntraPredMode_MinResidual::analyze(encoder_context* ectx,
   }
 
   assert(false);
-  return nullptr;
+  return NULL;
 }
 
 static bool sortDistortions(std::pair<enum IntraPredMode,float> i,
@@ -528,5 +528,5 @@ Algo_TB_IntraPredMode_FastBrute::analyze(encoder_context* ectx,
   }
 
   assert(false);
-  return nullptr;
+  return NULL;
 }

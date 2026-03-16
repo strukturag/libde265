@@ -255,7 +255,7 @@ de265_error read_pred_weight_table(bitreader* br, slice_segment_header* shdr, de
 
 void slice_segment_header::reset()
 {
-  pps = NULL;
+  pps = nullptr;
 
   slice_index = 0;
 
@@ -425,7 +425,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
         return DE265_OK;
       }
 
-      if (ctx->previous_slice_header == NULL) {
+      if (ctx->previous_slice_header == nullptr) {
         return DE265_ERROR_NO_INITIAL_SLICE_HEADER;
       }
 
@@ -1994,7 +1994,7 @@ bool alloc_and_init_significant_coeff_ctxIdx_lookupTable()
   int tableSize = 4 * 4 * (2) + 8 * 8 * (2 * 2 * 4) + 16 * 16 * (2 * 4) + 32 * 32 * (2 * 4);
 
   uint8_t* p = (uint8_t*) malloc(tableSize);
-  if (p == NULL) {
+  if (p == nullptr) {
     return false;
   }
 
@@ -2148,7 +2148,7 @@ bool alloc_and_init_significant_coeff_ctxIdx_lookupTable_OLD()
 {
   int tableSize = 2 * 2 * 4 * (4 * 4 + 8 * 8 + 16 * 16 + 32 * 32);
   uint8_t* p = (uint8_t*) malloc(tableSize);
-  if (p == NULL) {
+  if (p == nullptr) {
     return false;
   }
 
@@ -2270,7 +2270,7 @@ bool alloc_and_init_significant_coeff_ctxIdx_lookupTable_OLD()
 void free_significant_coeff_ctxIdx_lookupTable()
 {
   free(ctxIdxLookup[0][0][0][0]);
-  ctxIdxLookup[0][0][0][0] = NULL;
+  ctxIdxLookup[0][0][0][0] = nullptr;
 }
 
 
@@ -4904,7 +4904,7 @@ bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 
       slice_unit* prevSliceSegment = tctx->imgunit->get_prev_slice_segment(tctx->sliceunit);
       //assert(prevSliceSegment);
-      if (prevSliceSegment == NULL) {
+      if (prevSliceSegment == nullptr) {
         return false;
       }
 

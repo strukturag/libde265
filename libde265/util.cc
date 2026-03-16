@@ -234,7 +234,7 @@ void printBlk(const char* title, const uint8_t* data, int blksize, int stride,
 }
 
 
-static void (*debug_image_output_func)(const struct de265_image*, int slot) = NULL;
+static void (*debug_image_output_func)(const struct de265_image*, int slot) = nullptr;
 
 void debug_set_image_output(void (*func)(const struct de265_image*, int slot))
 {
