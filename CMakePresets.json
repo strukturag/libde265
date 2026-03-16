@@ -2,9 +2,16 @@
   "version": 6,
   "configurePresets": [
     {
+      "name": "release",
+      "displayName": "Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ENABLE_ENCODER": "OFF"
+      }
+    },
+    {
       "name": "fuzzing",
       "displayName": "Fuzzing (libFuzzer)",
-      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build-fuzzing",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
@@ -19,7 +26,6 @@
     {
       "name": "afl",
       "displayName": "Fuzzing (AFL++)",
-      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build-afl",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
