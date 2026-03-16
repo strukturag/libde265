@@ -459,8 +459,6 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
       return err;
     }
 
-  this->img->add_slice_segment_header(shdr);
-
   skip_bits(&reader,1); // TODO: why?
   prepare_for_CABAC(&reader);
 
@@ -469,9 +467,18 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 
   uint32_t headerLength = reader.data - nal->data();
   for (int i=0;i<shdr->num_entry_point_offsets;i++) {
-    shdr->entry_point_offset[i] -= nal->num_skipped_bytes_before(shdr->entry_point_offset[i],
-                                                                 headerLength);
+    uint32_t skipped = nal->num_skipped_bytes_before(shdr->entry_point_offset[i],
+                                                     headerLength);
+    if (skipped > shdr->entry_point_offset[i]) {
+      add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+      nal_parser.free_NAL_unit(nal);
+      delete shdr;
+      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+    }
+    shdr->entry_point_offset[i] -= skipped;
   }
+
+  this->img->add_slice_segment_header(shdr);
 
 
 
