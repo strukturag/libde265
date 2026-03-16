@@ -1550,7 +1550,7 @@ static int decode_transform_skip_flag(thread_context* tctx, int cIdx)
 
   logtrace(LogSlice, "# transform_skip_flag (context=%d)\n", context);
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_TRANSFORM_SKIP_FLAG + context]);
 
   logtrace(LogSymbols, "$1 transform_skip_flag=%d\n", bit);
@@ -1562,7 +1562,7 @@ static int decode_transform_skip_flag(thread_context* tctx, int cIdx)
 static int decode_sao_merge_flag(thread_context* tctx)
 {
   logtrace(LogSlice, "# sao_merge_left/up_flag\n");
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_SAO_MERGE_FLAG]);
 
   logtrace(LogSymbols, "$1 sao_merge_flag=%d\n", bit);
@@ -1575,7 +1575,7 @@ static uint8_t decode_sao_type_idx(thread_context* tctx)
 {
   logtrace(LogSlice, "# sao_type_idx_luma/chroma\n");
 
-  int bit0 = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit0 = tctx->cabac_decoder.decode_bit(
                               &tctx->ctx_model[CONTEXT_MODEL_SAO_TYPE_IDX]);
 
   if (bit0 == 0) {
@@ -1583,7 +1583,7 @@ static uint8_t decode_sao_type_idx(thread_context* tctx)
     return 0;
   }
   else {
-    int bit1 = decode_CABAC_bypass(&tctx->cabac_decoder);
+    int bit1 = tctx->cabac_decoder.decode_bypass();
     if (bit1 == 0) {
       logtrace(LogSymbols, "$1 sao_type_idx=%d\n", 1);
       return 1;
@@ -1601,7 +1601,7 @@ static uint8_t decode_sao_offset_abs(thread_context* tctx, int bitDepth)
   logtrace(LogSlice, "# sao_offset_abs\n");
   int cMax = (1 << (libde265_min(bitDepth, 10) - 5)) - 1;
   assert(cMax >= 7 && cMax<=31);
-  uint8_t value = static_cast<uint8_t>(decode_CABAC_TU_bypass(&tctx->cabac_decoder, cMax));
+  uint8_t value = static_cast<uint8_t>(tctx->cabac_decoder.decode_TU_bypass( cMax));
   logtrace(LogSymbols, "$1 sao_offset_abs=%d\n", value);
   return value;
 }
@@ -1610,7 +1610,7 @@ static uint8_t decode_sao_offset_abs(thread_context* tctx, int bitDepth)
 static int decode_sao_class(thread_context* tctx)
 {
   logtrace(LogSlice, "# sao_class\n");
-  int value = decode_CABAC_FL_bypass(&tctx->cabac_decoder, 2);
+  int value = tctx->cabac_decoder.decode_FL_bypass( 2);
   logtrace(LogSymbols, "$1 sao_class=%d\n", value);
   return value;
 }
@@ -1619,7 +1619,7 @@ static int decode_sao_class(thread_context* tctx)
 static int decode_sao_offset_sign(thread_context* tctx)
 {
   logtrace(LogSlice, "# sao_offset_sign\n");
-  int value = decode_CABAC_bypass(&tctx->cabac_decoder);
+  int value = tctx->cabac_decoder.decode_bypass();
   logtrace(LogSymbols, "$1 sao_offset_sign=%d\n", value);
   return value;
 }
@@ -1628,7 +1628,7 @@ static int decode_sao_offset_sign(thread_context* tctx)
 static int decode_sao_band_position(thread_context* tctx)
 {
   logtrace(LogSlice, "# sao_band_position\n");
-  int value = decode_CABAC_FL_bypass(&tctx->cabac_decoder, 5);
+  int value = tctx->cabac_decoder.decode_FL_bypass( 5);
   logtrace(LogSymbols, "$1 sao_band_position=%d\n", value);
   return value;
 }
@@ -1637,7 +1637,7 @@ static int decode_sao_band_position(thread_context* tctx)
 static int decode_transquant_bypass_flag(thread_context* tctx)
 {
   logtrace(LogSlice, "# cu_transquant_bypass_enable_flag\n");
-  int value = decode_CABAC_bit(&tctx->cabac_decoder,
+  int value = tctx->cabac_decoder.decode_bit(
                                &tctx->ctx_model[CONTEXT_MODEL_CU_TRANSQUANT_BYPASS_FLAG]);
   logtrace(LogSymbols, "$1 transquant_bypass_flag=%d\n", value);
   return value;
@@ -1668,7 +1668,7 @@ static int decode_split_cu_flag(thread_context* tctx,
 
   logtrace(LogSlice, "# split_cu_flag context=%d R=%x\n", context, tctx->cabac_decoder.range);
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_SPLIT_CU_FLAG + context]);
+  int bit = tctx->cabac_decoder.decode_bit( &tctx->ctx_model[CONTEXT_MODEL_SPLIT_CU_FLAG + context]);
 
   logtrace(LogSlice, "> split_cu_flag R=%x, ctx=%d, bit=%d\n", tctx->cabac_decoder.range, context, bit);
 
@@ -1699,7 +1699,7 @@ static int decode_cu_skip_flag(thread_context* tctx,
 
   logtrace(LogSlice, "# cu_skip_flag context=%d R=%x\n", context, tctx->cabac_decoder.range);
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_CU_SKIP_FLAG + context]);
+  int bit = tctx->cabac_decoder.decode_bit( &tctx->ctx_model[CONTEXT_MODEL_CU_SKIP_FLAG + context]);
 
   logtrace(LogSlice, "> cu_skip_flag R=%x, ctx=%d, bit=%d\n", tctx->cabac_decoder.range, context, bit);
 
@@ -1717,7 +1717,7 @@ static enum PartMode decode_part_mode(thread_context* tctx,
   if (pred_mode == MODE_INTRA) {
     logtrace(LogSlice, "# part_mode (INTRA)\n");
 
-    int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE]);
+    int bit = tctx->cabac_decoder.decode_bit( &tctx->ctx_model[CONTEXT_MODEL_PART_MODE]);
 
     logtrace(LogSlice, "> %s\n", bit ? "2Nx2N" : "NxN");
 
@@ -1728,27 +1728,27 @@ static enum PartMode decode_part_mode(thread_context* tctx,
   else {
     const seq_parameter_set& sps = img->get_sps();
 
-    int bit0 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE + 0]);
+    int bit0 = tctx->cabac_decoder.decode_bit( &tctx->ctx_model[CONTEXT_MODEL_PART_MODE + 0]);
     if (bit0) {
       logtrace(LogSymbols, "$1 part_mode=%d\n", PART_2Nx2N);
       return PART_2Nx2N;
     }
 
     // CHECK_ME: I optimize code and fix bug here, need more VERIFY!
-    int bit1 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE + 1]);
+    int bit1 = tctx->cabac_decoder.decode_bit( &tctx->ctx_model[CONTEXT_MODEL_PART_MODE + 1]);
     if (cLog2CbSize > sps.Log2MinCbSizeY) {
       if (!sps.amp_enabled_flag) {
         logtrace(LogSymbols, "$1 part_mode=%d\n", bit1 ? PART_2NxN : PART_Nx2N);
         return bit1 ? PART_2NxN : PART_Nx2N;
       }
       else {
-        int bit3 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE + 3]);
+        int bit3 = tctx->cabac_decoder.decode_bit( &tctx->ctx_model[CONTEXT_MODEL_PART_MODE + 3]);
         if (bit3) {
           logtrace(LogSymbols, "$1 part_mode=%d\n", bit1 ? PART_2NxN : PART_Nx2N);
           return bit1 ? PART_2NxN : PART_Nx2N;
         }
 
-        int bit4 = decode_CABAC_bypass(&tctx->cabac_decoder);
+        int bit4 = tctx->cabac_decoder.decode_bypass();
         if (bit1 && bit4) {
           logtrace(LogSymbols, "$1 part_mode=%d\n", PART_2NxnD);
           return PART_2NxnD;
@@ -1781,7 +1781,7 @@ static enum PartMode decode_part_mode(thread_context* tctx,
         return PART_Nx2N;
       }
       else {
-        int bit2 = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PART_MODE + 2]);
+        int bit2 = tctx->cabac_decoder.decode_bit( &tctx->ctx_model[CONTEXT_MODEL_PART_MODE + 2]);
         logtrace(LogSymbols, "$1 part_mode=%d\n", PART_NxN - bit2);
         return (enum PartMode) ((int) PART_NxN - bit2)/*bit2 ? PART_Nx2N : PART_NxN*/;
       }
@@ -1796,7 +1796,7 @@ static enum PartMode decode_part_mode(thread_context* tctx,
 static inline int decode_prev_intra_luma_pred_flag(thread_context* tctx)
 {
   logtrace(LogSlice, "# prev_intra_luma_pred_flag\n");
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG]);
+  int bit = tctx->cabac_decoder.decode_bit( &tctx->ctx_model[CONTEXT_MODEL_PREV_INTRA_LUMA_PRED_FLAG]);
   logtrace(LogSymbols, "$1 prev_intra_luma_pred_flag=%d\n", bit);
   return bit;
 }
@@ -1805,7 +1805,7 @@ static inline int decode_prev_intra_luma_pred_flag(thread_context* tctx)
 static inline int decode_mpm_idx(thread_context* tctx)
 {
   logtrace(LogSlice, "# mpm_idx (TU:2)\n");
-  int mpm = decode_CABAC_TU_bypass(&tctx->cabac_decoder, 2);
+  int mpm = tctx->cabac_decoder.decode_TU_bypass( 2);
   logtrace(LogSlice, "> mpm_idx = %d\n", mpm);
   logtrace(LogSymbols, "$1 mpm_idx=%d\n", mpm);
   return mpm;
@@ -1815,7 +1815,7 @@ static inline int decode_mpm_idx(thread_context* tctx)
 static inline int decode_rem_intra_luma_pred_mode(thread_context* tctx)
 {
   logtrace(LogSlice, "# rem_intra_luma_pred_mode (5 bits)\n");
-  int value = decode_CABAC_FL_bypass(&tctx->cabac_decoder, 5);
+  int value = tctx->cabac_decoder.decode_FL_bypass( 5);
   logtrace(LogSymbols, "$1 rem_intra_luma_pred_mode=%d\n", value);
   return value;
 }
@@ -1825,14 +1825,14 @@ static int decode_intra_chroma_pred_mode(thread_context* tctx)
 {
   logtrace(LogSlice, "# intra_chroma_pred_mode\n");
 
-  int prefix = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE]);
+  int prefix = tctx->cabac_decoder.decode_bit( &tctx->ctx_model[CONTEXT_MODEL_INTRA_CHROMA_PRED_MODE]);
 
   int mode;
   if (prefix == 0) {
     mode = 4;
   }
   else {
-    mode = decode_CABAC_FL_bypass(&tctx->cabac_decoder, 2);
+    mode = tctx->cabac_decoder.decode_FL_bypass( 2);
   }
 
   logtrace(LogSlice, "> intra_chroma_pred_mode = %d\n", mode);
@@ -1852,7 +1852,7 @@ static int decode_split_transform_flag(thread_context* tctx,
 
   logtrace(LogSlice, "# context: %d\n", context);
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG + context]);
+  int bit = tctx->cabac_decoder.decode_bit( &tctx->ctx_model[CONTEXT_MODEL_SPLIT_TRANSFORM_FLAG + context]);
   logtrace(LogSymbols, "$1 split_transform_flag=%d\n", bit);
   return bit;
 }
@@ -1863,7 +1863,7 @@ static int decode_cbf_chroma(thread_context* tctx,
 {
   logtrace(LogSlice, "# cbf_chroma\n");
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_CBF_CHROMA + trafoDepth]);
+  int bit = tctx->cabac_decoder.decode_bit( &tctx->ctx_model[CONTEXT_MODEL_CBF_CHROMA + trafoDepth]);
 
   logtrace(LogSymbols, "$1 cbf_chroma=%d\n", bit);
   return bit;
@@ -1875,7 +1875,7 @@ static int decode_cbf_luma(thread_context* tctx,
 {
   logtrace(LogSlice, "# cbf_luma\n");
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder, &tctx->ctx_model[CONTEXT_MODEL_CBF_LUMA + (trafoDepth == 0)]);
+  int bit = tctx->cabac_decoder.decode_bit( &tctx->ctx_model[CONTEXT_MODEL_CBF_LUMA + (trafoDepth == 0)]);
 
   logtrace(LogSlice, "> cbf_luma = %d\n", bit);
 
@@ -1899,7 +1899,7 @@ static inline int decode_coded_sub_block_flag(thread_context* tctx,
     ctxIdxInc += 2;
   }
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_CODED_SUB_BLOCK_FLAG + ctxIdxInc]);
 
   logtrace(LogSymbols, "$1 coded_sub_block_flag=%d\n", bit);
@@ -1913,7 +1913,7 @@ static uint8_t decode_cu_qp_delta_abs(thread_context* tctx)
 {
   logtrace(LogSlice, "# cu_qp_delta_abs\n");
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_CU_QP_DELTA_ABS + 0]);
   if (bit == 0) {
     logtrace(LogSymbols, "$1 cu_qp_delta_abs=%d\n", 0);
@@ -1922,14 +1922,14 @@ static uint8_t decode_cu_qp_delta_abs(thread_context* tctx)
 
   uint8_t prefix = 1;
   for (uint8_t i = 0; i < 4; i++) {
-    bit = decode_CABAC_bit(&tctx->cabac_decoder,
+    bit = tctx->cabac_decoder.decode_bit(
                            &tctx->ctx_model[CONTEXT_MODEL_CU_QP_DELTA_ABS + 1]);
     if (bit == 0) { break; }
     else { prefix++; }
   }
 
   if (prefix == 5) {
-    uint32_t value = decode_CABAC_EGk_bypass(&tctx->cabac_decoder, 0);
+    uint32_t value = tctx->cabac_decoder.decode_EGk_bypass( 0);
     if (value >= 250) { return CABAC_QP_DELTA_ABS_ERROR; }
     logtrace(LogSymbols, "$1 cu_qp_delta_abs=%d\n", value + 5);
     return value + 5;
@@ -1967,7 +1967,7 @@ static int decode_last_significant_coeff_prefix(thread_context* tctx,
 
     logtrace(LogSlice, "context: %d+%d\n", ctxOffset, ctxIdxInc);
 
-    int bit = decode_CABAC_bit(&tctx->cabac_decoder, &model[ctxOffset + ctxIdxInc]);
+    int bit = tctx->cabac_decoder.decode_bit( &model[ctxOffset + ctxIdxInc]);
     if (bit == 0) {
       value = binIdx;
       break;
@@ -2360,7 +2360,7 @@ static int decode_significant_coeff_flag(thread_context* tctx,
   int context = tctx->shdr->initType * 42 + ctxIdxInc;
   logtrace(LogSlice, "context: %d\n", context);
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + context]);
   return bit;
 }
@@ -2373,7 +2373,7 @@ static inline int decode_significant_coeff_flag_lookup(thread_context* tctx,
   logtrace(LogSlice, "# significant_coeff_flag\n");
   logtrace(LogSlice, "context: %d\n", ctxIdxInc);
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_SIGNIFICANT_COEFF_FLAG + ctxIdxInc]);
 
   logtrace(LogSymbols, "$1 significant_coeff_flag=%d\n", bit);
@@ -2440,7 +2440,7 @@ static inline int decode_coeff_abs_level_greater1(thread_context* tctx,
 
   if (cIdx > 0) { ctxIdxInc += 16; }
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER1_FLAG + ctxIdxInc]);
 
   *lastInvocation_greater1Ctx = greater1Ctx;
@@ -2463,7 +2463,7 @@ static int decode_coeff_abs_level_greater2(thread_context* tctx,
 
   if (cIdx > 0) ctxIdxInc += 4;
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_COEFF_ABS_LEVEL_GREATER2_FLAG + ctxIdxInc]);
 
   logtrace(LogSymbols, "$1 coeff_abs_level_greater2=%d\n", bit);
@@ -2480,7 +2480,7 @@ static int32_t decode_coeff_abs_level_remaining(thread_context* tctx,
   logtrace(LogSlice, "# decode_coeff_abs_level_remaining\n");
 
   uint16_t prefix = 0;
-  while (decode_CABAC_bypass(&tctx->cabac_decoder)) {
+  while (tctx->cabac_decoder.decode_bypass()) {
     prefix++;
     if (prefix > MAX_PREFIX) {
       return 0; // TODO: error
@@ -2494,14 +2494,14 @@ static int32_t decode_coeff_abs_level_remaining(thread_context* tctx,
   if (prefix <= 3) {
     // when code only TR part (level < TRMax)
 
-    int codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, cRiceParam);
+    int codeword = tctx->cabac_decoder.decode_FL_bypass( cRiceParam);
     value = (prefix << cRiceParam) + codeword;
   }
   else {
     // Suffix coded with EGk. Note that the unary part of EGk is already
     // included in the 'prefix' counter above.
 
-    int codeword = decode_CABAC_FL_bypass(&tctx->cabac_decoder, prefix - 3 + cRiceParam);
+    int codeword = tctx->cabac_decoder.decode_FL_bypass( prefix - 3 + cRiceParam);
     value = (((UINT16_C(1) << (prefix - 3)) + 3 - 1) << cRiceParam) + codeword;
   }
 
@@ -2515,7 +2515,7 @@ static int decode_merge_flag(thread_context* tctx)
 {
   logtrace(LogSlice, "# merge_flag\n");
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_MERGE_FLAG]);
 
   logtrace(LogSymbols, "$1 merge_flag=%d\n", bit);
@@ -2536,7 +2536,7 @@ static int decode_merge_idx(thread_context* tctx)
   // TU coding, first bin is CABAC, remaining are bypass.
   // cMax = MaxNumMergeCand-1
 
-  int idx = decode_CABAC_bit(&tctx->cabac_decoder,
+  int idx = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_MERGE_IDX]);
 
   if (idx == 0) {
@@ -2546,7 +2546,7 @@ static int decode_merge_idx(thread_context* tctx)
     idx = 1;
 
     while (idx < tctx->shdr->MaxNumMergeCand - 1) {
-      if (decode_CABAC_bypass(&tctx->cabac_decoder)) {
+      if (tctx->cabac_decoder.decode_bypass()) {
         idx++;
       }
       else {
@@ -2566,7 +2566,7 @@ static int decode_pred_mode_flag(thread_context* tctx)
 {
   logtrace(LogSlice, "# pred_mode_flag\n");
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_PRED_MODE_FLAG]);
 
   logtrace(LogSymbols, "$1 pred_mode=%d\n", bit);
@@ -2577,7 +2577,7 @@ static int decode_mvp_lx_flag(thread_context* tctx)
 {
   logtrace(LogSlice, "# mvp_lx_flag\n");
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_MVP_LX_FLAG]);
 
   logtrace(LogSymbols, "$1 mvp_lx_flag=%d\n", bit);
@@ -2588,7 +2588,7 @@ static int decode_rqt_root_cbf(thread_context* tctx)
 {
   logtrace(LogSlice, "# rqt_root_cbf\n");
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_RQT_ROOT_CBF]);
 
   logtrace(LogSymbols, "$1 rqt_root_cbf=%d\n", bit);
@@ -2611,7 +2611,7 @@ static int decode_ref_idx_lX(thread_context* tctx, int numRefIdxLXActive)
     return 0;
   } // do check for single reference frame here
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_REF_IDX_LX + 0]);
 
   int idx = 0;
@@ -2621,11 +2621,11 @@ static int decode_ref_idx_lX(thread_context* tctx, int numRefIdxLXActive)
     if (idx == cMax) { break; }
 
     if (idx == 1) {
-      bit = decode_CABAC_bit(&tctx->cabac_decoder,
+      bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_REF_IDX_LX + 1]);
     }
     else {
-      bit = decode_CABAC_bypass(&tctx->cabac_decoder);
+      bit = tctx->cabac_decoder.decode_bypass();
     }
   }
 
@@ -2648,14 +2648,14 @@ static enum InterPredIdc decode_inter_pred_idc(thread_context* tctx,
   context_model* model = &tctx->ctx_model[CONTEXT_MODEL_INTER_PRED_IDC];
 
   if (nPbW + nPbH == 12) {
-    value = decode_CABAC_bit(&tctx->cabac_decoder,
+    value = tctx->cabac_decoder.decode_bit(
                              &model[4]);
   }
   else {
-    int bit0 = decode_CABAC_bit(&tctx->cabac_decoder,
+    int bit0 = tctx->cabac_decoder.decode_bit(
                                 &model[ctDepth]);
     if (bit0 == 0) {
-      value = decode_CABAC_bit(&tctx->cabac_decoder,
+      value = tctx->cabac_decoder.decode_bit(
                                &model[4]);
     }
     else {
@@ -2675,7 +2675,7 @@ static enum InterPredIdc decode_inter_pred_idc(thread_context* tctx,
 static int decode_explicit_rdpcm_flag(thread_context* tctx, int cIdx)
 {
   context_model* model = &tctx->ctx_model[CONTEXT_MODEL_RDPCM_FLAG];
-  int value = decode_CABAC_bit(&tctx->cabac_decoder, &model[cIdx ? 1 : 0]);
+  int value = tctx->cabac_decoder.decode_bit( &model[cIdx ? 1 : 0]);
   return value;
 }
 
@@ -2683,7 +2683,7 @@ static int decode_explicit_rdpcm_flag(thread_context* tctx, int cIdx)
 static int decode_explicit_rdpcm_dir(thread_context* tctx, int cIdx)
 {
   context_model* model = &tctx->ctx_model[CONTEXT_MODEL_RDPCM_DIR];
-  int value = decode_CABAC_bit(&tctx->cabac_decoder, &model[cIdx ? 1 : 0]);
+  int value = tctx->cabac_decoder.decode_bit( &model[cIdx ? 1 : 0]);
   return value;
 }
 
@@ -2998,7 +2998,7 @@ int residual_coding(thread_context* tctx,
   int LastSignificantCoeffX;
   if (last_significant_coeff_x_prefix > 3) {
     int nBits = (last_significant_coeff_x_prefix >> 1) - 1;
-    int last_significant_coeff_x_suffix = decode_CABAC_FL_bypass(&tctx->cabac_decoder, nBits);
+    int last_significant_coeff_x_suffix = tctx->cabac_decoder.decode_FL_bypass( nBits);
 
     LastSignificantCoeffX =
         ((2 + (last_significant_coeff_x_prefix & 1)) << nBits) + last_significant_coeff_x_suffix;
@@ -3010,7 +3010,7 @@ int residual_coding(thread_context* tctx,
   int LastSignificantCoeffY;
   if (last_significant_coeff_y_prefix > 3) {
     int nBits = (last_significant_coeff_y_prefix >> 1) - 1;
-    int last_significant_coeff_y_suffix = decode_CABAC_FL_bypass(&tctx->cabac_decoder, nBits);
+    int last_significant_coeff_y_suffix = tctx->cabac_decoder.decode_FL_bypass( nBits);
 
     LastSignificantCoeffY =
         ((2 + (last_significant_coeff_y_prefix & 1)) << nBits) + last_significant_coeff_y_suffix;
@@ -3324,13 +3324,13 @@ int residual_coding(thread_context* tctx,
 
 
       for (int n = 0; n < nCoefficients - 1; n++) {
-        coeff_sign[n] = decode_CABAC_bypass(&tctx->cabac_decoder);
+        coeff_sign[n] = tctx->cabac_decoder.decode_bypass();
         logtrace(LogSlice, "sign[%d] = %d\n", n, coeff_sign[n]);
       }
 
       // n==nCoefficients-1
       if (!pps.sign_data_hiding_flag || !signHidden) {
-        coeff_sign[nCoefficients - 1] = decode_CABAC_bypass(&tctx->cabac_decoder);
+        coeff_sign[nCoefficients - 1] = tctx->cabac_decoder.decode_bypass();
         logtrace(LogSlice, "sign[%d] = %d\n", nCoefficients - 1, coeff_sign[nCoefficients - 1]);
       }
       else {
@@ -3514,7 +3514,7 @@ static int decode_log2_res_scale_abs_plus1(thread_context* tctx, int cIdxMinus1)
   for (int binIdx = 0; binIdx < cMax; binIdx++) {
     int ctxIdxInc = 4 * cIdxMinus1 + binIdx;
 
-    int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+    int bit = tctx->cabac_decoder.decode_bit(
                                &tctx->ctx_model[CONTEXT_MODEL_LOG2_RES_SCALE_ABS_PLUS1 + ctxIdxInc]);
     if (!bit) break;
     value++;
@@ -3532,7 +3532,7 @@ static int decode_res_scale_sign_flag(thread_context* tctx, int cIdxMinus1)
 
   logtrace(LogSlice, "# res_scale_sign_flag (c=%d)\n", cIdxMinus1);
 
-  int bit = decode_CABAC_bit(&tctx->cabac_decoder,
+  int bit = tctx->cabac_decoder.decode_bit(
                              &tctx->ctx_model[CONTEXT_MODEL_RES_SCALE_SIGN_FLAG + cIdxMinus1]);
 
   logtrace(LogSymbols, "$1 res_scale_sign_flag=%d\n", bit);
@@ -3608,7 +3608,7 @@ int read_transform_unit(thread_context* tctx,
 
       int cu_qp_delta_sign = 0;
       if (cu_qp_delta_abs) {
-        cu_qp_delta_sign = decode_CABAC_bypass(&tctx->cabac_decoder);
+        cu_qp_delta_sign = tctx->cabac_decoder.decode_bypass();
       }
 
       // CuQpDeltaVal shall be in [-(26 + QpBdOffsetY/2), 25 + QpBdOffsetY/2] (Sec. 7.4.9.10)
@@ -3635,7 +3635,7 @@ int read_transform_unit(thread_context* tctx,
         !tctx->cu_transquant_bypass_flag && !tctx->IsCuChromaQpOffsetCoded) {
       logtrace(LogSlice, "# cu_chroma_qp_offset_flag\n");
 
-      int cu_chroma_qp_offset_flag = decode_CABAC_bit(&tctx->cabac_decoder,
+      int cu_chroma_qp_offset_flag = tctx->cabac_decoder.decode_bit(
                                                       &tctx->ctx_model[CONTEXT_MODEL_CU_CHROMA_QP_OFFSET_FLAG]);
 
 
@@ -3643,7 +3643,7 @@ int read_transform_unit(thread_context* tctx,
 
       int cu_chroma_qp_offset_idx = 0;
       if (cu_chroma_qp_offset_flag && pps.range_extension.chroma_qp_offset_list_len > 1) {
-        cu_chroma_qp_offset_idx = decode_CABAC_bit(&tctx->cabac_decoder,
+        cu_chroma_qp_offset_idx = tctx->cabac_decoder.decode_bit(
                                                    &tctx->ctx_model[CONTEXT_MODEL_CU_CHROMA_QP_OFFSET_IDX]);
       }
 
@@ -4026,14 +4026,14 @@ void read_mvd_coding(thread_context* tctx,
                      int x0, int y0, int refList)
 {
   int abs_mvd_greater0_flag[2];
-  abs_mvd_greater0_flag[0] = decode_CABAC_bit(&tctx->cabac_decoder,
+  abs_mvd_greater0_flag[0] = tctx->cabac_decoder.decode_bit(
                                               &tctx->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG + 0]);
-  abs_mvd_greater0_flag[1] = decode_CABAC_bit(&tctx->cabac_decoder,
+  abs_mvd_greater0_flag[1] = tctx->cabac_decoder.decode_bit(
                                               &tctx->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG + 0]);
 
   int abs_mvd_greater1_flag[2];
   if (abs_mvd_greater0_flag[0]) {
-    abs_mvd_greater1_flag[0] = decode_CABAC_bit(&tctx->cabac_decoder,
+    abs_mvd_greater1_flag[0] = tctx->cabac_decoder.decode_bit(
                                                 &tctx->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG + 1]);
   }
   else {
@@ -4041,7 +4041,7 @@ void read_mvd_coding(thread_context* tctx,
   }
 
   if (abs_mvd_greater0_flag[1]) {
-    abs_mvd_greater1_flag[1] = decode_CABAC_bit(&tctx->cabac_decoder,
+    abs_mvd_greater1_flag[1] = tctx->cabac_decoder.decode_bit(
                                                 &tctx->ctx_model[CONTEXT_MODEL_ABS_MVD_GREATER01_FLAG + 1]);
   }
   else {
@@ -4056,7 +4056,7 @@ void read_mvd_coding(thread_context* tctx,
     if (abs_mvd_greater0_flag[c]) {
       int32_t absMvd;
       if (abs_mvd_greater1_flag[c]) {
-        uint32_t abs_mvd_minus2 = decode_CABAC_EGk_bypass(&tctx->cabac_decoder, 1);
+        uint32_t abs_mvd_minus2 = tctx->cabac_decoder.decode_EGk_bypass( 1);
         // MVD is clipped to [-32768, 32767], so cap abs value at 32768
         absMvd = static_cast<int32_t>(std::min(abs_mvd_minus2, uint32_t{32768 - 2})) + 2;
       }
@@ -4064,7 +4064,7 @@ void read_mvd_coding(thread_context* tctx,
         absMvd = 1;
       }
 
-      mvd_sign_flag[c] = decode_CABAC_bypass(&tctx->cabac_decoder);
+      mvd_sign_flag[c] = tctx->cabac_decoder.decode_bypass();
       int32_t mvd = mvd_sign_flag[c] ? -absMvd : absMvd;
       value[c] = Clip3(-32768, 32767, mvd);
     }
@@ -4258,7 +4258,7 @@ static void read_pcm_samples(thread_context* tctx, int x0, int y0, int log2CbSiz
 
   br.prepare_for_CABAC();
   tctx->cabac_decoder.bitstream_curr = br.data;
-  init_CABAC_decoder_2(&tctx->cabac_decoder);
+  tctx->cabac_decoder.init_CABAC();
 }
 
 
@@ -4396,7 +4396,7 @@ void read_coding_unit(thread_context* tctx,
       if (PartMode == PART_2Nx2N && sps.pcm_enabled_flag &&
           log2CbSize >= sps.Log2MinIpcmCbSizeY &&
           log2CbSize <= sps.Log2MaxIpcmCbSizeY) {
-        pcm_flag = decode_CABAC_term_bit(&tctx->cabac_decoder);
+        pcm_flag = tctx->cabac_decoder.decode_term_bit();
       }
 
       if (pcm_flag) {
@@ -4797,7 +4797,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
     // end of slice segment ?
 
-    int end_of_slice_segment_flag = decode_CABAC_term_bit(&tctx->cabac_decoder);
+    int end_of_slice_segment_flag = tctx->cabac_decoder.decode_term_bit();
     //printf("end-of-slice flag: %d\n", end_of_slice_segment_flag);
 
     if (end_of_slice_segment_flag) {
@@ -4856,14 +4856,14 @@ enum DecodeResult decode_substream(thread_context* tctx,
                             lastCtbY != tctx->CtbY);
 
       if (end_of_sub_stream) {
-        int end_of_sub_stream_one_bit = decode_CABAC_term_bit(&tctx->cabac_decoder);
+        int end_of_sub_stream_one_bit = tctx->cabac_decoder.decode_term_bit();
         if (!end_of_sub_stream_one_bit) {
           tctx->decctx->add_warning(DE265_WARNING_EOSS_BIT_NOT_SET, false);
           tctx->img->integrity = INTEGRITY_DECODING_ERRORS;
           return Decode_Error;
         }
 
-        init_CABAC_decoder_2(&tctx->cabac_decoder); // byte alignment
+        tctx->cabac_decoder.init_CABAC(); // byte alignment
         return Decode_EndOfSubstream;
       }
     }
@@ -4972,7 +4972,7 @@ void thread_task_slice_segment::work()
     initialize_CABAC_models(tctx);
   }
 
-  init_CABAC_decoder_2(&tctx->cabac_decoder);
+  tctx->cabac_decoder.init_CABAC();
 
   /*enum DecodeResult result =*/
   decode_substream(tctx, false, data->firstSliceSubstream);
@@ -5020,7 +5020,7 @@ void thread_task_ctb_row::work()
     //initialize_CABAC(tctx);
   }
 
-  init_CABAC_decoder_2(&tctx->cabac_decoder);
+  tctx->cabac_decoder.init_CABAC();
 
   bool firstIndependentSubstream =
       data->firstSliceSubstream && !tctx->shdr->dependent_slice_segment_flag;
@@ -5062,7 +5062,7 @@ de265_error read_slice_segment_data(thread_context* tctx)
     return DE265_ERROR_UNSPECIFIED_DECODING_ERROR;
   }
 
-  init_CABAC_decoder_2(&tctx->cabac_decoder);
+  tctx->cabac_decoder.init_CABAC();
 
   //printf("-----\n");
 

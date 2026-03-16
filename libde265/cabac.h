@@ -25,28 +25,31 @@
 #include "contextmodel.h"
 
 
-struct CABAC_decoder {
-  uint8_t* bitstream_start;
-  uint8_t* bitstream_curr;
-  uint8_t* bitstream_end;
+class CABAC_decoder {
+public:
+  void init(uint8_t* bitstream, int length);
+  void init_CABAC();
+  int  decode_bit(context_model* model);
+  int  decode_TU(int cMax, context_model* model);
+  int  decode_term_bit();
 
-  uint32_t range;
-  uint32_t value;
-  int16_t  bits_needed;
+  int  decode_bypass();
+  int  decode_TU_bypass(int cMax);
+  uint32_t  decode_FL_bypass(int nBits);
+  int  decode_TR_bypass(int cRiceParam, int cTRMax);
+  uint32_t  decode_EGk_bypass(int k);
+
+  uint8_t* bitstream_start = nullptr;
+  uint8_t* bitstream_curr = nullptr;
+  uint8_t* bitstream_end = nullptr;
+
+private:
+  uint32_t range = 0;
+  uint32_t value = 0;
+  int16_t  bits_needed = 0;
+
+  int  decode_FL_bypass_parallel(int nBits);
 };
-
-
-void init_CABAC_decoder(CABAC_decoder* decoder, uint8_t* bitstream, int length);
-void init_CABAC_decoder_2(CABAC_decoder* decoder);
-int  decode_CABAC_bit(CABAC_decoder* decoder, context_model* model);
-int  decode_CABAC_TU(CABAC_decoder* decoder, int cMax, context_model* model);
-int  decode_CABAC_term_bit(CABAC_decoder* decoder);
-
-int  decode_CABAC_bypass(CABAC_decoder* decoder);
-int  decode_CABAC_TU_bypass(CABAC_decoder* decoder, int cMax);
-uint32_t  decode_CABAC_FL_bypass(CABAC_decoder* decoder, int nBits);
-int  decode_CABAC_TR_bypass(CABAC_decoder* decoder, int cRiceParam, int cTRMax);
-uint32_t  decode_CABAC_EGk_bypass(CABAC_decoder* decoder, int k);
 
 
 // ---------------------------------------------------------------------------

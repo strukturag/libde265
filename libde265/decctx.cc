@@ -652,9 +652,8 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
     return DE265_ERROR_PREMATURE_END_OF_SLICE;
   }
 
-  init_CABAC_decoder(&tctx.cabac_decoder,
-                     sliceunit->reader.data,
-                     sliceunit->reader.bytes_remaining);
+  tctx.cabac_decoder.init(sliceunit->reader.data,
+                         sliceunit->reader.bytes_remaining);
 
   // alloc CABAC-model array if entropy_coding_sync is enabled
 
@@ -880,9 +879,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
       break;
     }
 
-    init_CABAC_decoder(&tctx->cabac_decoder,
-                       &sliceunit->reader.data[dataStartIndex],
-                       dataEnd-dataStartIndex);
+    tctx->cabac_decoder.init(&sliceunit->reader.data[dataStartIndex],
+                             dataEnd-dataStartIndex);
 
     // add task
 
@@ -982,9 +980,8 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
       break;
     }
 
-    init_CABAC_decoder(&tctx->cabac_decoder,
-                       &sliceunit->reader.data[dataStartIndex],
-                       dataEnd-dataStartIndex);
+    tctx->cabac_decoder.init(&sliceunit->reader.data[dataStartIndex],
+                             dataEnd-dataStartIndex);
 
     // add task
 
