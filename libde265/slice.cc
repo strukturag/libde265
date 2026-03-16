@@ -790,13 +790,15 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
     if (deblocking_filter_override_flag) {
       slice_deblocking_filter_disabled_flag = get_bits(br, 1);
       if (!slice_deblocking_filter_disabled_flag) {
-        if ((svlc = get_svlc(br)) == SVLC_ERROR) {
+        // slice_beta_offset_div2 shall be in [-6, 6] (Sec. 7.4.7.1)
+        if ((svlc = get_svlc(br)) == SVLC_ERROR || svlc < -6 || svlc > 6) {
           ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
         slice_beta_offset = svlc * 2;
 
-        if ((svlc = get_svlc(br)) == SVLC_ERROR) {
+        // slice_tc_offset_div2 shall be in [-6, 6] (Sec. 7.4.7.1)
+        if ((svlc = get_svlc(br)) == SVLC_ERROR || svlc < -6 || svlc > 6) {
           ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }

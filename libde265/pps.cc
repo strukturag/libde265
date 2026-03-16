@@ -439,13 +439,15 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
     if (!pic_disable_deblocking_filter_flag) {
       {
         int32_t svlc;
-        if ((svlc = get_svlc(br)) == SVLC_ERROR) {
+        // pps_beta_offset_div2 shall be in [-6, 6] (Sec. 7.4.3.3.1)
+        if ((svlc = get_svlc(br)) == SVLC_ERROR || svlc < -6 || svlc > 6) {
 	  ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
 	  return false;
         }
         beta_offset = svlc * 2;
 
-        if ((svlc = get_svlc(br)) == SVLC_ERROR) {
+        // pps_tc_offset_div2 shall be in [-6, 6] (Sec. 7.4.3.3.1)
+        if ((svlc = get_svlc(br)) == SVLC_ERROR || svlc < -6 || svlc > 6) {
 	  ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
 	  return false;
         }

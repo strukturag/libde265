@@ -122,8 +122,8 @@ public:
   char deblocking_filter_override_enabled_flag;
   char pic_disable_deblocking_filter_flag;
 
-  int beta_offset;
-  int tc_offset;
+  int8_t beta_offset;  // [-12;12]
+  int8_t tc_offset;    // [-12;12]
 
   char pic_scaling_list_data_present_flag;
   struct scaling_list_data scaling_list; // contains valid data if sps->scaling_list_enabled_flag set

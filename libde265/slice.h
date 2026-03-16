@@ -215,8 +215,8 @@ public:
 
   char deblocking_filter_override_flag;
   char slice_deblocking_filter_disabled_flag;
-  int  slice_beta_offset; // = pps->beta_offset if undefined
-  int  slice_tc_offset;   // = pps->tc_offset if undefined
+  int8_t slice_beta_offset; // [-12;12], = pps->beta_offset if undefined
+  int8_t slice_tc_offset;   // [-12;12], = pps->tc_offset if undefined
 
   char slice_loop_filter_across_slices_enabled_flag;
 
