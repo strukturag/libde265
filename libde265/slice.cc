@@ -4042,32 +4042,32 @@ void read_mvd_coding(thread_context* tctx,
   }
 
 
-  int abs_mvd_minus2[2];
   int mvd_sign_flag[2];
-  int value[2];
+  int16_t value[2];
 
   for (int c = 0; c < 2; c++) {
     if (abs_mvd_greater0_flag[c]) {
+      int32_t absMvd;
       if (abs_mvd_greater1_flag[c]) {
-        abs_mvd_minus2[c] = decode_CABAC_EGk_bypass(&tctx->cabac_decoder, 1);
+        uint32_t abs_mvd_minus2 = decode_CABAC_EGk_bypass(&tctx->cabac_decoder, 1);
+        // MVD is clipped to [-32768, 32767], so cap abs value at 32768
+        absMvd = static_cast<int32_t>(std::min(abs_mvd_minus2, uint32_t{32768 - 2})) + 2;
       }
       else {
-        abs_mvd_minus2[c] = abs_mvd_greater1_flag[c] - 1;
+        absMvd = 1;
       }
 
       mvd_sign_flag[c] = decode_CABAC_bypass(&tctx->cabac_decoder);
-
-      value[c] = abs_mvd_minus2[c] + 2;
-      if (mvd_sign_flag[c]) { value[c] = -value[c]; }
+      int32_t mvd = mvd_sign_flag[c] ? -absMvd : absMvd;
+      value[c] = Clip3(-32768, 32767, mvd);
     }
     else {
       value[c] = 0;
     }
   }
 
-  //set_mvd(tctx->decctx, x0,y0, refList, value[0],value[1]);
-  tctx->motion.mvd[refList][0] = Clip3(-32768, 32767, value[0]);
-  tctx->motion.mvd[refList][1] = Clip3(-32768, 32767, value[1]);
+  tctx->motion.mvd[refList][0] = value[0];
+  tctx->motion.mvd[refList][1] = value[1];
 
   logtrace(LogSlice, "MVD[%d;%d|%d] = %d;%d\n", x0, y0, refList, value[0], value[1]);
 }
