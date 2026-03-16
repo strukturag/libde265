@@ -459,8 +459,8 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
       return err;
     }
 
-  skip_bits(&reader,1); // TODO: why?
-  prepare_for_CABAC(&reader);
+  reader.skip_bits(1); // TODO: why?
+  reader.prepare_for_CABAC();
 
 
   // modify entry_point_offsets
@@ -1015,7 +1015,7 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
   de265_error err = DE265_OK;
 
   bitreader reader;
-  bitreader_init(&reader, nal->data(), nal->size());
+  reader.init(nal->data(), nal->size());
 
   nal_header nal_hdr;
   err = nal_hdr.read(&reader);

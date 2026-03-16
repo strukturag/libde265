@@ -51,7 +51,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
   uint32_t uvlc;
 
   if (pps->transform_skip_enabled_flag) {
-    uvlc = get_uvlc(br);
+    uvlc = br->get_uvlc();
     if (uvlc == UVLC_ERROR ||
         uvlc > static_cast<uint32_t>(sps->Log2MaxTrafoSize) - 2) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
@@ -61,20 +61,20 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
     log2_max_transform_skip_block_size = uvlc+2;
   }
 
-  cross_component_prediction_enabled_flag = get_bits(br,1);
+  cross_component_prediction_enabled_flag = br->get_bits(1);
   if (sps->ChromaArrayType != CHROMA_444 &&
       cross_component_prediction_enabled_flag) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
   }
 
-  chroma_qp_offset_list_enabled_flag = get_bits(br,1);
+  chroma_qp_offset_list_enabled_flag = br->get_bits(1);
   if (sps->ChromaArrayType == CHROMA_MONO &&
       chroma_qp_offset_list_enabled_flag) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
   }
 
   if (chroma_qp_offset_list_enabled_flag) {
-    uvlc = get_uvlc(br);
+    uvlc = br->get_uvlc();
     if (uvlc == UVLC_ERROR ||
         uvlc > static_cast<uint32_t>(sps->log2_diff_max_min_luma_coding_block_size)) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
@@ -84,7 +84,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
     diff_cu_chroma_qp_offset_depth = uvlc;
 
 
-    uvlc = get_uvlc(br);
+    uvlc = br->get_uvlc();
     if (uvlc == UVLC_ERROR ||
         uvlc > 5) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
@@ -95,7 +95,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
 
     for (int i=0;i<chroma_qp_offset_list_len;i++) {
       int32_t svlc;
-      svlc = get_svlc(br);
+      svlc = br->get_svlc();
       if (svlc == SVLC_ERROR ||
           svlc < -12 || svlc > 12) {
         ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
@@ -104,7 +104,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
 
       cb_qp_offset_list[i] = svlc;
 
-      svlc = get_svlc(br);
+      svlc = br->get_svlc();
       if (svlc == SVLC_ERROR ||
           svlc < -12 || svlc > 12) {
         ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
@@ -116,7 +116,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
   }
 
 
-  uvlc = get_uvlc(br);
+  uvlc = br->get_uvlc();
   if (uvlc == UVLC_ERROR ||
       uvlc > static_cast<uint32_t>(libde265_max(0, sps->BitDepth_Y-10))) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
@@ -125,7 +125,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
 
   log2_sao_offset_scale_luma = uvlc;
 
-  uvlc = get_uvlc(br);
+  uvlc = br->get_uvlc();
   if (uvlc == UVLC_ERROR ||
       uvlc > static_cast<uint32_t>(libde265_max(0, sps->BitDepth_C-10))) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
@@ -269,33 +269,33 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
 
   uint32_t uvlc;
-  uvlc = get_uvlc(br);
+  uvlc = br->get_uvlc();
   if (uvlc == UVLC_ERROR || uvlc >= DE265_MAX_PPS_SETS) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_PPS_REFERENCED, false);
     return false;
   }
   pic_parameter_set_id = uvlc;
 
-  uvlc = get_uvlc(br);
+  uvlc = br->get_uvlc();
   if (uvlc == UVLC_ERROR || uvlc >= DE265_MAX_SPS_SETS) {
     ctx->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     return false;
   }
   seq_parameter_set_id = uvlc;
 
-  dependent_slice_segments_enabled_flag = get_bits(br,1);
-  output_flag_present_flag = get_bits(br,1);
-  num_extra_slice_header_bits = get_bits(br,3);
-  sign_data_hiding_flag = get_bits(br,1);
-  cabac_init_present_flag = get_bits(br,1);
-  uvlc = get_uvlc(br);
+  dependent_slice_segments_enabled_flag = br->get_bits(1);
+  output_flag_present_flag = br->get_bits(1);
+  num_extra_slice_header_bits = br->get_bits(3);
+  sign_data_hiding_flag = br->get_bits(1);
+  cabac_init_present_flag = br->get_bits(1);
+  uvlc = br->get_uvlc();
   if (uvlc == UVLC_ERROR || uvlc > 15) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }
   num_ref_idx_l0_default_active = uvlc + 1;
 
-  uvlc = get_uvlc(br);
+  uvlc = br->get_uvlc();
   if (uvlc == UVLC_ERROR || uvlc > 15) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
@@ -312,20 +312,20 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
   {
     int32_t svlc;
-    if ((svlc = get_svlc(br)) == SVLC_ERROR) {
+    if ((svlc = br->get_svlc()) == SVLC_ERROR) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
     pic_init_qp = svlc + 26;
   }
 
-  constrained_intra_pred_flag = get_bits(br,1);
-  transform_skip_enabled_flag = get_bits(br,1);
-  cu_qp_delta_enabled_flag = get_bits(br,1);
+  constrained_intra_pred_flag = br->get_bits(1);
+  transform_skip_enabled_flag = br->get_bits(1);
+  cu_qp_delta_enabled_flag = br->get_bits(1);
 
   if (cu_qp_delta_enabled_flag) {
     // diff_cu_qp_delta_depth shall be in [0, log2_diff_max_min_luma_coding_block_size] (Sec. 7.4.3.3.1)
-    if ((uvlc = get_uvlc(br)) == UVLC_ERROR ||
+    if ((uvlc = br->get_uvlc()) == UVLC_ERROR ||
         uvlc > sps->log2_diff_max_min_luma_coding_block_size) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
@@ -337,7 +337,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
   {
     int32_t svlc;
-    if ((svlc = get_svlc(br)) == SVLC_ERROR) {
+    if ((svlc = br->get_svlc()) == SVLC_ERROR) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
@@ -346,39 +346,39 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
   {
     int32_t svlc;
-    if ((svlc = get_svlc(br)) == SVLC_ERROR) {
+    if ((svlc = br->get_svlc()) == SVLC_ERROR) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
     pic_cr_qp_offset = svlc;
   }
 
-  pps_slice_chroma_qp_offsets_present_flag = get_bits(br,1);
-  weighted_pred_flag = get_bits(br,1);
-  weighted_bipred_flag = get_bits(br,1);
-  transquant_bypass_enable_flag = get_bits(br,1);
-  tiles_enabled_flag = get_bits(br,1);
-  entropy_coding_sync_enabled_flag = get_bits(br,1);
+  pps_slice_chroma_qp_offsets_present_flag = br->get_bits(1);
+  weighted_pred_flag = br->get_bits(1);
+  weighted_bipred_flag = br->get_bits(1);
+  transquant_bypass_enable_flag = br->get_bits(1);
+  tiles_enabled_flag = br->get_bits(1);
+  entropy_coding_sync_enabled_flag = br->get_bits(1);
 
 
   // --- tiles ---
 
   if (tiles_enabled_flag) {
-    if ((uvlc = get_uvlc(br)) == UVLC_ERROR ||
+    if ((uvlc = br->get_uvlc()) == UVLC_ERROR ||
 	uvlc+1 > DE265_MAX_TILE_COLUMNS) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
     num_tile_columns = uvlc+1;
 
-    if ((uvlc = get_uvlc(br)) == UVLC_ERROR ||
+    if ((uvlc = br->get_uvlc()) == UVLC_ERROR ||
 	uvlc+1 > DE265_MAX_TILE_ROWS) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
     num_tile_rows = uvlc+1;
 
-    uniform_spacing_flag = get_bits(br,1);
+    uniform_spacing_flag = br->get_bits(1);
 
     if (uniform_spacing_flag==false) {
       uint16_t lastColumnWidth = sps->PicWidthInCtbsY;
@@ -386,7 +386,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
       for (int i=0; i<num_tile_columns-1; i++)
         {
-          if ((uvlc = get_uvlc(br)) == UVLC_ERROR ||
+          if ((uvlc = br->get_uvlc()) == UVLC_ERROR ||
               uvlc >= lastColumnWidth) {
 	    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
 	    return false;
@@ -400,7 +400,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
       for (int i=0; i<num_tile_rows-1; i++)
         {
-          if ((uvlc = get_uvlc(br)) == UVLC_ERROR ||
+          if ((uvlc = br->get_uvlc()) == UVLC_ERROR ||
               uvlc >= lastRowHeight) {
 	    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
 	    return false;
@@ -413,7 +413,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
       rowHeight[num_tile_rows-1] = lastRowHeight;
     }
 
-    loop_filter_across_tiles_enabled_flag = get_bits(br,1);
+    loop_filter_across_tiles_enabled_flag = br->get_bits(1);
 
   } else {
     num_tile_columns = 1;
@@ -431,23 +431,23 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   beta_offset = 0; // default value
   tc_offset   = 0; // default value
 
-  pps_loop_filter_across_slices_enabled_flag = get_bits(br,1);
-  deblocking_filter_control_present_flag = get_bits(br,1);
+  pps_loop_filter_across_slices_enabled_flag = br->get_bits(1);
+  deblocking_filter_control_present_flag = br->get_bits(1);
   if (deblocking_filter_control_present_flag) {
-    deblocking_filter_override_enabled_flag = get_bits(br,1);
-    pic_disable_deblocking_filter_flag = get_bits(br,1);
+    deblocking_filter_override_enabled_flag = br->get_bits(1);
+    pic_disable_deblocking_filter_flag = br->get_bits(1);
     if (!pic_disable_deblocking_filter_flag) {
       {
         int32_t svlc;
         // pps_beta_offset_div2 shall be in [-6, 6] (Sec. 7.4.3.3.1)
-        if ((svlc = get_svlc(br)) == SVLC_ERROR || svlc < -6 || svlc > 6) {
+        if ((svlc = br->get_svlc()) == SVLC_ERROR || svlc < -6 || svlc > 6) {
 	  ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
 	  return false;
         }
         beta_offset = svlc * 2;
 
         // pps_tc_offset_div2 shall be in [-6, 6] (Sec. 7.4.3.3.1)
-        if ((svlc = get_svlc(br)) == SVLC_ERROR || svlc < -6 || svlc > 6) {
+        if ((svlc = br->get_svlc()) == SVLC_ERROR || svlc < -6 || svlc > 6) {
 	  ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
 	  return false;
         }
@@ -463,7 +463,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
   // --- scaling list ---
 
-  pic_scaling_list_data_present_flag = get_bits(br,1);
+  pic_scaling_list_data_present_flag = br->get_bits(1);
 
   // check consistency: if scaling-lists are not enabled, pic_scalign_list_data_present_flag
   // must be FALSE
@@ -487,8 +487,8 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
 
 
-  lists_modification_present_flag = get_bits(br,1);
-  if ((uvlc = get_uvlc(br)) == UVLC_ERROR || uvlc > 4) {
+  lists_modification_present_flag = br->get_bits(1);
+  if ((uvlc = br->get_uvlc()) == UVLC_ERROR || uvlc > 4) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }
@@ -499,13 +499,13 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
     return false;
   }
 
-  slice_segment_header_extension_present_flag = get_bits(br,1);
-  pps_extension_flag = get_bits(br,1);
+  slice_segment_header_extension_present_flag = br->get_bits(1);
+  pps_extension_flag = br->get_bits(1);
 
   if (pps_extension_flag) {
-    pps_range_extension_flag = get_bits(br,1);
-    pps_multilayer_extension_flag = get_bits(br,1);
-    pps_extension_6bits = get_bits(br,6);
+    pps_range_extension_flag = br->get_bits(1);
+    pps_multilayer_extension_flag = br->get_bits(1);
+    pps_extension_6bits = br->get_bits(6);
 
     if (pps_range_extension_flag) {
       bool success = range_extension.read(br, ctx, this);

@@ -32,28 +32,30 @@ constexpr uint32_t UVLC_ERROR = UINT32_MAX;
 constexpr int32_t SVLC_ERROR = INT32_MIN;
 
 
-struct bitreader {
-  uint8_t* data;
-  int bytes_remaining;
+class bitreader {
+public:
+  void init(unsigned char* buffer, int len);
+  void refill(); // refill to at least 56+1 bits
 
-  uint64_t nextbits; // left-aligned bits
-  int nextbits_cnt;
+  int  next_bit();
+  int  next_bit_norefill();
+  uint32_t get_bits(int n); // n in [0;32]
+  uint32_t get_bits_fast(int n); // n in [0;32]
+  uint32_t peek_bits(int n);
+  void skip_bits(int n);
+  void skip_bits_fast(int n);
+  void skip_to_byte_boundary();
+  void prepare_for_CABAC();
+  uint32_t get_uvlc();  // may return UVLC_ERROR
+  int32_t  get_svlc();  // may return SVLC_ERROR
+
+  bool check_rbsp_trailing_bits(); // return true if remaining filler bits are all zero
+
+  uint8_t* data = nullptr;
+  int bytes_remaining = 0;
+
+  uint64_t nextbits = 0; // left-aligned bits
+  int nextbits_cnt = 0;
 };
-
-void bitreader_init(bitreader*, unsigned char* buffer, int len);
-void bitreader_refill(bitreader*); // refill to at least 56+1 bits
-int  next_bit(bitreader*);
-int  next_bit_norefill(bitreader*);
-uint32_t get_bits(bitreader*, int n); // n in [0;32]
-uint32_t get_bits_fast(bitreader*, int n); // n in [0;32]
-uint32_t peek_bits(bitreader*, int n);
-void skip_bits(bitreader*, int n);
-void skip_bits_fast(bitreader*, int n);
-void skip_to_byte_boundary(bitreader*);
-void prepare_for_CABAC(bitreader*);
-uint32_t get_uvlc(bitreader*);  // may return UVLC_ERROR
-int32_t  get_svlc(bitreader*);  // may return SVLC_ERROR
-
-bool check_rbsp_trailing_bits(bitreader*); // return true if remaining filler bits are all zero
 
 #endif

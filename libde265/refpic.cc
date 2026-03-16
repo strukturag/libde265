@@ -95,7 +95,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
   char inter_ref_pic_set_prediction_flag;
 
   if (idxRps != 0) {
-    inter_ref_pic_set_prediction_flag = get_bits(br,1);
+    inter_ref_pic_set_prediction_flag = br->get_bits(1);
   }
   else {
     inter_ref_pic_set_prediction_flag = 0;
@@ -111,7 +111,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     int delta_idx;
     if (sliceRefPicSet) { // idxRps == num_short_term_ref_pic_sets) {
-      delta_idx = vlc = get_uvlc(br);
+      delta_idx = vlc = br->get_uvlc();
       if (vlc==UVLC_ERROR) {
         return false;
       }
@@ -128,8 +128,8 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     assert(idxRps >= delta_idx);
     int RIdx = idxRps - delta_idx; // this is our source set, which we will modify (TODO: change type to uint8_t)
 
-    int delta_rps_sign = get_bits(br,1);
-    vlc = get_uvlc(br);
+    int delta_rps_sign = br->get_bits(1);
+    vlc = br->get_uvlc();
     // abs_delta_rps_minus1 shall be in [0, 2^15-1] (Sec. 7.4.8)
     if (vlc==UVLC_ERROR || vlc > 32767) { return false; }
     uint16_t abs_delta_rps = vlc + 1;
@@ -148,11 +148,11 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     char *const use_delta_flag = (char *)alloca((nDeltaPocsRIdx+1) * sizeof(char));
 
     for (int j=0;j<=nDeltaPocsRIdx;j++) {
-      used_by_curr_pic_flag[j] = get_bits(br,1);
+      used_by_curr_pic_flag[j] = br->get_bits(1);
       if (used_by_curr_pic_flag[j]) {
         use_delta_flag[j] = 1;  // if this frame is used, we also have to apply the delta
       } else {
-        use_delta_flag[j] = get_bits(br,1);  // otherwise, it is only optionally included
+        use_delta_flag[j] = br->get_bits(1);  // otherwise, it is only optionally included
       }
     }
 
@@ -253,8 +253,8 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     // --- first, read the number of past and future frames in this set ---
 
-    uint32_t num_negative_pics = get_uvlc(br);
-    uint32_t num_positive_pics = get_uvlc(br);
+    uint32_t num_negative_pics = br->get_uvlc();
+    uint32_t num_positive_pics = br->get_uvlc();
 
     if (num_negative_pics == UVLC_ERROR ||
         num_positive_pics == UVLC_ERROR ||
@@ -286,10 +286,10 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     int16_t lastPocS=0;
     for (uint32_t i=0;i<num_negative_pics;i++) {
-      uint32_t delta_poc_s0 = get_uvlc(br);
+      uint32_t delta_poc_s0 = br->get_uvlc();
       if (delta_poc_s0==UVLC_ERROR) { return false; }
       delta_poc_s0++;
-      char used_by_curr_pic_s0_flag = get_bits(br,1);
+      char used_by_curr_pic_s0_flag = br->get_bits(1);
 
       if (delta_poc_s0 > static_cast<uint32_t>(lastPocS - INT16_MIN)) {
         errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
@@ -306,10 +306,10 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
     lastPocS = 0;
     for (uint32_t i=0;i<num_positive_pics;i++) {
-      uint32_t delta_poc_s1 = get_uvlc(br);
+      uint32_t delta_poc_s1 = br->get_uvlc();
       if (delta_poc_s1==UVLC_ERROR) { return false; }
       delta_poc_s1++;
-      char used_by_curr_pic_s1_flag = get_bits(br,1);
+      char used_by_curr_pic_s1_flag = br->get_bits(1);
 
       if (delta_poc_s1 > static_cast<uint32_t>(INT16_MAX - lastPocS)) {
         errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);

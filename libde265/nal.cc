@@ -25,10 +25,10 @@
 
 de265_error nal_header::read(bitreader* reader)
 {
-  skip_bits(reader,1);
-  nal_unit_type = get_bits(reader,6);
-  nuh_layer_id  = get_bits(reader,6);
-  uint32_t nuh_temporal_id_plus1 = get_bits(reader,3);
+  reader->skip_bits(1);
+  nal_unit_type = reader->get_bits(6);
+  nuh_layer_id  = reader->get_bits(6);
+  uint32_t nuh_temporal_id_plus1 = reader->get_bits(3);
   if (nuh_temporal_id_plus1 == 0) {
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
