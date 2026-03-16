@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits>
 #include <memory>
 
 #include "libde265/de265.h"
@@ -322,42 +323,42 @@ struct de265_image {
   }
 
 private:
-  uint32_t ID;
+  uint32_t ID = std::numeric_limits<uint32_t>::max();
 
-  uint8_t* pixels[3];
-  uint8_t  bpp_shift[3];  // 0 for 8 bit, 1 for 16 bit
+  uint8_t* pixels[3] = { nullptr, nullptr, nullptr };
+  uint8_t  bpp_shift[3] = {};  // 0 for 8 bit, 1 for 16 bit
 
-  de265_chroma chroma_format;
+  de265_chroma chroma_format = de265_chroma_mono;
 
-  int width, height;  // size in luma pixels
+  int width = 0, height = 0;  // size in luma pixels
 
-  int chroma_width, chroma_height;
-  int stride, chroma_stride;
+  int chroma_width = 0, chroma_height = 0;
+  int stride = 0, chroma_stride = 0;
 
 public:
-  uint8_t BitDepth_Y, BitDepth_C;
-  uint8_t SubWidthC, SubHeightC;
+  uint8_t BitDepth_Y = 0, BitDepth_C = 0;
+  uint8_t SubWidthC = 0, SubHeightC = 0;
   std::vector<slice_segment_header*> slices;
 
 public:
 
   // --- conformance cropping window ---
 
-  uint8_t* pixels_confwin[3];   // pointer to pixels in the conformance window
+  uint8_t* pixels_confwin[3] = { nullptr, nullptr, nullptr };
 
-  int width_confwin, height_confwin;
-  int chroma_width_confwin, chroma_height_confwin;
+  int width_confwin = 0, height_confwin = 0;
+  int chroma_width_confwin = 0, chroma_height_confwin = 0;
 
   // --- decoding info ---
 
   // If PicOutputFlag==false && PicState==UnusedForReference, image buffer is free.
 
-  int  picture_order_cnt_lsb;
-  int  PicOrderCntVal;
-  PictureState PicState;
-  bool PicOutputFlag;
+  int  picture_order_cnt_lsb = -1; // undefined
+  int  PicOrderCntVal = -1; // undefined
+  PictureState PicState = UnusedForReference;
+  bool PicOutputFlag = false;
 
-  uint32_t removed_at_picture_id;
+  uint32_t removed_at_picture_id = 0; // picture not used, so we can assume it has been removed
 
   const video_parameter_set& get_vps() const { return *vps; }
   const seq_parameter_set& get_sps() const { return *sps; }
@@ -372,8 +373,7 @@ public:
   //std::shared_ptr<const seq_parameter_set> get_shared_sps() const { return sps; }
   //std::shared_ptr<const pic_parameter_set> get_shared_pps() const { return pps; }
 
-  decoder_context*    decctx;
-  //class encoder_context*    encctx;
+  decoder_context*    decctx = nullptr;
 
   [[nodiscard]] uint32_t number_of_ctbs() const { return static_cast<uint32_t>(ctb_info.size()); }
 
@@ -415,9 +415,9 @@ private:
 public:
   // --- meta information ---
 
-  de265_PTS pts;
-  void*     user_data;
-  void*     plane_user_data[3];  // this is logically attached to the pixel data pointers
+  de265_PTS pts = 0;
+  void*     user_data = nullptr;
+  void*     plane_user_data[3] = { nullptr, nullptr, nullptr };
   de265_image_allocation image_allocation_functions; // the functions used for memory allocation
 
   /*
@@ -426,17 +426,17 @@ public:
                                      void* userdata);
   */
 
-  uint8_t integrity; /* Whether an error occurred while the image was decoded.
-                        When generated, this is initialized to INTEGRITY_CORRECT,
-                        and changed on decoding errors.
-                      */
-  bool sei_hash_check_result;
+  uint8_t integrity = INTEGRITY_NOT_DECODED; /* Whether an error occurred while the image was decoded.
+                                                When generated, this is initialized to INTEGRITY_CORRECT,
+                                                and changed on decoding errors.
+                                              */
+  bool sei_hash_check_result = false;
 
   nal_header nal_hdr;
 
   // --- multi core ---
 
-  de265_progress_lock* ctb_progress; // ctb_info_size
+  de265_progress_lock* ctb_progress = nullptr; // ctb_info_size
 
   void mark_all_CTB_progress(int progress) {
     for (int i=0;i<ctb_info.data_size;i++) {
@@ -462,11 +462,11 @@ public:
   int  num_threads_active() const { return nThreadsRunning + nThreadsBlocked; } // for debug only
 
   //private:
-  int   nThreadsQueued;
-  int   nThreadsRunning;
-  int   nThreadsBlocked;
-  int   nThreadsFinished;
-  int   nThreadsTotal;
+  int   nThreadsQueued = 0;
+  int   nThreadsRunning = 0;
+  int   nThreadsBlocked = 0;
+  int   nThreadsFinished = 0;
+  int   nThreadsTotal = 0;
 
   // ALIGNED_8(de265_sync_int tasks_pending); // number of tasks pending to complete decoding
   std::mutex mutex;

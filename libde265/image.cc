@@ -187,45 +187,7 @@ void de265_image::set_image_plane(int cIdx, uint8_t* mem, int stride, void *user
 }
 
 
-de265_image::de265_image()
-{
-  ID = std::numeric_limits<uint32_t>::max();
-  removed_at_picture_id = 0; // picture not used, so we can assume it has been removed
-
-  decctx = nullptr;
-  //encctx = nullptr;
-
-  //encoder_image_release_func = nullptr;
-
-  //alloc_functions.get_buffer = nullptr;
-  //alloc_functions.release_buffer = nullptr;
-
-  for (int c=0;c<3;c++) {
-    pixels[c] = nullptr;
-    pixels_confwin[c] = nullptr;
-    plane_user_data[c] = nullptr;
-  }
-
-  width=height=0;
-
-  pts = 0;
-  user_data = nullptr;
-
-  ctb_progress = nullptr;
-
-  integrity = INTEGRITY_NOT_DECODED;
-
-  picture_order_cnt_lsb = -1; // undefined
-  PicOrderCntVal = -1; // undefined
-  PicState = UnusedForReference;
-  PicOutputFlag = false;
-
-  nThreadsQueued   = 0;
-  nThreadsRunning  = 0;
-  nThreadsBlocked  = 0;
-  nThreadsFinished = 0;
-  nThreadsTotal    = 0;
-}
+de265_image::de265_image() = default;
 
 
 de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
