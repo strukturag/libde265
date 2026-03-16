@@ -24,7 +24,7 @@ install:
   - git clone https://github.com/strukturag/libde265-data.git
 
 build_script:
-  - cmake -G "%GENERATOR%" -A %ARCH% -H. -Bbuild -DENABLE_ENCODER=ON
+  - cmake -G "%GENERATOR%" -A %ARCH% -H. -Bbuild -DENABLE_ENCODER=OFF
   - cmake --build build --config %CONFIGURATION%
 
 before_test:
