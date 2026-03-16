@@ -324,7 +324,9 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
   cu_qp_delta_enabled_flag = get_bits(br,1);
 
   if (cu_qp_delta_enabled_flag) {
-    if ((uvlc = get_uvlc(br)) == UVLC_ERROR || uvlc > 6) {
+    // diff_cu_qp_delta_depth shall be in [0, log2_diff_max_min_luma_coding_block_size] (Sec. 7.4.3.3.1)
+    if ((uvlc = get_uvlc(br)) == UVLC_ERROR ||
+        uvlc > sps->log2_diff_max_min_luma_coding_block_size) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
