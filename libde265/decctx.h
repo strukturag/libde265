@@ -37,11 +37,11 @@
 
 #include <memory>
 
-#define DE265_MAX_VPS_SETS 16   // this is the maximum as defined in the standard
-#define DE265_MAX_SPS_SETS 16   // this is the maximum as defined in the standard
-#define DE265_MAX_PPS_SETS 64   // this is the maximum as defined in the standard
+constexpr int DE265_MAX_VPS_SETS = 16;   // this is the maximum as defined in the standard
+constexpr int DE265_MAX_SPS_SETS = 16;   // this is the maximum as defined in the standard
+constexpr int DE265_MAX_PPS_SETS = 64;   // this is the maximum as defined in the standard
 
-#define MAX_WARNINGS 20
+constexpr int MAX_WARNINGS = 20;
 
 
 class slice_segment_header;
@@ -117,9 +117,8 @@ public:
   slice_unit* sliceunit = nullptr;
   thread_task* task; // executing thread_task or NULL if not multi-threaded
 
-private:
-  thread_context(const thread_context&); // not allowed
-  const thread_context& operator=(const thread_context&); // not allowed
+  thread_context(const thread_context&) = delete;
+  thread_context& operator=(const thread_context&) = delete;
 };
 
 
@@ -181,9 +180,8 @@ private:
 public:
   decoder_context* ctx;
 
-private:
-  slice_unit(const slice_unit&); // not allowed
-  const slice_unit& operator=(const slice_unit&); // not allowed
+  slice_unit(const slice_unit&) = delete;
+  slice_unit& operator=(const slice_unit&) = delete;
 };
 
 
@@ -206,7 +204,7 @@ public:
       }
     }
 
-    return NULL;
+    return nullptr;
   }
 
   slice_unit* get_prev_slice_segment(slice_unit* s) const {
@@ -216,7 +214,7 @@ public:
       }
     }
 
-    return NULL;
+    return nullptr;
   }
 
   slice_unit* get_next_slice_segment(slice_unit* s) const {
@@ -226,7 +224,7 @@ public:
       }
     }
 
-    return NULL;
+    return nullptr;
   }
 
   void dump_slices() const {
@@ -295,8 +293,8 @@ class decoder_context : public base_context {
 
   void reset();
 
-  bool has_sps(int id) const { return (bool)sps[id]; }
-  bool has_pps(int id) const { return (bool)pps[id]; }
+  bool has_sps(int id) const { return sps[id] != nullptr; }
+  bool has_pps(int id) const { return pps[id] != nullptr; }
 
   std::shared_ptr<const seq_parameter_set> get_shared_sps(int id) { return sps[id]; }
   std::shared_ptr<const pic_parameter_set> get_shared_pps(int id) { return pps[id]; }
@@ -489,8 +487,8 @@ class decoder_context : public base_context {
 
   uint8_t nal_unit_type = 0;
 
-  char IdrPicFlag = 0;
-  char RapPicFlag = 0;
+  bool IdrPicFlag = false;
+  bool RapPicFlag = false;
 
 
   // --- image unit queue ---

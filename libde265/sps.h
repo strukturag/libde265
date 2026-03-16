@@ -33,11 +33,11 @@
 class error_queue;
 
 // #define MAX_REF_PIC_SETS 64  // maximum according to standard
-#define MAX_NUM_LT_REF_PICS_SPS 32
+constexpr int MAX_NUM_LT_REF_PICS_SPS = 32;
 
 // This is just a safety range. It is chosen such that width/height fits into 16bit integers and the total number of pixels in 32bit integers.
-#define MAX_PICTURE_WIDTH  65535
-#define MAX_PICTURE_HEIGHT 65535
+constexpr int MAX_PICTURE_WIDTH  = 65535;
+constexpr int MAX_PICTURE_HEIGHT = 65535;
 
 enum {
   CHROMA_MONO = 0,
@@ -48,14 +48,14 @@ enum {
 };
 
 
-typedef struct scaling_list_data {
+struct scaling_list_data {
   // structure size: approx. 4 kB
 
   uint8_t ScalingFactor_Size0[6][4][4];
   uint8_t ScalingFactor_Size1[6][8][8];
   uint8_t ScalingFactor_Size2[6][16][16];
   uint8_t ScalingFactor_Size3[6][32][32];
-} scaling_list_data;
+};
 
 
 enum PresetSet {
@@ -101,19 +101,19 @@ public:
   bool sps_read = false; // whether the sps has been read from the bitstream
 
 
-  char video_parameter_set_id;
-  char sps_max_sub_layers;            // [1;7]
-  char sps_temporal_id_nesting_flag;
+  uint8_t video_parameter_set_id;
+  uint8_t sps_max_sub_layers;            // [1;7]
+  bool sps_temporal_id_nesting_flag;
 
   profile_tier_level profile_tier_level_;
 
   uint8_t seq_parameter_set_id;       // [0;15]
   uint8_t chroma_format_idc;          // [0;3]
 
-  char separate_colour_plane_flag;
+  bool separate_colour_plane_flag;
   int  pic_width_in_luma_samples;
   int  pic_height_in_luma_samples;
-  char conformance_window_flag;
+  bool conformance_window_flag;
 
   int conf_win_left_offset;
   int conf_win_right_offset;
@@ -124,7 +124,7 @@ public:
   uint8_t bit_depth_chroma;            // [8;16]
 
   uint8_t log2_max_pic_order_cnt_lsb; // [4;16]
-  char sps_sub_layer_ordering_info_present_flag;
+  bool sps_sub_layer_ordering_info_present_flag;
 
   uint8_t sps_max_dec_pic_buffering[7]; // for each temporal layer
   uint8_t sps_max_num_reorder_pics[7];
@@ -138,42 +138,42 @@ public:
   uint8_t max_transform_hierarchy_depth_inter;
   uint8_t max_transform_hierarchy_depth_intra;
 
-  char scaling_list_enable_flag;
-  char sps_scaling_list_data_present_flag; /* if not set, the default scaling lists will be set
+  bool scaling_list_enable_flag;
+  bool sps_scaling_list_data_present_flag; /* if not set, the default scaling lists will be set
                                               in scaling_list */
 
   struct scaling_list_data scaling_list;
 
-  char amp_enabled_flag;
-  char sample_adaptive_offset_enabled_flag;
-  char pcm_enabled_flag;
+  bool amp_enabled_flag;
+  bool sample_adaptive_offset_enabled_flag;
+  bool pcm_enabled_flag;
 
-  char pcm_sample_bit_depth_luma;
-  char pcm_sample_bit_depth_chroma;
+  uint8_t pcm_sample_bit_depth_luma;
+  uint8_t pcm_sample_bit_depth_chroma;
   int  log2_min_pcm_luma_coding_block_size;
   int  log2_diff_max_min_pcm_luma_coding_block_size;
-  char pcm_loop_filter_disable_flag;
+  bool pcm_loop_filter_disable_flag;
 
   int num_short_term_ref_pic_sets() const { return ref_pic_sets.size(); }
   std::vector<ref_pic_set> ref_pic_sets; // [0 ; num_short_term_ref_pic_set (<=MAX_REF_PIC_SETS) )
 
-  char long_term_ref_pics_present_flag;
+  bool long_term_ref_pics_present_flag;
 
   uint8_t num_long_term_ref_pics_sps; // [0;32]
 
   int  lt_ref_pic_poc_lsb_sps[MAX_NUM_LT_REF_PICS_SPS];
-  char used_by_curr_pic_lt_sps_flag[MAX_NUM_LT_REF_PICS_SPS];
+  bool used_by_curr_pic_lt_sps_flag[MAX_NUM_LT_REF_PICS_SPS];
 
-  char sps_temporal_mvp_enabled_flag;
-  char strong_intra_smoothing_enable_flag;
+  bool sps_temporal_mvp_enabled_flag;
+  bool strong_intra_smoothing_enable_flag;
 
-  char vui_parameters_present_flag;
+  bool vui_parameters_present_flag;
   video_usability_information vui;
 
-  char sps_extension_present_flag;
-  char sps_range_extension_flag;
-  char sps_multilayer_extension_flag;
-  char sps_extension_6bits;
+  bool sps_extension_present_flag;
+  bool sps_range_extension_flag;
+  bool sps_multilayer_extension_flag;
+  uint8_t sps_extension_6bits;
 
   sps_range_extension range_extension;
 

@@ -52,31 +52,30 @@ enum PictureState {
    At INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE images, we can check the SEI hash, whether
    the output image is correct despite the faulty reference, and set the state back to correct.
 */
-#define INTEGRITY_CORRECT 0
-#define INTEGRITY_UNAVAILABLE_REFERENCE 1
-#define INTEGRITY_NOT_DECODED 2
-#define INTEGRITY_DECODING_ERRORS 3
-#define INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE 4
+constexpr uint8_t INTEGRITY_CORRECT = 0;
+constexpr uint8_t INTEGRITY_UNAVAILABLE_REFERENCE = 1;
+constexpr uint8_t INTEGRITY_NOT_DECODED = 2;
+constexpr uint8_t INTEGRITY_DECODING_ERRORS = 3;
+constexpr uint8_t INTEGRITY_DERIVED_FROM_FAULTY_REFERENCE = 4;
 
-#define SEI_HASH_UNCHECKED 0
-#define SEI_HASH_CORRECT   1
-#define SEI_HASH_INCORRECT 2
+constexpr uint8_t SEI_HASH_UNCHECKED = 0;
+constexpr uint8_t SEI_HASH_CORRECT   = 1;
+constexpr uint8_t SEI_HASH_INCORRECT = 2;
 
-#define TU_FLAG_NONZERO_COEFF  (1<<7)
-#define TU_FLAG_SPLIT_TRANSFORM_MASK  0x1F
+constexpr uint8_t TU_FLAG_NONZERO_COEFF  = (1<<7);
+constexpr uint8_t TU_FLAG_SPLIT_TRANSFORM_MASK  = 0x1F;
 
-#define DEBLOCK_FLAG_VERTI (1<<4)
-#define DEBLOCK_FLAG_HORIZ (1<<5)
-#define DEBLOCK_PB_EDGE_VERTI (1<<6)
-#define DEBLOCK_PB_EDGE_HORIZ (1<<7)
-#define DEBLOCK_BS_MASK     0x03
+constexpr uint8_t DEBLOCK_FLAG_VERTI = (1<<4);
+constexpr uint8_t DEBLOCK_FLAG_HORIZ = (1<<5);
+constexpr uint8_t DEBLOCK_PB_EDGE_VERTI = (1<<6);
+constexpr uint8_t DEBLOCK_PB_EDGE_HORIZ = (1<<7);
+constexpr uint8_t DEBLOCK_BS_MASK     = 0x03;
 
-
-#define CTB_PROGRESS_NONE      0
-#define CTB_PROGRESS_PREFILTER 1
-#define CTB_PROGRESS_DEBLK_V   2
-#define CTB_PROGRESS_DEBLK_H   3
-#define CTB_PROGRESS_SAO       4
+constexpr int CTB_PROGRESS_NONE      = 0;
+constexpr int CTB_PROGRESS_PREFILTER = 1;
+constexpr int CTB_PROGRESS_DEBLK_V   = 2;
+constexpr int CTB_PROGRESS_DEBLK_H   = 3;
+constexpr int CTB_PROGRESS_SAO       = 4;
 
 class decoder_context;
 
@@ -154,28 +153,9 @@ template <class DataUnit> class MetaDataArray
   int height_in_units = 0;
 };
 
-#define SET_CB_BLK(x,y,log2BlkWidth,  Field,value)              \
-  int cbX = x >> cb_info.log2unitSize; \
-  int cbY = y >> cb_info.log2unitSize; \
-  int width = 1 << (log2BlkWidth - cb_info.log2unitSize);           \
-  for (int cby=cbY;cby<cbY+width;cby++)                             \
-    for (int cbx=cbX;cbx<cbX+width;cbx++)                           \
-      {                                                             \
-        cb_info[ cbx + cby*cb_info.width_in_units ].Field = value;  \
-      }
-
-#define CLEAR_TB_BLK(x,y,log2BlkWidth)              \
-  int tuX = x >> tu_info.log2unitSize; \
-  int tuY = y >> tu_info.log2unitSize; \
-  int width = 1 << (log2BlkWidth - tu_info.log2unitSize);           \
-  for (int tuy=tuY;tuy<tuY+width;tuy++)                             \
-    for (int tux=tuX;tux<tuX+width;tux++)                           \
-      {                                                             \
-        tu_info[ tux + tuy*tu_info.width_in_units ] = 0;  \
-      }
 
 
-typedef struct {
+struct CTB_info {
   uint16_t SliceAddrRS;
   uint16_t SliceHeaderIndex; // index into array to slice header for this CTB
 
@@ -185,10 +165,10 @@ typedef struct {
   // The following flag helps to quickly check whether we have to
   // check all conditions in the SAO filter or whether we can skip them.
   bool     has_pcm_or_cu_transquant_bypass; // pcm or transquant_bypass is used in this CTB
-} CTB_info;
+};
 
 
-typedef struct {
+struct CB_ref_info {
   uint8_t log2CbSize : 3;   /* [0;6] (1<<log2CbSize) = 64
                                This is only set in the top-left corner of the CB.
                                The other values should be zero.
@@ -210,8 +190,7 @@ typedef struct {
 
   // --- byte boundary ---
   int8_t  QP_Y;  // Stored for QP prediction
-
-} CB_ref_info;
+};
 
 
 
@@ -231,7 +210,7 @@ struct de265_image {
 
   //de265_error alloc_encoder_data(const seq_parameter_set* sps);
 
-  bool is_allocated() const { return pixels[0] != NULL; }
+  bool is_allocated() const { return pixels[0] != nullptr; }
 
   void release();
 
@@ -384,9 +363,9 @@ public:
   const seq_parameter_set& get_sps() const { return *sps; }
   const pic_parameter_set& get_pps() const { return *pps; }
 
-  bool has_vps() const { return (bool)vps; }
-  bool has_sps() const { return (bool)sps; }
-  bool has_pps() const { return (bool)pps; }
+  bool has_vps() const { return vps != nullptr; }
+  bool has_sps() const { return sps != nullptr; }
+  bool has_pps() const { return pps != nullptr; }
 
   std::shared_ptr<const seq_parameter_set> get_shared_sps() { return sps; }
 
@@ -413,6 +392,25 @@ private:
   MetaDataArray<uint8_t>     intraPredModeC;
   MetaDataArray<uint8_t>     tu_info;
   MetaDataArray<uint8_t>     deblk_info;
+
+  template<typename Func>
+  void set_cb_blk(int x, int y, int log2BlkWidth, Func setter) {
+    int cbX = x >> cb_info.log2unitSize;
+    int cbY = y >> cb_info.log2unitSize;
+    int width = 1 << (log2BlkWidth - cb_info.log2unitSize);
+    for (int cby=cbY;cby<cbY+width;cby++)
+      for (int cbx=cbX;cbx<cbX+width;cbx++)
+        setter(cb_info[ cbx + cby*cb_info.width_in_units ]);
+  }
+
+  void clear_tb_blk(int x, int y, int log2BlkWidth) {
+    int tuX = x >> tu_info.log2unitSize;
+    int tuY = y >> tu_info.log2unitSize;
+    int width = 1 << (log2BlkWidth - tu_info.log2unitSize);
+    for (int tuy=tuY;tuy<tuY+width;tuy++)
+      for (int tux=tuX;tux<tuX+width;tux++)
+        tu_info[ tux + tuy*tu_info.width_in_units ] = 0;
+  }
 
 public:
   // --- meta information ---
@@ -486,7 +484,7 @@ public:
 
   void set_pred_mode(int x,int y, int log2BlkWidth, PredMode mode)
   {
-    SET_CB_BLK(x,y,log2BlkWidth, PredMode, mode);
+    set_cb_blk(x,y,log2BlkWidth, [mode](CB_ref_info& cb){ cb.PredMode = mode; });
   }
 
   void fill_pred_mode(PredMode mode)
@@ -507,7 +505,7 @@ public:
 
   void set_pcm_flag(int x,int y, int log2BlkWidth, uint8_t value=1)
   {
-    SET_CB_BLK(x,y,log2BlkWidth, pcm_flag, value);
+    set_cb_blk(x,y,log2BlkWidth, [value](CB_ref_info& cb){ cb.pcm_flag = value; });
 
     // TODO: in the encoder, we somewhere have to clear this
     ctb_info.get(x,y).has_pcm_or_cu_transquant_bypass = true;
@@ -520,7 +518,7 @@ public:
 
   void set_cu_transquant_bypass(int x,int y, int log2BlkWidth, uint8_t value=1)
   {
-    SET_CB_BLK(x,y,log2BlkWidth, cu_transquant_bypass, value);
+    set_cb_blk(x,y,log2BlkWidth, [value](CB_ref_info& cb){ cb.cu_transquant_bypass = value; });
 
     // TODO: in the encoder, we somewhere have to clear this
     ctb_info.get(x,y).has_pcm_or_cu_transquant_bypass = true;
@@ -537,7 +535,7 @@ public:
     // But in corrupted streams, slices may overlap and set contradicting log2CbSizes.
     // We also need this for encoding.
     if (fill) {
-      SET_CB_BLK(x0,y0,log2CbSize, log2CbSize, 0);
+      set_cb_blk(x0,y0,log2CbSize, [](CB_ref_info& cb){ cb.log2CbSize = 0; });
     }
 
     cb_info.get(x0,y0).log2CbSize = log2CbSize;
@@ -566,7 +564,7 @@ public:
 
   void set_ctDepth(int x,int y, int log2BlkWidth, int depth)
   {
-    SET_CB_BLK(x,y,log2BlkWidth, ctDepth, depth);
+    set_cb_blk(x,y,log2BlkWidth, [depth](CB_ref_info& cb){ cb.ctDepth = depth; });
   }
 
   int get_ctDepth(int x,int y) const
@@ -576,7 +574,7 @@ public:
 
   void set_QPY(int x,int y, int log2BlkWidth, int QP_Y)
   {
-    SET_CB_BLK (x, y, log2BlkWidth, QP_Y, QP_Y);
+    set_cb_blk(x,y,log2BlkWidth, [QP_Y](CB_ref_info& cb){ cb.QP_Y = QP_Y; });
   }
 
   int  get_QPY(int x0,int y0) const
@@ -593,7 +591,7 @@ public:
 
   void clear_split_transform_flags(int x0,int y0,int log2CbSize)
   {
-    CLEAR_TB_BLK (x0,y0, log2CbSize);
+    clear_tb_blk(x0,y0,log2CbSize);
   }
 
   int  get_split_transform_flag(int x0,int y0,int trafoDepth) const
@@ -699,19 +697,6 @@ public:
   }
 
 
-  /*
-  // NOTE: encoder only
-  void set_ChromaIntraPredMode(int x,int y,int log2BlkWidth, enum IntraChromaPredMode mode)
-  {
-    SET_CB_BLK (x, y, log2BlkWidth, intra_chroma_pred_mode, mode);
-  }
-
-  // NOTE: encoder only
-  enum IntraChromaPredMode get_ChromaIntraPredMode(int x,int y) const
-  {
-    return (enum IntraChromaPredMode)(cb_info.get(x,y).intra_chroma_pred_mode);
-  }
-  */
 
   // --- CTB metadata access ---
 
@@ -766,21 +751,21 @@ public:
   slice_segment_header* get_SliceHeader(int x, int y)
   {
     uint16_t idx = get_SliceHeaderIndex(x,y);
-    if (idx >= slices.size()) { return NULL; }
+    if (idx >= slices.size()) { return nullptr; }
     return slices[idx];
   }
 
   slice_segment_header* get_SliceHeaderCtb(int ctbX, int ctbY)
   {
     uint16_t idx = get_SliceHeaderIndexCtb(ctbX,ctbY);
-    if (idx >= slices.size()) { return NULL; }
+    if (idx >= slices.size()) { return nullptr; }
     return slices[idx];
   }
 
   const slice_segment_header* get_SliceHeaderCtb(int ctbX, int ctbY) const
   {
     uint16_t idx = get_SliceHeaderIndexCtb(ctbX,ctbY);
-    if (idx >= slices.size()) { return NULL; }
+    if (idx >= slices.size()) { return nullptr; }
     return slices[idx];
   }
 

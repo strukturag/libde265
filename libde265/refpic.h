@@ -24,7 +24,7 @@
 #include "libde265/bitstream.h"
 #include <cstdio>
 
-#define MAX_NUM_REF_PICS 16  // maximum defined by standard, may be lower for some Levels
+constexpr int MAX_NUM_REF_PICS = 16;  // maximum defined by standard, may be lower for some Levels
 
 
 class ref_pic_set

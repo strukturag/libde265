@@ -83,7 +83,7 @@ public:
 };
 
 
-#define MAX_THREADS 32
+constexpr int MAX_THREADS = 32;
 
 /* TODO NOTE: When unblocking a task, we have to check first
    if there are threads waiting because of the run-count limit.

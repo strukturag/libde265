@@ -57,12 +57,12 @@ public:
   /* Raw access to the images. */
 
   /* */ de265_image* get_image(uint16_t index)       {
-    if (index>=dpb.size()) return NULL;
+    if (index>=dpb.size()) return nullptr;
     return dpb[index];
   }
 
   const de265_image* get_image(uint16_t index) const {
-    if (index>=dpb.size()) return NULL;
+    if (index>=dpb.size()) return nullptr;
     return dpb[index];
   }
 
@@ -114,9 +114,8 @@ private:
   std::vector<struct de265_image*> reorder_output_queue;
   std::deque<struct de265_image*>  image_output_queue;
 
-private:
-  decoded_picture_buffer(const decoded_picture_buffer&); // no copy
-  decoded_picture_buffer& operator=(const decoded_picture_buffer&); // no copy
+  decoded_picture_buffer(const decoded_picture_buffer&) = delete;
+  decoded_picture_buffer& operator=(const decoded_picture_buffer&) = delete;
 };
 
 #endif

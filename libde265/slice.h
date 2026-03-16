@@ -35,8 +35,6 @@
 #include <string.h>
 #include <memory>
 
-#define MAX_NUM_REF_PICS    16
-
 class decoder_context;
 class thread_context;
 class error_queue;
@@ -149,17 +147,17 @@ public:
   std::shared_ptr<const pic_parameter_set> pps;
 
 
-  char first_slice_segment_in_pic_flag;
-  char no_output_of_prior_pics_flag;
+  bool first_slice_segment_in_pic_flag;
+  bool no_output_of_prior_pics_flag;
   uint8_t slice_pic_parameter_set_id; // [0;63]
-  char dependent_slice_segment_flag;
+  bool dependent_slice_segment_flag;
   uint32_t slice_segment_address;
 
   uint8_t slice_type;                  // [0;2]
-  char pic_output_flag;
+  bool pic_output_flag;
   char colour_plane_id;
   int  slice_pic_order_cnt_lsb;
-  char short_term_ref_pic_set_sps_flag;
+  bool short_term_ref_pic_set_sps_flag;
   ref_pic_set slice_ref_pic_set;
 
   uint8_t short_term_ref_pic_set_idx;
@@ -168,27 +166,27 @@ public:
 
   uint8_t lt_idx_sps[MAX_NUM_REF_PICS];
   int     poc_lsb_lt[MAX_NUM_REF_PICS];
-  char    used_by_curr_pic_lt_flag[MAX_NUM_REF_PICS];
+  bool    used_by_curr_pic_lt_flag[MAX_NUM_REF_PICS];
 
-  char delta_poc_msb_present_flag[MAX_NUM_REF_PICS];
+  bool delta_poc_msb_present_flag[MAX_NUM_REF_PICS];
   uint32_t delta_poc_msb_cycle_lt[MAX_NUM_REF_PICS];
 
-  char slice_temporal_mvp_enabled_flag;
-  char slice_sao_luma_flag;
-  char slice_sao_chroma_flag;
+  bool slice_temporal_mvp_enabled_flag;
+  bool slice_sao_luma_flag;
+  bool slice_sao_chroma_flag;
 
-  char num_ref_idx_active_override_flag;
+  bool num_ref_idx_active_override_flag;
   uint8_t num_ref_idx_l0_active; // [1;16]
   uint8_t num_ref_idx_l1_active; // [1;16]
 
-  char ref_pic_list_modification_flag_l0;
-  char ref_pic_list_modification_flag_l1;
+  bool ref_pic_list_modification_flag_l0;
+  bool ref_pic_list_modification_flag_l1;
   uint8_t list_entry_l0[16];
   uint8_t list_entry_l1[16];
 
-  char mvd_l1_zero_flag;
-  char cabac_init_flag;
-  char collocated_from_l0_flag;
+  bool mvd_l1_zero_flag;
+  bool cabac_init_flag;
+  bool collocated_from_l0_flag;
   uint8_t collocated_ref_idx;         // [0;15]
 
   // --- pred_weight_table ---
@@ -211,14 +209,14 @@ public:
   int  slice_cb_qp_offset;
   int  slice_cr_qp_offset;
 
-  char cu_chroma_qp_offset_enabled_flag;
+  bool cu_chroma_qp_offset_enabled_flag;
 
-  char deblocking_filter_override_flag;
-  char slice_deblocking_filter_disabled_flag;
+  bool deblocking_filter_override_flag;
+  bool slice_deblocking_filter_disabled_flag;
   int8_t slice_beta_offset; // [-12;12], = pps->beta_offset if undefined
   int8_t slice_tc_offset;   // [-12;12], = pps->tc_offset if undefined
 
-  char slice_loop_filter_across_slices_enabled_flag;
+  bool slice_loop_filter_across_slices_enabled_flag;
 
   int  num_entry_point_offsets;
   int  offset_len;
@@ -252,7 +250,7 @@ public:
                                                    change in the mean-time (e.g. from ShortTerm to
                                                    LongTerm). PicState is used in motion.cc */
 
-  char LongTermRefPic[2][MAX_NUM_REF_PICS]; /* Flag whether the picture at this ref-pic-list
+  bool LongTermRefPic[2][MAX_NUM_REF_PICS]; /* Flag whether the picture at this ref-pic-list
                                                is a long-term picture. */
 
   // context storage for dependent slices (stores CABAC model at end of slice segment)
@@ -265,7 +263,7 @@ public:
 
 
 
-typedef struct {
+struct sao_info {
   // TODO: we could combine SaoTypeIdx and SaoEoClass into one byte to make the struct 16 bytes only
 
   unsigned char SaoTypeIdx; // use with (SaoTypeIdx>>(2*cIdx)) & 0x3
@@ -273,7 +271,7 @@ typedef struct {
 
   uint8_t sao_band_position[3];
   int8_t  saoOffsetVal[3][4]; // index with [][idx-1] as saoOffsetVal[][0]==0 always
-} sao_info;
+};
 
 
 
@@ -291,8 +289,8 @@ public:
   int    debug_startCtbRow;
   thread_context* tctx;
 
-  virtual void work();
-  virtual std::string name() const;
+  void work() override;
+  std::string name() const override;
 };
 
 class thread_task_slice_segment : public thread_task
@@ -302,8 +300,8 @@ public:
   int    debug_startCtbX, debug_startCtbY;
   thread_context* tctx;
 
-  virtual void work();
-  virtual std::string name() const;
+  void work() override;
+  std::string name() const override;
 };
 
 

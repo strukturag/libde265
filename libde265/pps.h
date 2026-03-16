@@ -27,8 +27,8 @@
 #include <vector>
 #include <memory>
 
-#define DE265_MAX_TILE_COLUMNS 10
-#define DE265_MAX_TILE_ROWS    10
+constexpr int DE265_MAX_TILE_COLUMNS = 10;
+constexpr int DE265_MAX_TILE_ROWS    = 10;
 
 class decoder_context;
 class pic_parameter_set;
@@ -76,66 +76,66 @@ public:
   std::shared_ptr<const seq_parameter_set> sps;
 
 
-  char pic_parameter_set_id;
-  char seq_parameter_set_id;
-  char dependent_slice_segments_enabled_flag;
-  char sign_data_hiding_flag;
-  char cabac_init_present_flag;
-  char num_ref_idx_l0_default_active; // [1;16]
-  char num_ref_idx_l1_default_active; // [1;16]
+  uint8_t pic_parameter_set_id;
+  uint8_t seq_parameter_set_id;
+  bool dependent_slice_segments_enabled_flag;
+  bool sign_data_hiding_flag;
+  bool cabac_init_present_flag;
+  uint8_t num_ref_idx_l0_default_active; // [1;16]
+  uint8_t num_ref_idx_l1_default_active; // [1;16]
 
   int pic_init_qp;
-  char constrained_intra_pred_flag;
-  char transform_skip_enabled_flag;
+  bool constrained_intra_pred_flag;
+  bool transform_skip_enabled_flag;
 
   // --- QP ---
 
-  char cu_qp_delta_enabled_flag;
+  bool cu_qp_delta_enabled_flag;
   uint8_t diff_cu_qp_delta_depth;   // [ 0 ; log2_diff_max_min_luma_coding_block_size ]
 
   int  pic_cb_qp_offset;
   int  pic_cr_qp_offset;
-  char pps_slice_chroma_qp_offsets_present_flag;
+  bool pps_slice_chroma_qp_offsets_present_flag;
 
 
-  char weighted_pred_flag;
-  char weighted_bipred_flag;
-  char output_flag_present_flag;
-  char transquant_bypass_enable_flag;
-  char entropy_coding_sync_enabled_flag;
+  bool weighted_pred_flag;
+  bool weighted_bipred_flag;
+  bool output_flag_present_flag;
+  bool transquant_bypass_enable_flag;
+  bool entropy_coding_sync_enabled_flag;
 
 
   // --- tiles ---
 
-  char tiles_enabled_flag;
+  bool tiles_enabled_flag;
   uint8_t num_tile_columns;  // [1;PicWidthInCtbsY] max DE265_MAX_TILE_COLUMNS
   uint8_t num_tile_rows;     // [1;PicHeightInCtbsY] max DE265_MAX_TILE_ROWS
-  char uniform_spacing_flag;
+  bool uniform_spacing_flag;
 
 
   // --- ---
 
-  char loop_filter_across_tiles_enabled_flag;
-  char pps_loop_filter_across_slices_enabled_flag;
-  char deblocking_filter_control_present_flag;
+  bool loop_filter_across_tiles_enabled_flag;
+  bool pps_loop_filter_across_slices_enabled_flag;
+  bool deblocking_filter_control_present_flag;
 
-  char deblocking_filter_override_enabled_flag;
-  char pic_disable_deblocking_filter_flag;
+  bool deblocking_filter_override_enabled_flag;
+  bool pic_disable_deblocking_filter_flag;
 
   int8_t beta_offset;  // [-12;12]
   int8_t tc_offset;    // [-12;12]
 
-  char pic_scaling_list_data_present_flag;
+  bool pic_scaling_list_data_present_flag;
   struct scaling_list_data scaling_list; // contains valid data if sps->scaling_list_enabled_flag set
 
-  char lists_modification_present_flag;
+  bool lists_modification_present_flag;
   uint8_t log2_parallel_merge_level; // [2 ; log2(max CB size)]
-  char num_extra_slice_header_bits;
-  char slice_segment_header_extension_present_flag;
-  char pps_extension_flag;
-  char pps_range_extension_flag;
-  char pps_multilayer_extension_flag;
-  char pps_extension_6bits;
+  uint8_t num_extra_slice_header_bits;
+  bool slice_segment_header_extension_present_flag;
+  bool pps_extension_flag;
+  bool pps_range_extension_flag;
+  bool pps_multilayer_extension_flag;
+  uint8_t pps_extension_6bits;
 
   pps_range_extension range_extension;
 

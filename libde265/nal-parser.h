@@ -29,8 +29,8 @@
 #include <vector>
 #include <queue>
 
-#define DE265_NAL_FREE_LIST_SIZE 16
-#define DE265_SKIPPED_BYTES_INITIAL_SIZE 16
+constexpr int DE265_NAL_FREE_LIST_SIZE = 16;
+constexpr int DE265_SKIPPED_BYTES_INITIAL_SIZE = 16;
 
 
 class NAL_unit {
@@ -91,10 +91,10 @@ class NAL_Parser
   ~NAL_Parser();
 
   de265_error push_data(const unsigned char* data, int len,
-                        de265_PTS pts, void* user_data = NULL);
+                        de265_PTS pts, void* user_data = nullptr);
 
   de265_error push_NAL(const unsigned char* data, int len,
-                       de265_PTS pts, void* user_data = NULL);
+                       de265_PTS pts, void* user_data = nullptr);
 
   NAL_unit*   pop_from_NAL_queue();
   de265_error flush_data();
