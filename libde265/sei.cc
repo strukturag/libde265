@@ -157,7 +157,7 @@ raw_hash_data::data_chunk raw_hash_data::prepare_16bit(const uint8_t* data,int y
 }
 
 
-static uint32_t compute_checksum_8bit(uint8_t* data,int w,int h,int stride, int bit_depth)
+static uint32_t compute_checksum(uint8_t* data,int w,int h,int stride, int bit_depth)
 {
   uint32_t sum = 0;
 
@@ -169,11 +169,13 @@ static uint32_t compute_checksum_8bit(uint8_t* data,int w,int h,int stride, int 
       }
   }
   else {
+    auto* data16 = reinterpret_cast<uint16_t*>(data);
+    int stride16 = stride / 2;
     for (int y=0; y<h; y++)
       for(int x=0; x<w; x++) {
         uint8_t xorMask = ( x & 0xFF ) ^ ( y & 0xFF ) ^ ( x  >>  8 ) ^ ( y  >>  8 );
-        sum += (data[y*stride + x] & 0xFF) ^ xorMask;
-        sum += (data[y*stride + x] >> 8)   ^ xorMask;
+        sum += (data16[y*stride16 + x] & 0xFF) ^ xorMask;
+        sum += (data16[y*stride16 + x] >> 8)   ^ xorMask;
       }
   }
 
@@ -339,7 +341,7 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de26
 
     case sei_decoded_picture_hash_type_checksum:
       {
-        uint32_t chksum = compute_checksum_8bit(data,w,h,stride, img->get_bit_depth(i));
+        uint32_t chksum = compute_checksum(data,w,h,stride, img->get_bit_depth(i));
 
         if (chksum != seihash->checksum[i]) {
 /*
