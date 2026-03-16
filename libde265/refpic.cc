@@ -257,8 +257,9 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     uint32_t num_positive_pics = get_uvlc(br);
 
     if (num_negative_pics == UVLC_ERROR ||
-        num_positive_pics == UVLC_ERROR) {
-      // invalid num-ref-pics value
+        num_positive_pics == UVLC_ERROR ||
+        num_negative_pics > MAX_NUM_REF_PICS ||
+        num_positive_pics > MAX_NUM_REF_PICS) {
       errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
       return false;
     }
@@ -272,12 +273,6 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
       out_set->NumDeltaPocs = 0;
       out_set->NumPocTotalCurr_shortterm_only = 0;
 
-      errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
-      return false;
-    }
-
-    if (num_negative_pics > MAX_NUM_REF_PICS ||
-        num_positive_pics > MAX_NUM_REF_PICS) {
       errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
       return false;
     }
