@@ -45,7 +45,9 @@ IGNORE_FILES=(
     'COPYING',
     'NEWS',
     'README.md',
-    'testdata/girlshy.h265'
+    'testdata/girlshy.h265',
+    'fuzz-libfuzzer.sh',
+    'fuzz-afl.sh'
 )
 
 FOUND=

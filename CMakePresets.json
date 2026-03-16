@@ -3,7 +3,7 @@
   "configurePresets": [
     {
       "name": "fuzzing",
-      "displayName": "Fuzzing",
+      "displayName": "Fuzzing (libFuzzer)",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build-fuzzing",
       "cacheVariables": {
@@ -12,6 +12,21 @@
         "CMAKE_CXX_COMPILER": "clang++",
         "BUILD_SHARED_LIBS": "OFF",
         "WITH_FUZZERS": "ON",
+        "ENABLE_ENCODER": "OFF",
+        "ENABLE_SDL": "OFF"
+      }
+    },
+    {
+      "name": "afl",
+      "displayName": "Fuzzing (AFL++)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-afl",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "afl-cc",
+        "CMAKE_CXX_COMPILER": "afl-c++",
+        "BUILD_SHARED_LIBS": "OFF",
+        "ENABLE_DECODER": "ON",
         "ENABLE_ENCODER": "OFF",
         "ENABLE_SDL": "OFF"
       }
