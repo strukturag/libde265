@@ -853,7 +853,12 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
 
       for (int i = 0; i < num_entry_point_offsets; i++) {
         {
-          entry_point_offset[i] = get_bits(br, offset_len) + 1;
+          uint32_t offset_minus1 = get_bits(br, offset_len);
+          if (offset_minus1 == UINT32_MAX) {
+            ctx->add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
+            return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+          }
+          entry_point_offset[i] = offset_minus1 + 1;
         }
 
         if (i > 0) {
