@@ -25,14 +25,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define READ_VLC_OFFSET(variable, vlctype, offset)   \
+#define READ_VLC(variable, vlctype)   \
   if ((vlc = br->get_ ## vlctype()) == UVLC_ERROR) {   \
     errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);  \
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; \
   } \
-  variable = vlc + offset;
-
-#define READ_VLC(variable, vlctype)  READ_VLC_OFFSET(variable,vlctype,0)
+  (variable) = vlc;
 
 
 #define NUM_SAR_PRESETS 17
@@ -124,7 +122,7 @@ de265_error video_usability_information::hrd_parameters(error_queue* errqueue, b
 
     if (fixed_pic_rate_within_cvs_flag[i])
     {
-      READ_VLC_OFFSET(elemental_duration_in_tc_minus1[i], uvlc, 0);
+      READ_VLC(elemental_duration_in_tc_minus1[i], uvlc);
     }
     else
     {
@@ -132,7 +130,7 @@ de265_error video_usability_information::hrd_parameters(error_queue* errqueue, b
     }
     if (!low_delay_hrd_flag[i])
     {
-      READ_VLC_OFFSET(cpb_cnt_minus1[i], uvlc, 0);
+      READ_VLC(cpb_cnt_minus1[i], uvlc);
       if (cpb_cnt_minus1[i] > 31) {
 	return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
       }
@@ -145,13 +143,13 @@ de265_error video_usability_information::hrd_parameters(error_queue* errqueue, b
       {
         for (uint32_t j = 0; j <= cpb_cnt_minus1[i]; j++)
         {
-          READ_VLC_OFFSET(bit_rate_value_minus1[i][j][nalOrVcl], uvlc, 0);
-          READ_VLC_OFFSET(cpb_size_value_minus1[i][j][nalOrVcl], uvlc, 0);
+          READ_VLC(bit_rate_value_minus1[i][j][nalOrVcl], uvlc);
+          READ_VLC(cpb_size_value_minus1[i][j][nalOrVcl], uvlc);
 
           if (sub_pic_hrd_params_present_flag)
           {
-            READ_VLC_OFFSET(cpb_size_du_value_minus1[i][j][nalOrVcl], uvlc, 0);
-            READ_VLC_OFFSET(bit_rate_du_value_minus1[i][j][nalOrVcl], uvlc, 0);
+            READ_VLC(cpb_size_du_value_minus1[i][j][nalOrVcl], uvlc);
+            READ_VLC(bit_rate_du_value_minus1[i][j][nalOrVcl], uvlc);
           }
           cbr_flag[i][j][nalOrVcl] = br->get_bits(1);
         }
@@ -296,7 +294,12 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
 
     vui_poc_proportional_to_timing_flag = br->get_bits(1);
     if (vui_poc_proportional_to_timing_flag) {
-      READ_VLC_OFFSET(vui_num_ticks_poc_diff_one, uvlc, 1);
+      if ((vlc = br->get_uvlc()) == UVLC_ERROR) {
+        errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
+        return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+      }
+
+      vui_num_ticks_poc_diff_one = vlc + 1;
     }
 
     // --- hrd parameters ---

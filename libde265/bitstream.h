@@ -34,11 +34,9 @@ constexpr int32_t SVLC_ERROR = INT32_MIN;
 
 class bitreader {
 public:
-  void init(unsigned char* buffer, int len);
-  void refill(); // refill to at least 56+1 bits
+  bitreader() = default;
+  bitreader(unsigned char* buffer, int len);
 
-  int  next_bit();
-  int  next_bit_norefill();
   uint32_t get_bits(int n); // n in [0;32]
   uint32_t get_bits_fast(int n); // n in [0;32]
   uint32_t peek_bits(int n);
@@ -53,6 +51,9 @@ public:
 
   uint8_t* data = nullptr;
   int bytes_remaining = 0;
+
+private:
+  void refill(); // refill to at least 56+1 bits
 
   uint64_t nextbits = 0; // left-aligned bits
   int nextbits_cnt = 0;

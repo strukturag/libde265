@@ -1014,8 +1014,7 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
 
   de265_error err = DE265_OK;
 
-  bitreader reader;
-  reader.init(nal->data(), nal->size());
+  bitreader reader(nal->data(), nal->size());
 
   nal_header nal_hdr;
   err = nal_hdr.read(&reader);

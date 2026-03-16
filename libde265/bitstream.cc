@@ -27,15 +27,10 @@
 
 
 
-void bitreader::init(unsigned char* buffer, int len)
+bitreader::bitreader(unsigned char* buffer, int len)
 {
   data = buffer;
   bytes_remaining = len;
-
-  nextbits=0;
-  nextbits_cnt=0;
-
-  refill();
 }
 
 void bitreader::refill()

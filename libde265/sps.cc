@@ -29,14 +29,12 @@
 
 #define D 0
 
-#define READ_VLC_OFFSET(variable, vlctype, offset)   \
+#define READ_VLC(variable, vlctype)   \
   if ((vlc = br->get_ ## vlctype()) == UVLC_ERROR) {   \
     errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);  \
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; \
   } \
-  variable = vlc + offset;
-
-#define READ_VLC(variable, vlctype)  READ_VLC_OFFSET(variable,vlctype,0)
+  variable = vlc;
 
 
 static int SubWidthC_tab[]  = { 1,2,2,1 };
