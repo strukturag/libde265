@@ -35,7 +35,7 @@ VideoWidget::VideoWidget(QWidget *parent)
   setAttribute(Qt::WA_NoSystemBackground, true);
 
   QPalette palette = this->palette();
-  palette.setColor(QPalette::Background, Qt::black);
+  palette.setColor(QPalette::Window, Qt::black);
   setPalette(palette);
 
   setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
@@ -62,22 +62,22 @@ void VideoWidget::paintEvent(QPaintEvent *event)
     QRect videoRect = mImg->rect();
     videoRect.moveCenter(this->rect().center());
 
-    QRect erect = event->rect();
+    //QRect erect = event->rect();
 
     if (!videoRect.contains(event->rect())) {
       QRegion region = event->region();
       region = region.subtracted(videoRect);
 
-      QBrush brush = palette().background();
+      QBrush brush = palette().window();
 
-      foreach (const QRect &rect, region.rects()) {
+      for (const QRect &rect : region) {
         painter.fillRect(rect, brush);
       }
     }
 
     painter.drawImage(videoRect, *mImg);
   } else {
-    painter.fillRect(event->rect(), palette().background());
+    painter.fillRect(event->rect(), palette().window());
   }
 }
 
