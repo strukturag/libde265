@@ -54,7 +54,7 @@ Building
 
 [![Build Status](https://github.com/strukturag/libde265/workflows/build/badge.svg)](https://github.com/strukturag/libde265/actions) [![Build Status](https://ci.appveyor.com/api/projects/status/github/strukturag/libde265?svg=true)](https://ci.appveyor.com/project/strukturag/libde265)
 
-libde265 uses the CMake build system. Please do not use to deprecated autotools scripts.
+libde265 uses the CMake build system.
 To compile libde265, run
 ````
 mkdir build
@@ -81,20 +81,6 @@ or
   http://github.com/farindk/libvideogfx
 
 
-You can disable building of the example programs by running `./configure` with
-<pre>
-  --disable-dec265        Do not build the dec265 decoder program.
-  --disable-sherlock265   Do not build the sherlock265 visual inspection program.
-</pre>
-
-Additional logging information can be turned on and off using these `./configure` flags:
-<pre>
-  --enable-log-error      turn on logging at error level (default=yes)
-  --enable-log-info       turn on logging at info level (default=no)
-  --enable-log-trace      turn on logging at trace level (default=no)
-</pre>
-
-
 Build using cmake
 =================
 
@@ -108,8 +94,16 @@ cmake ..
 make
 ```
 
-See the [cmake documentation](http://www.cmake.org) for further information on
-using cmake on other platforms.
+You can disable building of the example programs by running `cmake` with
+<pre>
+  -DENABLE_DECODER=off     Do not build the dec265 decoder program.
+  -DENABLE_SHERLOCK265=off Do not build the sherlock265 visual inspection program.
+</pre>
+
+Additional logging information can be turned on and off using these `./configure` flags:
+<pre>
+  -DDE265_LOG_LEVEL={error;info;debug;trace}
+</pre>
 
 
 Building using vcpkg
