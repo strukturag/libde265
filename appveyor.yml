@@ -16,6 +16,7 @@ environment:
 
 configuration:
   - Debug
+  - Release
 
 build:
   verbosity: normal

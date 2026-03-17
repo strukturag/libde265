@@ -42,9 +42,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter)
-endif()
+add_compile_options(
+  "$<$<AND:$<CONFIG:Debug>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-Wall;-Wextra;-Wpedantic;-Wno-unused-parameter>"
+  "$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:/W4>"
+)
 
 option(USE_IWYU "Run include-what-you-use analysis during build" OFF)
 if (USE_IWYU)
