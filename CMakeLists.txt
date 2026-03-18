@@ -127,8 +127,6 @@ else()
   set(LIBS_PRIVATE "-lstdc++")
 endif()
 
-configure_file (libde265.pc.in libde265.pc @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libde265.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 option(BUILD_SHARED_LIBS "Build shared library" ON)
 if(NOT BUILD_SHARED_LIBS)
