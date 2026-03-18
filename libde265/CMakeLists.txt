@@ -107,7 +107,7 @@ endif()
 add_library(de265 ${libde265_sources} ${libde265_public_headers} ${ENCODER_OBJECTS} ${X86_OBJECTS} ${ARM_OBJECTS})
 target_include_directories(de265 PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-write_basic_package_version_file(libde265ConfigVersion.cmake COMPATIBILITY ExactVersion)
+write_basic_package_version_file(libde265-config-version.cmake COMPATIBILITY ExactVersion)
 
 # --- debug output
 
@@ -155,7 +155,7 @@ if (BUILD_FRAMEWORK)
     MACOSX_RPATH TRUE)
 endif()
 
-install(TARGETS de265 EXPORT libde265Config
+install(TARGETS de265 EXPORT libde265-config
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -165,9 +165,9 @@ install(TARGETS de265 EXPORT libde265Config
 )
 
 install(FILES ${libde265_public_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libde265)
-install(EXPORT libde265Config DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/libde265")
+install(EXPORT libde265-config DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/libde265")
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libde265ConfigVersion.cmake DESTINATION
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libde265-config-version.cmake DESTINATION
     "${CMAKE_INSTALL_LIBDIR}/cmake/libde265")
 
 
