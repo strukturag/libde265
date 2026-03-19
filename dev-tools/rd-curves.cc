@@ -55,7 +55,7 @@ static struct {
   { "$ROOT"    , "/home/domain/farindk/prog/h265" },
   { "$ENC265"  , "$ROOT/libde265/enc265/enc265" },
   { "$DEC265"  , "$ROOT/libde265/dec265/dec265" },
-  { "$YUVDIST" , "$ROOT/libde265/tools/yuv-distortion" },
+  { "$YUVDIST" , "$ROOT/libde265/dev-tools/yuv-distortion" },
   { "$YUVTMP"  , "/mnt/temp/dirk/yuv/ftp.tnt.uni-hannover.de/testsequences" },
   { "$YUV"     , "/storage/users/farindk/yuv" },
   { "$HMENC"   , "HM13enc" },
