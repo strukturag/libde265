@@ -77,10 +77,10 @@ int main(int argc, char** argv)
 
   for (;;)
     {
-      if (fread(yp_ref,1,width*height,fh_ref) != width*height) {
+      if (fread(yp_ref,1,width*height,fh_ref) != (size_t)(width*height)) {
         break;
       }
-      if (fread(yp_cmp,1,width*height,fh_cmp) != width*height) {
+      if (fread(yp_cmp,1,width*height,fh_cmp) != (size_t)(width*height)) {
         break;
       }
 

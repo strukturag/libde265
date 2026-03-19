@@ -46,7 +46,7 @@ void print_bitestim_results(int log2blksize)
 {
   float max_estim=0;
 
-  for (int i=0;i<pts.size();i++) {
+  for (size_t i=0;i<pts.size();i++) {
     if (log2blksize==0 || pts[i].log2blksize==log2blksize) {
       max_estim = std::max(max_estim, pts[i].estim);
     }
@@ -64,7 +64,7 @@ void print_bitestim_results(int log2blksize)
     float mini=999999;
     float maxi=0;
 
-    for (int i=0;i<pts.size();i++)
+    for (size_t i=0;i<pts.size();i++)
       if (log2blksize==0 || pts[i].log2blksize==log2blksize) {
         int bin = pts[i].estim/interval;
         if (bin==b) {
@@ -81,7 +81,7 @@ void print_bitestim_results(int log2blksize)
 
       double var = 0;
 
-      for (int i=0;i<pts.size();i++)
+      for (size_t i=0;i<pts.size();i++)
         if (log2blksize==0 || pts[i].log2blksize==log2blksize) {
           int bin = pts[i].estim/interval;
           if (bin==b) {
@@ -109,7 +109,6 @@ int main(int argc,char** argv)
   for (;;)
     {
       std::string t;
-      int log2blksize;
       datapoint pt;
 
       istr >> t >> pt.log2blksize >> pt.rate >> pt.estim;
