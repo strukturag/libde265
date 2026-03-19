@@ -109,7 +109,6 @@ int main(int argc,char** argv)
   for (;;)
     {
       std::string t;
-      int log2blksize;
       datapoint pt;
 
       istr >> t >> pt.log2blksize >> pt.rate >> pt.estim;

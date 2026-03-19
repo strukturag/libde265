@@ -374,7 +374,7 @@ void Quality::measure(const char* h265filename)
     ">/tmp/xtmp";
 
   //std::cout << sstr.str() << "\n";
-  int retval = system(replace_variables(sstr.str()).c_str());
+  system(replace_variables(sstr.str()).c_str());
 
   std::ifstream istr;
   istr.open("/tmp/xtmp");
@@ -396,7 +396,7 @@ void Quality::measure_yuv(const char* yuvfilename)
     ">/tmp/ytmp";
 
   //std::cout << sstr.str() << "\n";
-  int retval = system(replace_variables(sstr.str()).c_str());
+  system(replace_variables(sstr.str()).c_str());
 
   std::ifstream istr;
   istr.open("/tmp/ytmp");
@@ -554,7 +554,7 @@ RDPoint Encoder_de265::encode(const Preset& preset,int qp) const
 
   RDPoint rd;
   rd.start_timer();
-  int retval = system(cmd2.c_str());
+  system(cmd2.c_str());
   rd.end_timer();
 
   rd.compute_from_h265(streamname.str());
@@ -615,8 +615,8 @@ RDPoint Encoder_HM::encode(const Preset& preset,int qp) const
   streamname << (useSCC ? "hmscc-" : "hm-") << preset.name << "-" << qp << ".265";
 
   char recoyuv_prefix[] = "/tmp/reco-XXXXXX";
-  char *tempfile = mktemp(recoyuv_prefix);
-  assert(tempfile != NULL && tempfile[0] != 0);
+  mktemp(recoyuv_prefix);
+  assert(recoyuv_prefix[0] != 0);
   std::string recoyuv = std::string(recoyuv_prefix) + ".yuv";
 
   std::stringstream cmd1;
@@ -631,7 +631,7 @@ RDPoint Encoder_HM::encode(const Preset& preset,int qp) const
   std::cout << "CMD: '" << cmd2 << "'\n";
   RDPoint rd;
   rd.start_timer();
-  int retval = system(cmd2.c_str());
+  system(cmd2.c_str());
   rd.end_timer();
 
   rd.compute_from_yuv(streamname.str(), recoyuv);
@@ -703,7 +703,7 @@ RDPoint Encoder_x265::encode(const Preset& preset,int qp) const
   //std::cout << "CMD: '" << cmd2 << "'\n";
   RDPoint rd;
   rd.start_timer();
-  int retval = system(cmd2.c_str());
+  system(cmd2.c_str());
   rd.end_timer();
 
   rd.compute_from_h265(streamname.str());
@@ -765,7 +765,7 @@ RDPoint Encoder_f265::encode(const Preset& preset,int qp) const
   std::cout << "CMD: '" << cmd2 << "'\n";
   RDPoint rd;
   rd.start_timer();
-  int retval = system(cmd2.c_str());
+  system(cmd2.c_str());
   rd.end_timer();
 
   rd.compute_from_h265("f265.out");
@@ -851,17 +851,17 @@ RDPoint Encoder_x264::encode(const Preset& preset,int qp_crf) const
 
   RDPoint rd;
   rd.start_timer();
-  int retval = system(cmd2.c_str());
+  system(cmd2.c_str());
   rd.end_timer();
 
   char tmpyuv_prefix[] = "/tmp/rdout-XXXXXX";
-  char *tempfile = mktemp(tmpyuv_prefix);
-  assert(tempfile != NULL && tempfile[0] != 0);
+  mktemp(tmpyuv_prefix);
+  assert(tmpyuv_prefix[0] != 0);
   std::string tmpyuv = std::string(tmpyuv_prefix) + ".yuv";
 
   std::string cmd3 = "ffmpeg -i " + streamname.str() + " -threads 6 " + tmpyuv;
 
-  retval = system(cmd3.c_str());
+  system(cmd3.c_str());
 
   rd.compute_from_yuv(streamname.str(), tmpyuv);
 
@@ -929,17 +929,17 @@ RDPoint Encoder_mpeg2::encode(const Preset& preset,int br) const
 
   RDPoint rd;
   rd.start_timer();
-  int retval = system(cmd2.c_str());
+  system(cmd2.c_str());
   rd.end_timer();
 
   char tmpyuv_prefix[] = "/tmp/rdout-XXXXXX";
-  char *tempfile = mktemp(tmpyuv_prefix);
-  assert(tempfile != NULL && tempfile[0] != 0);
+  mktemp(tmpyuv_prefix);
+  assert(tmpyuv_prefix[0] != 0);
   std::string tmpyuv = std::string(tmpyuv_prefix) + ".yuv";
 
   std::string cmd3 = "ffmpeg -i " + streamname.str() + " -threads 6 " + tmpyuv;
 
-  retval = system(cmd3.c_str());
+  system(cmd3.c_str());
 
   rd.compute_from_yuv(streamname.str(), tmpyuv);
 
