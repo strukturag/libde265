@@ -2,6 +2,11 @@
 .gitattributes       export-ignore
 .gitignore           export-ignore
 acceleration-speed/  export-ignore
+dev-tools/           export-ignore
+enc265/              export-ignore
+libde265/en265.cc    export-ignore
+libde265/en265.h     export-ignore
+libde265/encoder/    export-ignore
 appveyor.yml         export-ignore
 scripts/             export-ignore
 testdata/            export-ignore
