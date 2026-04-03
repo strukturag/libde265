@@ -10,10 +10,10 @@ jobs:
     env:
       TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
 
     - name: Cache Coverity build tool
-      uses: actions/cache@v5
+      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 #v5.0.4
       with:
         path: |
           coverity_tool.tar.gz
