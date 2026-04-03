@@ -6,12 +6,13 @@ jobs:
   build:
     strategy:
       matrix:
+        os: [macos-14, macos-15]
         env:
           - { CC: "clang", CXX: "clang++" }
           - { CC: "gcc", CXX: "g++" }
     env: ${{ matrix.env }}
 
-    runs-on: macos-15
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v6
 
