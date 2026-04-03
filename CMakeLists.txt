@@ -99,14 +99,20 @@ if(HAVE_X86)
 endif()
 
 check_c_source_compiles(
-  "#if !defined(__arm__) && !defined(__aarch64__) \
-  && !defined(_M_ARM) && !defined(_M_ARM64)
-  #error not ARM
+  "#if !defined(__arm__) && !defined(_M_ARM)
+  #error not 32-bit ARM
   #endif
   int main(){return 0;}"
-  HAVE_ARM)
+  HAVE_ARM32)
 
-if(HAVE_ARM)
+check_c_source_compiles(
+  "#if !defined(__aarch64__) && !defined(_M_ARM64)
+  #error not 64-bit ARM
+  #endif
+  int main(){return 0;}"
+  HAVE_ARM64)
+
+if(HAVE_ARM32)
   enable_language(ASM)
   check_c_compiler_flag(-mfpu=neon HAVE_NEON)
 endif()

@@ -3,5 +3,6 @@
 #cmakedefine HAVE_MALLOC_H 1
 #cmakedefine HAVE_POSIX_MEMALIGN 1
 #cmakedefine HAVE_SSE4_1 1
-#cmakedefine HAVE_ARM 1
+#cmakedefine HAVE_ARM32 1
+#cmakedefine HAVE_ARM64 1
 #cmakedefine HAVE_NEON 1
