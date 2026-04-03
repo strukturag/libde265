@@ -108,7 +108,16 @@ check_c_source_compiles(
 
 if(HAVE_ARM)
   enable_language(ASM)
-  check_c_compiler_flag(-mfpu=neon HAVE_NEON)
+  check_c_source_compiles(
+    "#if !defined(__arm__) && !defined(_M_ARM)
+    #error not 32-bit ARM
+    #endif
+    int main(){return 0;}"
+    HAVE_ARM32)
+
+  if(HAVE_ARM32)
+    check_c_compiler_flag(-mfpu=neon HAVE_NEON)
+  endif()
 endif()
 
 configure_file (libde265/de265-version.h.in libde265/de265-version.h)
