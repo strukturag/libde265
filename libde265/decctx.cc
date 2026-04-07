@@ -831,6 +831,10 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   int ctbAddrRS = shdr->slice_segment_address;
   int ctbRow    = ctbAddrRS / ctbsWidth;
 
+  if (ctbRow + nRows > img->get_sps().PicHeightInCtbsY) {
+    return DE265_WARNING_SLICEHEADER_INVALID;
+  }
+
   for (int entryPt=0;entryPt<nRows;entryPt++) {
     // entry points other than the first start at CTB rows
     if (entryPt>0) {
