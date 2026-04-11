@@ -50,7 +50,7 @@ extern bool read_short_term_ref_pic_set(error_queue* errqueue,
                                         const seq_parameter_set* sps,
                                         bitreader* br,
                                         ref_pic_set* out_set,
-                                        int idxRps,  // index of the set to be read
+                                        uint32_t idxRps,  // index of the set to be read
                                         const std::vector<ref_pic_set>& sets,
                                         bool sliceRefPicSet);
 
@@ -58,7 +58,7 @@ extern bool write_short_term_ref_pic_set(error_queue* errqueue,
                                          const seq_parameter_set* sps,
                                          CABAC_encoder& out,
                                          const ref_pic_set* in_set, // which set to write
-                                         int idxRps,  // index of the set to be read
+                                         uint32_t idxRps,  // index of the set to be read
                                          const std::vector<ref_pic_set>& sets, // previously read sets
                                          bool sliceRefPicSet); // is this in the slice header?
 
