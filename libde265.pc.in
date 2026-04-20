@@ -11,3 +11,4 @@ Requires:
 Libs: -L${libdir} -lde265
 Libs.private: @LIBS_PRIVATE@
 Cflags: -I${includedir}
+Cflags.private: -DLIBDE265_STATIC_BUILD
