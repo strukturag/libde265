@@ -6,11 +6,16 @@ if(HAVE_NEON)
     hevcdsp_qpel_neon.S
   )
 
+  # Clang's assembler does not support .func/.endfunc directives.
+  if(NOT CMAKE_ASM_COMPILER_ID MATCHES Clang)
+    set(AS_FUNC_FLAG -DHAVE_AS_FUNC)
+  endif()
+
   target_compile_options(arm32_neon PRIVATE
     -mfpu=neon
     -DHAVE_NEON
     -DEXTERN_ASM=
-    -DHAVE_AS_FUNC
+    ${AS_FUNC_FLAG}
     -DHAVE_SECTION_DATA_REL_RO
   )
 
