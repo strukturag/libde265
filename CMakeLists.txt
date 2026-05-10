@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.16.3)
 
 project (libde265
     LANGUAGES C CXX
-    VERSION 1.0.18
+    VERSION 1.0.19
 )
 
 # Auto-compute BCD-encoded numeric version from project version.
@@ -19,10 +19,10 @@ set (PACKAGE_VERSION ${PROJECT_VERSION})
 # This controls the shared library filename:
 #   libde265.so -> libde265.so.0 -> libde265.so.0.1.9
 #                  ^^^^^^^^^^^^^^    ^^^^^^^^^^^^^^^^^^
-#                  SOVERSION         VERSION
+#                  DE265_SOVERSION   DE265_LIBRARY_VERSION
 #
-# VERSION is a three-part number: MAJOR.MINOR.PATCH
-#   - MAJOR = the ABI major version (same as SOVERSION).
+# DE265_LIBRARY_VERSION is a three-part number: MAJOR.MINOR.PATCH
+#   - MAJOR = the ABI major version (same as DE265_SOVERSION).
 #             Bump when the ABI breaks (exported functions removed or signatures changed).
 #             Reset MINOR and PATCH to 0.
 #   - MINOR = backward-compatible ABI additions.
@@ -31,11 +31,11 @@ set (PACKAGE_VERSION ${PROJECT_VERSION})
 #   - PATCH = implementation-only changes (bug fixes, performance improvements).
 #             Bump when the ABI is unchanged.
 #
-# SOVERSION must always equal the MAJOR part of VERSION.
+# DE265_SOVERSION must always equal the MAJOR part of DE265_LIBRARY_VERSION.
 # Programs linked against libde265.so.0 will work with any libde265.so.0.x.y.
 #
 set(DE265_SOVERSION 0)
-set(DE265_LIBRARY_VERSION "0.1.11")
+set(DE265_LIBRARY_VERSION "0.1.12")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
