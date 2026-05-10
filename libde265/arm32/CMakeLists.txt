@@ -7,6 +7,7 @@ if(HAVE_NEON)
   )
 
   # Clang's assembler does not support .func/.endfunc directives.
+  # See issue #510.
   if(NOT CMAKE_ASM_COMPILER_ID MATCHES Clang)
     set(AS_FUNC_FLAG -DHAVE_AS_FUNC)
   endif()

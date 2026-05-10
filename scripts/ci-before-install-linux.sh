@@ -62,6 +62,9 @@ if ( echo "$TARGET_HOST" | grep -q "^arm" ); then
         gcc-arm-linux-gnueabihf \
         qemu-user \
         "
+    if [ "$CC" = "clang" ]; then
+        INSTALL_PACKAGES="$INSTALL_PACKAGES clang"
+    fi
 fi
 
 if [ ! -z "$DECODESTREAMS" ]; then

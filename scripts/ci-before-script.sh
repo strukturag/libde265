@@ -49,7 +49,11 @@ if [ "$WINE" = "wine" ]; then
 elif [ "$WINE" = "wine64" ]; then
     CMAKE_OPTS="$CMAKE_OPTS -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/mingw-x86_64.cmake"
 elif ( echo "$TARGET_HOST" | grep -q "^arm" ); then
-    CMAKE_OPTS="$CMAKE_OPTS -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/arm-linux-gnueabihf.cmake"
+    if [ "$CC" = "clang" ]; then
+        CMAKE_OPTS="$CMAKE_OPTS -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/arm-linux-gnueabihf-clang.cmake"
+    else
+        CMAKE_OPTS="$CMAKE_OPTS -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/arm-linux-gnueabihf.cmake"
+    fi
 fi
 
 cmake -B build -S . $CMAKE_OPTS

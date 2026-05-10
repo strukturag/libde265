@@ -8,6 +8,7 @@ jobs:
       matrix:
         env:
           - { TARGET_HOST: "arm-linux-gnueabihf" }
+          - { TARGET_HOST: "arm-linux-gnueabihf", CC: "clang" }
     env: ${{ matrix.env }}
     runs-on: ubuntu-22.04
     steps:
