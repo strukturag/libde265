@@ -25,6 +25,7 @@
 */
 
 #include "VideoDecoder.h"
+#include <chrono>
 #ifdef HAVE_VIDEOGFX
 #include <libvideogfx.hh>
 #endif
@@ -44,6 +45,7 @@ VideoDecoder::VideoDecoder()
     img(NULL),
     mNextBuffer(0),
     mFrameCount(0),
+    mFramerate(30),
     mPlayingVideo(false),
     mVideoEnded(false),
     mSingleStep(false),
@@ -114,9 +116,15 @@ void VideoDecoder::singleStepDecoder()
 
 void VideoDecoder::decoder_loop()
 {
+  using std::chrono::steady_clock;
+  using std::chrono::microseconds;
+  using std::chrono::duration_cast;
+
   for (;;)
     {
       if (mPlayingVideo) {
+        auto frame_start_time = steady_clock::now();
+
         mutex.lock();
 
         if (img) {
@@ -168,6 +176,16 @@ void VideoDecoder::decoder_loop()
         // process events
 
         QCoreApplication::processEvents();
+
+        // Throttle to target frame rate (skip when we are about to go idle anyway)
+        int framerate = mFramerate.load();
+        if (mPlayingVideo && framerate > 0) {
+          auto target_interval = microseconds(1000000 / framerate);
+          auto elapsed = duration_cast<microseconds>(steady_clock::now() - frame_start_time);
+          if (elapsed < target_interval) {
+            QThread::usleep((target_interval - elapsed).count());
+          }
+        }
       }
       else {
         exec();
@@ -430,6 +448,10 @@ void VideoDecoder::showSlices(bool flag)
 }
 
 
+void VideoDecoder::setFramerate(int framerate)
+{
+  mFramerate = framerate;
+}
 
 
 void VideoDecoder::init_decoder(const char* filename)

@@ -49,6 +49,14 @@ VideoPlayer::VideoPlayer(const char* filename)
                    videoWidget, SLOT(setImage(QImage*)), Qt::QueuedConnection);
 
 
+  QSpinBox* framerateSpinbox = new QSpinBox();
+  framerateSpinbox->setMinimum(1);
+  framerateSpinbox->setMaximum(300);
+  framerateSpinbox->setValue(30);
+  framerateSpinbox->setSuffix(" FPS");
+  QObject::connect(framerateSpinbox, QOverload<int>::of(&QSpinBox::valueChanged),
+                   mDecoder, &VideoDecoder::setFramerate);
+
 
   QPushButton* showCBPartitioningButton = new QPushButton("CB-tree");
   showCBPartitioningButton->setCheckable(true);
@@ -106,6 +114,7 @@ VideoPlayer::VideoPlayer(const char* filename)
   layout->addWidget(startButton, 1,0,1,1);
   layout->addWidget(stopButton,  1,1,1,1);
   layout->addWidget(stepButton,  1,2,1,1);
+  layout->addWidget(framerateSpinbox,        1,3,1,1);
   layout->addWidget(showDecodedImageButton,  1,6,1,1);
   layout->addWidget(showTilesButton,         1,5,1,1);
   layout->addWidget(showSlicesButton,        1,4,1,1);

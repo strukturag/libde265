@@ -32,6 +32,7 @@
 #endif
 
 #include <QtGui>
+#include <atomic>
 #ifdef HAVE_SWSCALE
 #ifdef __cplusplus
 extern "C" {
@@ -63,6 +64,7 @@ public slots:
   void startDecoder();
   void stopDecoder();
   void singleStepDecoder();
+  void setFramerate(int framerate);
 
   void showCBPartitioning(bool flag);
   void showTBPartitioning(bool flag);
@@ -92,6 +94,8 @@ private:
   QImage mImgBuffers[2];
   int    mNextBuffer;
   int    mFrameCount;
+
+  std::atomic<int> mFramerate;
 
   bool   mPlayingVideo;
   bool   mVideoEnded;
