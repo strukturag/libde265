@@ -360,6 +360,9 @@ void slice_segment_header::reset()
 
   RemoveReferencesList.clear();
 
+  for (int i = 0; i < 4; i++) {
+    ctx_model_storage_StatCoeff[i] = 0;
+  }
   ctx_model_storage_defined = false;
 }
 
@@ -4739,6 +4742,11 @@ enum DecodeResult decode_substream(thread_context* tctx,
       // copy CABAC model from previous CTB row
       tctx->ctx_model = tctx->imgunit->ctx_models[(tctx->CtbY - 1)];
       tctx->imgunit->ctx_models[(tctx->CtbY - 1)].release(); // not used anymore
+
+      // also restore the StatCoeff[] state for persistent_rice_adaptation
+      for (int i = 0; i < 4; i++) {
+        tctx->StatCoeff[i] = tctx->imgunit->StatCoeff_models[(tctx->CtbY - 1)][i];
+      }
     }
     else {
       tctx->img->wait_for_progress(tctx->task, 0, tctx->CtbY - 1,CTB_PROGRESS_PREFILTER);
@@ -4792,6 +4800,11 @@ enum DecodeResult decode_substream(thread_context* tctx,
 
       tctx->imgunit->ctx_models[ctby] = tctx->ctx_model;
       tctx->imgunit->ctx_models[ctby].decouple(); // store an independent copy
+
+      // also save the StatCoeff[] state for persistent_rice_adaptation
+      for (int i = 0; i < 4; i++) {
+        tctx->imgunit->StatCoeff_models[ctby][i] = tctx->StatCoeff[i];
+      }
     }
 
 
@@ -4807,6 +4820,11 @@ enum DecodeResult decode_substream(thread_context* tctx,
       if (pps.dependent_slice_segments_enabled_flag) {
         tctx->shdr->ctx_model_storage = tctx->ctx_model;
         tctx->shdr->ctx_model_storage.decouple(); // store an independent copy
+
+        // also save the StatCoeff[] state for persistent_rice_adaptation
+        for (int i = 0; i < 4; i++) {
+          tctx->shdr->ctx_model_storage_StatCoeff[i] = tctx->StatCoeff[i];
+        }
 
         tctx->shdr->ctx_model_storage_defined = true;
       }
@@ -4920,6 +4938,11 @@ bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
 
       tctx->ctx_model = prevCtbHdr->ctx_model_storage;
       prevCtbHdr->ctx_model_storage.release();
+
+      // also restore the StatCoeff[] state for persistent_rice_adaptation
+      for (int i = 0; i < 4; i++) {
+        tctx->StatCoeff[i] = prevCtbHdr->ctx_model_storage_StatCoeff[i];
+      }
     }
   }
   else {

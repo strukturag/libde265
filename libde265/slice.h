@@ -255,6 +255,8 @@ public:
 
   // context storage for dependent slices (stores CABAC model at end of slice segment)
   context_model_table ctx_model_storage;
+  // StatCoeff[] (persistent_rice_adaptation state) saved alongside ctx_model_storage
+  uint8_t ctx_model_storage_StatCoeff[4];
   bool ctx_model_storage_defined; // whether there is valid data in ctx_model_storage
 
   std::vector<int> RemoveReferencesList; // images that can be removed from the DPB before decoding this slice

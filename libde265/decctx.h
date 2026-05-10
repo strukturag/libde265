@@ -35,6 +35,7 @@
 #include "libde265/acceleration.h"
 #include "libde265/nal-parser.h"
 
+#include <array>
 #include <memory>
 
 constexpr int DE265_MAX_VPS_SETS = 16;   // this is the maximum as defined in the standard
@@ -262,6 +263,11 @@ public:
      There is one saved model for the initialization of each CTB row.
      The array is unused for non-WPP streams. */
   std::vector<context_model_table> ctx_models;  // TODO: move this into image ?
+
+  /* Saved StatCoeff[] (persistent_rice_adaptation state) parallel to ctx_models.
+     Per HEVC RExt, this state must be carried across WPP CTB rows together
+     with the CABAC context. */
+  std::vector<std::array<uint8_t, 4>> StatCoeff_models;
 };
 
 
