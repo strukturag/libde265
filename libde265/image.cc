@@ -44,10 +44,10 @@
 
 #define STANDARD_ALIGNMENT 16
 
-#ifdef HAVE___MINGW_ALIGNED_MALLOC
+#if defined(__MINGW32__)
 #define ALLOC_ALIGNED(alignment, size)         __mingw_aligned_malloc((size), (alignment))
 #define FREE_ALIGNED(mem)                      __mingw_aligned_free((mem))
-#elif _WIN32
+#elif defined(_MSC_VER)
 #define ALLOC_ALIGNED(alignment, size)         _aligned_malloc((size), (alignment))
 #define FREE_ALIGNED(mem)                      _aligned_free((mem))
 #elif defined(HAVE_POSIX_MEMALIGN)
