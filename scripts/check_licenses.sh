@@ -45,6 +45,7 @@ IGNORE_FILES=(
     'COPYING',
     'NEWS',
     'README.md',
+    'SECURITY.md',
     'testdata/girlshy.h265',
     'fuzz-libfuzzer.sh',
     'fuzz-afl.sh'
