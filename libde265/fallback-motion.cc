@@ -165,9 +165,11 @@ void put_unweighted_pred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
                                      const int16_t *src, ptrdiff_t srcstride,
                                      int width, int height, int bit_depth)
 {
-  int shift1 = 14-bit_depth;
-  int offset1 = 0;
-  if (shift1>0) { offset1 = 1<<(shift1-1); }
+  // shift1 per HEVC v2 (10/2014) spec 8.5.3.3.4.2: Max(2, 14 - BitDepth).
+  // The Max() was added with the Range Extensions in v2 to handle BitDepth up to 16;
+  // the v1 (04/2013) formula was just (14 - BitDepth), valid only for BitDepth <= 14.
+  int shift1 = libde265_max(2, 14-bit_depth);
+  int offset1 = 1<<(shift1-1);
 
   assert((width&1)==0);
 
@@ -232,7 +234,10 @@ void put_weighted_pred_avg_16_fallback(uint16_t *dst, ptrdiff_t dststride,
                                        ptrdiff_t srcstride, int width,
                                        int height, int bit_depth)
 {
-  int shift2 = 15-bit_depth;
+  // shift2 per HEVC v2 (10/2014) spec 8.5.3.3.4.2: Max(3, 15 - BitDepth).
+  // The Max() was added with the Range Extensions in v2 to handle BitDepth up to 16;
+  // the v1 (04/2013) formula was just (15 - BitDepth), valid only for BitDepth <= 14.
+  int shift2 = libde265_max(3, 15-bit_depth);
   int offset2 = 1<<(shift2-1);
 
   assert((width&1)==0);
@@ -279,7 +284,10 @@ void put_epel_16_fallback(int16_t *out, ptrdiff_t out_stride,
                           int width, int height,
                           int mx, int my, int16_t* mcbuffer, int bit_depth)
 {
-  int shift3 = 14 - bit_depth;
+  // shift3 per HEVC v2 (10/2014) spec 8.5.3.3.3.3 (chroma): Max(2, 14 - BitDepth).
+  // The Max() was added with the Range Extensions in v2 to handle BitDepth up to 16;
+  // the v1 (04/2013) formula was just (14 - BitDepth), valid only for BitDepth <= 14.
+  int shift3 = libde265_max(2, 14 - bit_depth);
 
   for (int y=0;y<height;y++) {
     int16_t* o = &out[y*out_stride];
@@ -459,7 +467,10 @@ void put_qpel_0_0_fallback_16(int16_t *out, ptrdiff_t out_stride,
 {
   //const int shift1 = bit_depth-8;
   //const int shift2 = 6;
-  const int shift3 = 14-bit_depth;
+  // shift3 per HEVC v2 (10/2014) spec 8.5.3.3.3.2 (luma): Max(2, 14 - BitDepth).
+  // The Max() was added with the Range Extensions in v2 to handle BitDepth up to 16;
+  // the v1 (04/2013) formula was just (14 - BitDepth), valid only for BitDepth <= 14.
+  const int shift3 = libde265_max(2, 14-bit_depth);
 
   // straight copy
 
