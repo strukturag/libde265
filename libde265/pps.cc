@@ -731,7 +731,7 @@ bool pic_parameter_set::write(error_queue* errqueue, CABAC_encoder& out,
   }
   out.write_uvlc(pic_parameter_set_id);
 
-  if (seq_parameter_set_id >= DE265_MAX_PPS_SETS) {
+  if (seq_parameter_set_id >= DE265_MAX_SPS_SETS) {
     errqueue->add_warning(DE265_WARNING_NONEXISTING_SPS_REFERENCED, false);
     return false;
   }
