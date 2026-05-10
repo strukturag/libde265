@@ -861,6 +861,11 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->img     = img;
     tctx->imgunit = imgunit;
     tctx->sliceunit= sliceunit;
+
+    if ((size_t)ctbAddrRS >= pps.CtbAddrRStoTS.size()) {
+      err = DE265_WARNING_SLICEHEADER_INVALID;
+      break;
+    }
     tctx->CtbAddrInTS = pps.CtbAddrRStoTS[ctbAddrRS];
 
     init_thread_context(tctx);
@@ -937,6 +942,12 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
   // first CTB in this slice
   int ctbAddrRS = shdr->slice_segment_address;
+
+  // pps.TileIdRS and pps.CtbAddrRStoTS are both sized to PicSizeInCtbsY in
+  // set_derived_values(), so one bound covers both accesses below.
+  if ((size_t)ctbAddrRS >= pps.CtbAddrRStoTS.size()) {
+    return DE265_WARNING_SLICEHEADER_INVALID;
+  }
   int tileID = pps.TileIdRS[ctbAddrRS];
 
   for (int entryPt=0;entryPt<nTiles;entryPt++) {
@@ -952,6 +963,11 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
       int ctbX = pps.colBd[tileID % pps.num_tile_columns];
       int ctbY = pps.rowBd[tileID / pps.num_tile_columns];
       ctbAddrRS = ctbY * ctbsWidth + ctbX;
+
+      if ((size_t)ctbAddrRS >= pps.CtbAddrRStoTS.size()) {
+        err = DE265_WARNING_SLICEHEADER_INVALID;
+        break;
+      }
     }
 
     // set thread context
