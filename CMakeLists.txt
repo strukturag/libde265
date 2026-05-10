@@ -125,13 +125,28 @@ if(CMAKE_COMPILER_IS_GNUCXX OR ${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
   add_definitions(-Wall -Werror=return-type -Werror=unused-result -Werror=reorder)
 endif()
 
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
+
 include(CheckCXXSymbolExists)
 check_cxx_symbol_exists(_LIBCPP_VERSION cstdlib HAVE_LIBCPP)
-if(HAVE_LIBCPP)
-  set(LIBS_PRIVATE "-lc++")
-else()
-  set(LIBS_PRIVATE "-lstdc++")
+
+# Build Libs.private contents for libde265.pc.
+set(_libs_private "")
+if(NOT MSVC)
+  if(HAVE_LIBCPP)
+    list(APPEND _libs_private "-lc++")
+  else()
+    list(APPEND _libs_private "-lstdc++")
+  endif()
 endif()
+if(CMAKE_THREAD_LIBS_INIT)
+  list(APPEND _libs_private "${CMAKE_THREAD_LIBS_INIT}")
+endif()
+if(UNIX)
+  list(APPEND _libs_private "-lm")
+endif()
+string(JOIN " " LIBS_PRIVATE ${_libs_private})
 
 
 option(BUILD_SHARED_LIBS "Build shared library" ON)
@@ -149,8 +164,6 @@ include_directories ("${PROJECT_SOURCE_DIR}/libde265")
 if(MSVC)
   include_directories ("${PROJECT_SOURCE_DIR}/extra")
 endif()
-
-find_package(Threads)
 
 option(ENABLE_DECODER "Enable Decoder" ON)
 option(ENABLE_ENCODER "Enable Encoder" OFF)
