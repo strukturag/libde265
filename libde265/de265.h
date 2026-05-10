@@ -209,6 +209,17 @@ LIBDE265_API int de265_get_image_matrix_coefficients(const de265_image*);
 typedef void de265_decoder_context; // private structure
 
 
+/* Thread-safety:
+   A de265_decoder_context must not be accessed concurrently from multiple
+   threads. All API calls that take a de265_decoder_context (push data, decode,
+   query state, retrieve images, free) must be serialized by the caller.
+   To decode multiple streams in parallel, create one context per thread.
+
+   This is independent from de265_start_worker_threads(), which only enables
+   internal worker threads inside a single context to parallelize WPP/tile
+   decoding. Those internal threads are managed by libde265 and do not relax
+   the single-owner-thread requirement above.
+*/
 
 /* Get a new decoder context. Must be freed with de265_free_decoder(). */
 LIBDE265_API de265_decoder_context* de265_new_decoder(void);
