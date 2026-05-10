@@ -109,7 +109,7 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
     /* Only for the last ref_pic_set (that's the one coded in the slice header),
        we can specify relative to which reference set we code the set. */
 
-    int delta_idx;
+    uint32_t delta_idx;
     if (sliceRefPicSet) { // idxRps == num_short_term_ref_pic_sets) {
       vlc = br->get_uvlc();
       if (vlc==UVLC_ERROR || vlc >= idxRps) {
