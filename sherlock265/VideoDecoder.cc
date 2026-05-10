@@ -148,8 +148,13 @@ void VideoDecoder::decoder_loop()
             else if (more && err == DE265_ERROR_WAITING_FOR_INPUT_DATA) {
               uint8_t buf[4096];
               int buf_size = fread(buf,1,sizeof(buf),mFH);
-              int err = de265_push_data(ctx,buf,buf_size ,0,0);
-	      (void)err;
+              if (buf_size > 0) {
+                int err = de265_push_data(ctx,buf,buf_size ,0,0);
+                (void)err;
+              }
+              if (feof(mFH)) {
+                de265_flush_data(ctx); // signal end-of-stream so trailing frames are emitted
+              }
             }
             else if (!more)
               {
