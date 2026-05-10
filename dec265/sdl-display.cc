@@ -25,6 +25,7 @@
 */
 
 #include "sdl-display.h"
+#include <cstdio>
 #include <cstring>
 
 
