@@ -94,6 +94,43 @@ bool SDL_YUV_Display::init(int frame_width, int frame_height, enum SDL_Chroma ch
   return true;
 }
 
+bool SDL_YUV_Display::resize(int frame_width, int frame_height, enum SDL_Chroma chroma)
+{
+  if (!mWindowOpen) {
+    return init(frame_width, frame_height, chroma);
+  }
+
+  // SDL_PIXELFORMAT_YV12 requires even dimensions; init() rounds down to a
+  // multiple of 8, so we do the same here for consistency.
+  frame_width  &= ~7;
+  frame_height &= ~7;
+
+  if (frame_width == rect.w && frame_height == rect.h && mChroma == chroma) {
+    return true;
+  }
+
+  // All chroma formats currently map to SDL_PIXELFORMAT_YV12 (we down-convert
+  // 4:2:2 and 4:4:4 ourselves), so the texture pixel format never changes.
+  // Only the texture dimensions and the window size need updating.
+  SDL_DestroyTexture(mTexture);
+  mTexture = SDL_CreateTexture(mRenderer, SDL_PIXELFORMAT_YV12,
+                               SDL_TEXTUREACCESS_STREAMING,
+                               frame_width, frame_height);
+  if (!mTexture) {
+    printf("SDL: Couldn't recreate SDL texture: %s\n", SDL_GetError());
+    mWindowOpen = false;
+    return false;
+  }
+
+  SDL_SetWindowSize(mWindow, frame_width, frame_height);
+
+  mChroma = chroma;
+  rect.w  = frame_width;
+  rect.h  = frame_height;
+
+  return true;
+}
+
 void SDL_YUV_Display::display(const unsigned char *Y,
                               const unsigned char *U,
                               const unsigned char *V,
@@ -247,7 +284,7 @@ void SDL_YUV_Display::display444as420(const unsigned char *Y,
     }
 
   uint8_t *startV = mPixels + (rect.h*mStride);
-  uint8_t *startU = startV + (rect.h*mStride/2);
+  uint8_t *startU = startV + (rect.h*mStride/4);
   for (int y=0;y<rect.h;y+=2)
     {
       unsigned char* u = startU + y/2*mStride/2;
