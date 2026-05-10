@@ -301,7 +301,7 @@ void decoder_context::init_thread_context(thread_context* tctx)
 
 void decoder_context::add_task_decode_CTB_row(thread_context* tctx,
                                               bool firstSliceSubstream,
-                                              int ctbRow)
+                                              uint16_t ctbRow)
 {
   thread_task_ctb_row* task = new thread_task_ctb_row;
   task->firstSliceSubstream = firstSliceSubstream;
@@ -316,7 +316,7 @@ void decoder_context::add_task_decode_CTB_row(thread_context* tctx,
 
 
 void decoder_context::add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream,
-                                                    int ctbx,int ctby)
+                                                    uint16_t ctbx, uint16_t ctby)
 {
   thread_task_slice_segment* task = new thread_task_slice_segment;
   task->firstSliceSubstream = firstSliceSubstream;
@@ -466,7 +466,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   // modify entry_point_offsets
 
   uint32_t headerLength = reader.data - nal->data();
-  for (int i=0;i<shdr->num_entry_point_offsets;i++) {
+  for (uint32_t i=0;i<shdr->num_entry_point_offsets;i++) {
     uint32_t skipped = nal->num_skipped_bytes_before(shdr->entry_point_offset[i],
                                                      headerLength);
     if (skipped > shdr->entry_point_offset[i]) {
@@ -809,8 +809,8 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
   slice_segment_header* shdr = sliceunit->shdr;
   const pic_parameter_set& pps = img->get_pps();
 
-  int nRows = shdr->num_entry_point_offsets +1;
-  int ctbsWidth = img->get_sps().PicWidthInCtbsY;
+  uint16_t nRows = shdr->num_entry_point_offsets +1;
+  uint16_t ctbsWidth = img->get_sps().PicWidthInCtbsY;
 
 
   assert(img->num_threads_active() == 0);
@@ -828,14 +828,14 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
 
   // first CTB in this slice
-  int ctbAddrRS = shdr->slice_segment_address;
-  int ctbRow    = ctbAddrRS / ctbsWidth;
+  uint32_t ctbAddrRS = shdr->slice_segment_address;
+  uint16_t ctbRow    = ctbAddrRS / ctbsWidth;
 
   if (ctbRow + nRows > img->get_sps().PicHeightInCtbsY) {
     return DE265_WARNING_SLICEHEADER_INVALID;
   }
 
-  for (int entryPt=0;entryPt<nRows;entryPt++) {
+  for (uint16_t entryPt=0;entryPt<nRows;entryPt++) {
     // entry points other than the first start at CTB rows
     if (entryPt>0) {
       ctbRow++;
@@ -862,7 +862,7 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->imgunit = imgunit;
     tctx->sliceunit= sliceunit;
 
-    if ((size_t)ctbAddrRS >= pps.CtbAddrRStoTS.size()) {
+    if (ctbAddrRS >= pps.CtbAddrRStoTS.size()) {
       err = DE265_WARNING_SLICEHEADER_INVALID;
       break;
     }
@@ -931,8 +931,8 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
   slice_segment_header* shdr = sliceunit->shdr;
   const pic_parameter_set& pps = img->get_pps();
 
-  int nTiles = shdr->num_entry_point_offsets +1;
-  int ctbsWidth = img->get_sps().PicWidthInCtbsY;
+  uint16_t nTiles = shdr->num_entry_point_offsets +1;
+  uint16_t ctbsWidth = img->get_sps().PicWidthInCtbsY;
 
 
   assert(img->num_threads_active() == 0);
@@ -941,16 +941,16 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 
 
   // first CTB in this slice
-  int ctbAddrRS = shdr->slice_segment_address;
+  uint32_t ctbAddrRS = shdr->slice_segment_address;
 
   // pps.TileIdRS and pps.CtbAddrRStoTS are both sized to PicSizeInCtbsY in
   // set_derived_values(), so one bound covers both accesses below.
-  if ((size_t)ctbAddrRS >= pps.CtbAddrRStoTS.size()) {
+  if (ctbAddrRS >= pps.CtbAddrRStoTS.size()) {
     return DE265_WARNING_SLICEHEADER_INVALID;
   }
   int tileID = pps.TileIdRS[ctbAddrRS];
 
-  for (int entryPt=0;entryPt<nTiles;entryPt++) {
+  for (uint16_t entryPt=0;entryPt<nTiles;entryPt++) {
     // entry points other than the first start at tile beginnings
     if (entryPt>0) {
       tileID++;
@@ -960,11 +960,11 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
         break;
       }
 
-      int ctbX = pps.colBd[tileID % pps.num_tile_columns];
-      int ctbY = pps.rowBd[tileID / pps.num_tile_columns];
+      uint16_t ctbX = pps.colBd[tileID % pps.num_tile_columns];
+      uint16_t ctbY = pps.rowBd[tileID / pps.num_tile_columns];
       ctbAddrRS = ctbY * ctbsWidth + ctbX;
 
-      if ((size_t)ctbAddrRS >= pps.CtbAddrRStoTS.size()) {
+      if (ctbAddrRS >= pps.CtbAddrRStoTS.size()) {
         err = DE265_WARNING_SLICEHEADER_INVALID;
         break;
       }
@@ -1009,8 +1009,8 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     img->thread_start(1);
     sliceunit->nThreads++;
     add_task_decode_slice_segment(tctx, entryPt==0,
-                                  ctbAddrRS % ctbsWidth,
-                                  ctbAddrRS / ctbsWidth);
+                                  static_cast<uint16_t>(ctbAddrRS % ctbsWidth),
+                                  static_cast<uint16_t>(ctbAddrRS / ctbsWidth));
   }
 
   img->wait_for_completion();

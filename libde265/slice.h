@@ -218,8 +218,8 @@ public:
 
   bool slice_loop_filter_across_slices_enabled_flag;
 
-  int  num_entry_point_offsets;
-  int  offset_len;
+  uint32_t num_entry_point_offsets;
+  int      offset_len;
   std::vector<uint32_t> entry_point_offset;
 
   int  slice_segment_header_extension_length;
@@ -286,7 +286,7 @@ class thread_task_ctb_row : public thread_task
 {
 public:
   bool   firstSliceSubstream;
-  int    debug_startCtbRow;
+  uint16_t debug_startCtbRow;
   thread_context* tctx;
 
   void work() override;
@@ -297,7 +297,7 @@ class thread_task_slice_segment : public thread_task
 {
 public:
   bool   firstSliceSubstream;
-  int    debug_startCtbX, debug_startCtbY;
+  uint16_t debug_startCtbX, debug_startCtbY;
   thread_context* tctx;
 
   void work() override;

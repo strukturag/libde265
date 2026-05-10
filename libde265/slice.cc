@@ -851,7 +851,7 @@ de265_error slice_segment_header::read(bitreader* br, decoder_context* ctx,
       }
       offset_len = uvlc + 1;
 
-      for (int i = 0; i < num_entry_point_offsets; i++) {
+      for (uint32_t i = 0; i < num_entry_point_offsets; i++) {
         {
           uint32_t offset_minus1 = br->get_bits(offset_len);
           if (offset_minus1 == UINT32_MAX) {
@@ -1235,7 +1235,7 @@ de265_error slice_segment_header::write(error_queue* errqueue, CABAC_encoder& ou
     if (num_entry_point_offsets > 0) {
       out.write_uvlc(offset_len - 1);
 
-      for (int i = 0; i < num_entry_point_offsets; i++) {
+      for (uint32_t i = 0; i < num_entry_point_offsets; i++) {
         {
           uint32_t prev = 0;
           if (i > 0) prev = entry_point_offset[i - 1];
@@ -1505,7 +1505,7 @@ void slice_segment_header::dump_slice_segment_header(const decoder_context* ctx,
     if (num_entry_point_offsets > 0) {
       LOG1("offset_len                 : %d\n", offset_len);
 
-      for (int i = 0; i < num_entry_point_offsets; i++) {
+      for (uint32_t i = 0; i < num_entry_point_offsets; i++) {
         LOG2("entry point [%i] : %d\n", i, entry_point_offset[i]);
       }
     }
