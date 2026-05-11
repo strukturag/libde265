@@ -140,7 +140,11 @@ if(NOT MSVC)
     list(APPEND _libs_private "-lstdc++")
   endif()
 endif()
-if(CMAKE_THREAD_LIBS_INIT)
+# Emit '-lpthread' rather than '-pthread' so consumers using
+# `pkg-config --libs --static` get an unambiguous linker flag (see #453).
+if(CMAKE_USE_PTHREADS_INIT)
+  list(APPEND _libs_private "-lpthread")
+elseif(CMAKE_THREAD_LIBS_INIT)
   list(APPEND _libs_private "${CMAKE_THREAD_LIBS_INIT}")
 endif()
 if(UNIX)
