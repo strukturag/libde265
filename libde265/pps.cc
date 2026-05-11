@@ -523,16 +523,12 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
       }
     }
 
-    //assert(false);
-    /*
-      while( more_rbsp_data() )
-
-      pps_extension_data_flag
-      u(1)
-      rbsp_trailing_bits()
-
-      }
-    */
+    // Multilayer extension and the 6 reserved extension bits would carry
+    // additional payload that we do not parse. Reject the stream.
+    if (pps_multilayer_extension_flag || pps_extension_6bits) {
+      ctx->add_warning(DE265_ERROR_NOT_IMPLEMENTED_YET, false);
+      return false;
+    }
   }
 
 
