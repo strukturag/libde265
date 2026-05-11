@@ -384,30 +384,29 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
       uint16_t lastColumnWidth = sps->PicWidthInCtbsY;
       uint16_t lastRowHeight   = sps->PicHeightInCtbsY;
 
-      for (int i=0; i<num_tile_columns-1; i++)
-        {
-          if ((uvlc = br->get_uvlc()) == UVLC_ERROR ||
-              uvlc >= lastColumnWidth) {
-	    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
-	    return false;
-	  }
-          colWidth[i] = uvlc+1;
-
-          lastColumnWidth -= colWidth[i];
+      for (int i = 0; i < num_tile_columns - 1; i++) {
+        if ((uvlc = br->get_uvlc()) == UVLC_ERROR ||
+            uvlc + 1 >= lastColumnWidth) {
+          ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+          return false;
         }
 
-      colWidth[num_tile_columns-1] = lastColumnWidth;
+        colWidth[i] = uvlc + 1;
 
-      for (int i=0; i<num_tile_rows-1; i++)
-        {
-          if ((uvlc = br->get_uvlc()) == UVLC_ERROR ||
-              uvlc >= lastRowHeight) {
-	    ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
-	    return false;
-	  }
-          rowHeight[i] = uvlc+1;
-          lastRowHeight -= rowHeight[i];
+        lastColumnWidth -= colWidth[i];
+      }
+
+      colWidth[num_tile_columns - 1] = lastColumnWidth;
+
+      for (int i = 0; i < num_tile_rows - 1; i++) {
+        if ((uvlc = br->get_uvlc()) == UVLC_ERROR ||
+            uvlc + 1 >= lastRowHeight) {
+          ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+          return false;
         }
+        rowHeight[i] = uvlc + 1;
+        lastRowHeight -= rowHeight[i];
+      }
 
 
       rowHeight[num_tile_rows-1] = lastRowHeight;
