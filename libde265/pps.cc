@@ -365,18 +365,20 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
   if (tiles_enabled_flag) {
     if ((uvlc = br->get_uvlc()) == UVLC_ERROR ||
-	uvlc+1 > DE265_MAX_TILE_COLUMNS) {
+        uvlc + 1 > DE265_MAX_TILE_COLUMNS ||
+        uvlc + 1 > sps->PicWidthInCtbsY) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
-    num_tile_columns = uvlc+1;
+    num_tile_columns = uvlc + 1;
 
     if ((uvlc = br->get_uvlc()) == UVLC_ERROR ||
-	uvlc+1 > DE265_MAX_TILE_ROWS) {
+        uvlc + 1 > DE265_MAX_TILE_ROWS ||
+        uvlc + 1 > sps->PicHeightInCtbsY) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
-    num_tile_rows = uvlc+1;
+    num_tile_rows = uvlc + 1;
 
     uniform_spacing_flag = br->get_bits(1);
 
