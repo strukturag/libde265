@@ -178,6 +178,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "Access with invalid slice header index";
   case DE265_WARNING_INVALID_TU_BLOCK_SPLIT:
     return "Transform block split below minimum transform size";
+  case DE265_WARNING_RICE_PARAMETER_OUT_OF_RANGE:
+    return "Rice parameter or StatCoeff out of range, clamped";
 
   default: return "unknown error";
   }

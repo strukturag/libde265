@@ -2477,12 +2477,21 @@ static int decode_coeff_abs_level_greater2(thread_context* tctx,
 
 #define MAX_PREFIX (15+3)
 
+// Defensive bounds against non-conforming bitstreams. The spec (eq. 9-25 / 9-23) does
+// not impose an explicit upper bound on cRiceParam or StatCoeff in the persistent-rice
+// path, but a malformed stream can push them arbitrarily high. We clamp so that the
+// signed-int shift expressions in residual_coding stay well-defined:
+//   - 3 * (1 << uiGoRiceParam) requires uiGoRiceParam <= 29 (else int32 overflow)
+//   - 3 << (StatCoeff/4)       requires StatCoeff/4   <= 29 (same)
+#define MAX_RICE_PARAM 29
+#define MAX_STAT_COEFF (4 * MAX_RICE_PARAM + 3)  // 119: largest value with /4 <= 29
+
 static int32_t decode_coeff_abs_level_remaining(thread_context* tctx,
                                                 int cRiceParam)
 {
   logtrace(LogSlice, "# decode_coeff_abs_level_remaining\n");
 
-  uint16_t prefix = 0;
+  uint32_t prefix = 0;
   while (tctx->cabac_decoder.decode_bypass()) {
     prefix++;
     if (prefix > MAX_PREFIX) {
@@ -2505,7 +2514,7 @@ static int32_t decode_coeff_abs_level_remaining(thread_context* tctx,
     // included in the 'prefix' counter above.
 
     int codeword = tctx->cabac_decoder.decode_FL_bypass( prefix - 3 + cRiceParam);
-    value = (((UINT16_C(1) << (prefix - 3)) + 3 - 1) << cRiceParam) + codeword;
+    value = (((UINT32_C(1) << (prefix - 3)) + 3 - 1) << cRiceParam) + codeword;
   }
 
   logtrace(LogSymbols, "$1 coeff_abs_level_remaining=%d\n", value);
@@ -3375,15 +3384,24 @@ int residual_coding(thread_context* tctx,
             }
           }
           else {
-            if (baseLevel + coeff_abs_level_remaining > 3 * (1 << uiGoRiceParam))
+            if (baseLevel + coeff_abs_level_remaining > 3 * (1 << uiGoRiceParam)) {
               uiGoRiceParam++;
+              if (uiGoRiceParam > MAX_RICE_PARAM) {
+                uiGoRiceParam = MAX_RICE_PARAM;
+                tctx->decctx->add_warning(DE265_WARNING_RICE_PARAMETER_OUT_OF_RANGE, true);
+              }
+            }
           }
 
           // persistent_rice_adaptation_enabled_flag
           if (sps.range_extension.persistent_rice_adaptation_enabled_flag &&
               firstCoeffWithAbsLevelRemaining) {
             if (coeff_abs_level_remaining >= (3 << (tctx->StatCoeff[sbType] / 4))) {
-              tctx->StatCoeff[sbType]++;
+              if (tctx->StatCoeff[sbType] < MAX_STAT_COEFF) {
+                tctx->StatCoeff[sbType]++;
+              } else {
+                tctx->decctx->add_warning(DE265_WARNING_RICE_PARAMETER_OUT_OF_RANGE, true);
+              }
             }
             else if (2 * coeff_abs_level_remaining < (1 << (tctx->StatCoeff[sbType] / 4)) &&
                      tctx->StatCoeff[sbType] > 0) {
