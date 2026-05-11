@@ -144,8 +144,6 @@ endif()
 # `pkg-config --libs --static` get an unambiguous linker flag (see #453).
 if(CMAKE_USE_PTHREADS_INIT)
   list(APPEND _libs_private "-lpthread")
-elseif(CMAKE_THREAD_LIBS_INIT)
-  list(APPEND _libs_private "${CMAKE_THREAD_LIBS_INIT}")
 endif()
 if(UNIX)
   list(APPEND _libs_private "-lm")
