@@ -62,15 +62,19 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
   }
 
   cross_component_prediction_enabled_flag = br->get_bits(1);
+  // shall be 0 when ChromaArrayType is not 3 (Sec. 7.4.3.3.2)
   if (sps->ChromaArrayType != CHROMA_444 &&
       cross_component_prediction_enabled_flag) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      return false;
   }
 
   chroma_qp_offset_list_enabled_flag = br->get_bits(1);
+  // shall be 0 when ChromaArrayType is 0 (mono) (Sec. 7.4.3.3.2)
   if (sps->ChromaArrayType == CHROMA_MONO &&
       chroma_qp_offset_list_enabled_flag) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      return false;
   }
 
   if (chroma_qp_offset_list_enabled_flag) {
@@ -260,6 +264,8 @@ void pic_parameter_set::set_defaults(enum PresetSet)
   pps_range_extension_flag = 0;
   pps_multilayer_extension_flag = 0;
   pps_extension_6bits = 0;
+
+  range_extension.reset();
 }
 
 
