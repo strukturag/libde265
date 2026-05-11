@@ -490,7 +490,7 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
     }
   }
   else {
-    memcpy(&scaling_list, &sps->scaling_list, sizeof(scaling_list_data));
+    scaling_list = sps->scaling_list;
   }
 
 
