@@ -312,7 +312,9 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
 
   {
     int32_t svlc;
-    if ((svlc = br->get_svlc()) == SVLC_ERROR) {
+    // init_qp_minus26 shall be in [-(26 + QpBdOffset_Y), +25] (Sec. 7.4.3.3.1)
+    if ((svlc = br->get_svlc()) == SVLC_ERROR ||
+        svlc < -(26 + sps->QpBdOffset_Y) || svlc > 25) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
     }
