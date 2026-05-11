@@ -596,74 +596,32 @@ void pic_parameter_set::set_derived_values(const seq_parameter_set* sps)
   MinTbAddrZS  .resize(sps->PicSizeInTbsY );
 
 
-  // raster scan (RS) <-> tile scan (TS) conversion
+  // raster scan (RS) <-> tile scan (TS) conversion (Sec. 6.5.1)
+  // and tile-ID assignment (TileId in TS order, TileIdRS in RS order).
+  //
+  // Walk the picture in tile-scan order: for each tile (tileY, tileX), iterate
+  // the CTBs (y, x) inside it in raster order. ctbAddrTS increments by 1 per
+  // CTB visited, so both mapping directions and both TileId arrays are filled
+  // in a single O(PicSizeInCtbsY) pass.
 
-  for (uint32_t ctbAddrRS=0 ; ctbAddrRS < sps->PicSizeInCtbsY ; ctbAddrRS++)
-    {
-      int tbX = ctbAddrRS % sps->PicWidthInCtbsY;
-      int tbY = ctbAddrRS / sps->PicWidthInCtbsY;
-      int tileX=-1,tileY=-1;
-
-      for (int i=0;i<num_tile_columns;i++)
-        if (tbX >= colBd[i])
-          tileX=i;
-
-      for (int j=0;j<num_tile_rows;j++)
-        if (tbY >= rowBd[j])
-          tileY=j;
-
-      CtbAddrRStoTS[ctbAddrRS] = 0;
-      for (int i=0;i<tileX;i++)
-        CtbAddrRStoTS[ctbAddrRS] += rowHeight[tileY]*colWidth[i];
-
-      for (int j=0;j<tileY;j++)
-        {
-          //pps->CtbAddrRStoTS[ctbAddrRS] += (tbY - pps->rowBd[tileY])*pps->colWidth[tileX];
-          //pps->CtbAddrRStoTS[ctbAddrRS] += tbX - pps->colBd[tileX];
-
-          CtbAddrRStoTS[ctbAddrRS] += sps->PicWidthInCtbsY * rowHeight[j];
+  uint32_t ctbAddrTS = 0;
+  uint32_t tIdx = 0;
+  for (int tileY = 0; tileY < num_tile_rows; tileY++) {
+    for (int tileX = 0; tileX < num_tile_columns; tileX++) {
+      for (int y = rowBd[tileY]; y < rowBd[tileY + 1]; y++) {
+        for (int x = colBd[tileX]; x < colBd[tileX + 1]; x++) {
+          uint32_t ctbAddrRS = y * sps->PicWidthInCtbsY + x;
+          CtbAddrRStoTS[ctbAddrRS] = ctbAddrTS;
+          CtbAddrTStoRS[ctbAddrTS] = ctbAddrRS;
+          TileId  [ctbAddrTS] = tIdx;
+          TileIdRS[ctbAddrRS] = tIdx;
+          ctbAddrTS++;
         }
-
-      assert(tileX>=0 && tileY>=0);
-
-      CtbAddrRStoTS[ctbAddrRS] += (tbY-rowBd[tileY])*colWidth[tileX];
-      CtbAddrRStoTS[ctbAddrRS] +=  tbX - colBd[tileX];
-
-
-      // inverse mapping
-
-      CtbAddrTStoRS[ CtbAddrRStoTS[ctbAddrRS] ] = ctbAddrRS;
-    }
-
-
-#if 0
-  logtrace(LogHeaders,"6.5.1 CtbAddrRSToTS\n");
-  for (int y=0;y<sps->PicHeightInCtbsY;y++)
-    {
-      for (int x=0;x<sps->PicWidthInCtbsY;x++)
-        {
-          logtrace(LogHeaders,"%3d ", CtbAddrRStoTS[x + y*sps->PicWidthInCtbsY]);
-        }
-
-      logtrace(LogHeaders,"\n");
-    }
-#endif
-
-  // tile id
-
-  for (int j=0, tIdx=0 ; j<num_tile_rows ; j++)
-    for (int i=0 ; i<num_tile_columns;i++)
-      {
-        for (int y=rowBd[j] ; y<rowBd[j+1] ; y++)
-          for (int x=colBd[i] ; x<colBd[i+1] ; x++) {
-            TileId  [ CtbAddrRStoTS[y*sps->PicWidthInCtbsY + x] ] = tIdx;
-            TileIdRS[ y*sps->PicWidthInCtbsY + x ] = tIdx;
-
-            //logtrace(LogHeaders,"tileID[%d,%d] = %d\n",x,y,pps->TileIdRS[ y*sps->PicWidthInCtbsY + x ]);
-          }
-
-        tIdx++;
       }
+      tIdx++;
+    }
+  }
+  assert(ctbAddrTS == sps->PicSizeInCtbsY);
 
 #if 0
   logtrace(LogHeaders,"Tile IDs RS:\n");
