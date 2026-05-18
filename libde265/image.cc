@@ -489,24 +489,21 @@ void de265_image::fill_plane(int channel, int value)
   int bytes_per_pixel = get_bytes_per_pixel(channel);
   assert(value >= 0); // needed for the shift operation in the check below
 
+  // Each plane is allocated with MEMORY_PADDING trailing bytes for safe SSE overread; the
+  // memsets below cover that padding too so it never contains uninitialized heap data.
+  const size_t plane_bytes =
+      (channel == 0 ? static_cast<size_t>(stride) * height
+                    : static_cast<size_t>(chroma_stride) * chroma_height)
+      * bytes_per_pixel;
+
   if (bytes_per_pixel == 1) {
-    if (channel==0) {
-      memset(pixels[channel], value, stride * height);
-    }
-    else {
-      memset(pixels[channel], value, chroma_stride * chroma_height);
-    }
+    memset(pixels[channel], value, plane_bytes + MEMORY_PADDING);
   }
   else if ((value >> 8) == (value & 0xFF)) {
     assert(bytes_per_pixel == 2);
 
     // if we fill the same byte value to all bytes, we can still use memset()
-    if (channel==0) {
-      memset(pixels[channel], 0, stride * height * bytes_per_pixel);
-    }
-    else {
-      memset(pixels[channel], 0, chroma_stride * chroma_height * bytes_per_pixel);
-    }
+    memset(pixels[channel], 0, plane_bytes + MEMORY_PADDING);
   }
   else {
     assert(bytes_per_pixel == 2);
@@ -534,6 +531,10 @@ void de265_image::fill_plane(int channel, int value)
         memcpy(pixels[channel] + y * chroma_stride * 2, pixels[channel], chroma_width * 2);
       }
     }
+
+#if MEMORY_PADDING > 0
+    memset(pixels[channel] + plane_bytes, 0, MEMORY_PADDING);
+#endif
   }
 }
 
