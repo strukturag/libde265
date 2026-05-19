@@ -73,48 +73,54 @@ endif()
 CHECK_INCLUDE_FILE(malloc.h HAVE_MALLOC_H)
 CHECK_FUNCTION_EXISTS(posix_memalign HAVE_POSIX_MEMALIGN)
 
+option(ENABLE_SIMD "Enable SIMD acceleration (SSE on x86, NEON on ARM)" ON)
+
 include(CheckCSourceCompiles)
-check_c_source_compiles(
-  "#if !defined(__x86_64) && !defined(__i386__) \
-  && !defined(_M_IX86) && !defined(_M_AMD64) \
-  || defined(_M_ARM64EC) || defined(_ARM64EC_)
-  #error not x86
-  #endif
-  int main(){return 0;}"
-  HAVE_X86)
+if(ENABLE_SIMD)
+  check_c_source_compiles(
+    "#if !defined(__x86_64) && !defined(__i386__) \
+    && !defined(_M_IX86) && !defined(_M_AMD64) \
+    || defined(_M_ARM64EC) || defined(_ARM64EC_)
+    #error not x86
+    #endif
+    int main(){return 0;}"
+    HAVE_X86)
 
-if(HAVE_X86)
-  if (MSVC)
-    set(SUPPORTS_SSE2 1)
-    set(SUPPORTS_SSSE3 1)
-    set(SUPPORTS_SSE4_1 1)
-  else()
-    check_c_compiler_flag(-msse2 SUPPORTS_SSE2)
-    check_c_compiler_flag(-mssse3 SUPPORTS_SSSE3)
-    check_c_compiler_flag(-msse4.1 SUPPORTS_SSE4_1)
+  if(HAVE_X86)
+    if (MSVC)
+      set(SUPPORTS_SSE2 1)
+      set(SUPPORTS_SSSE3 1)
+      set(SUPPORTS_SSE4_1 1)
+    else()
+      check_c_compiler_flag(-msse2 SUPPORTS_SSE2)
+      check_c_compiler_flag(-mssse3 SUPPORTS_SSSE3)
+      check_c_compiler_flag(-msse4.1 SUPPORTS_SSE4_1)
+    endif()
+    if(SUPPORTS_SSE4_1)
+      set(HAVE_SSE4_1 TRUE)
+    endif()
   endif()
-  if(SUPPORTS_SSE4_1)
-    set(HAVE_SSE4_1 TRUE)
+
+  check_c_source_compiles(
+    "#if !defined(__arm__) && !defined(_M_ARM)
+    #error not 32-bit ARM
+    #endif
+    int main(){return 0;}"
+    HAVE_ARM32)
+
+  check_c_source_compiles(
+    "#if !defined(__aarch64__) && !defined(_M_ARM64)
+    #error not 64-bit ARM
+    #endif
+    int main(){return 0;}"
+    HAVE_ARM64)
+
+  if(HAVE_ARM32)
+    enable_language(ASM)
+    check_c_compiler_flag(-mfpu=neon HAVE_NEON)
   endif()
-endif()
-
-check_c_source_compiles(
-  "#if !defined(__arm__) && !defined(_M_ARM)
-  #error not 32-bit ARM
-  #endif
-  int main(){return 0;}"
-  HAVE_ARM32)
-
-check_c_source_compiles(
-  "#if !defined(__aarch64__) && !defined(_M_ARM64)
-  #error not 64-bit ARM
-  #endif
-  int main(){return 0;}"
-  HAVE_ARM64)
-
-if(HAVE_ARM32)
-  enable_language(ASM)
-  check_c_compiler_flag(-mfpu=neon HAVE_NEON)
+else()
+  message(STATUS "SIMD acceleration disabled (ENABLE_SIMD=OFF) — using scalar fallback only")
 endif()
 
 configure_file (libde265/de265-version.h.in libde265/de265-version.h)
