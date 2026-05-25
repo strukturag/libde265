@@ -24,6 +24,8 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <limits.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -55,7 +57,21 @@ void NAL_unit::clear()
 LIBDE265_CHECK_RESULT bool NAL_unit::resize(int new_size)
 {
   if (capacity < new_size) {
-    unsigned char* newbuffer = static_cast<unsigned char*>(malloc(new_size));
+    // Grow the buffer geometrically (1.5x) rather than to the exact requested
+    // size. NAL_Parser::push_data() appends to the pending NAL one input chunk
+    // at a time, increasing the request by a roughly constant amount each call.
+    // With exact-size allocation every chunk would reallocate and copy the
+    // whole accumulated buffer (O(n^2) for a single oversized NAL); spare
+    // capacity amortizes the total copying to O(n). Here new_size > capacity >= 0,
+    // so the 1.5x term is computed in 64 bits and only used when it both exceeds
+    // the request and still fits in 'int'.
+    int alloc_size = new_size;
+    int64_t grow = static_cast<int64_t>(capacity) + capacity / 2;
+    if (grow > new_size && grow <= INT_MAX) {
+      alloc_size = static_cast<int>(grow);
+    }
+
+    unsigned char* newbuffer = static_cast<unsigned char*>(malloc(alloc_size));
     if (newbuffer == nullptr) {
       return false;
     }
@@ -66,7 +82,7 @@ LIBDE265_CHECK_RESULT bool NAL_unit::resize(int new_size)
     }
 
     nal_data = newbuffer;
-    capacity = new_size;
+    capacity = alloc_size;
   }
   return true;
 }
