@@ -25,6 +25,7 @@
 #include "libde265/pps.h"
 #include "libde265/nal.h"
 #include "libde265/util.h"
+#include "libde265/de265.h"
 
 #include <vector>
 #include <queue>
@@ -90,6 +91,10 @@ class NAL_Parser
   NAL_Parser();
   ~NAL_Parser();
 
+  // Point the parser at the live security limits struct so that runtime
+  // changes (via de265_get_security_limits()) take effect immediately.
+  void set_security_limits(const de265_security_limits* limits) { m_security_limits = limits; }
+
   de265_error push_data(const unsigned char* data, int len,
                         de265_PTS pts, void* user_data = nullptr);
 
@@ -134,6 +139,8 @@ class NAL_Parser
 
   NAL_unit* pending_input_NAL = nullptr;
 
+  const de265_security_limits* m_security_limits = nullptr;
+
 
   // NAL level
 
@@ -141,6 +148,14 @@ class NAL_Parser
   int nBytes_in_NAL_queue = 0; // data bytes currently in NAL_queue
 
   void push_to_NAL_queue(NAL_unit*);
+
+  // Returns true if a NAL unit of the given size is within the configured
+  // security limit (or if no limit is set).
+  bool nal_size_within_limit(int64_t nal_size) const {
+    return m_security_limits == nullptr ||
+           m_security_limits->max_NAL_size_bytes == 0 ||
+           nal_size <= m_security_limits->max_NAL_size_bytes;
+  }
 
 
   // pool of unused NAL memory

@@ -83,6 +83,7 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
   case DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE: return "coded parameter out of range";
   case DE265_ERROR_IMAGE_BUFFER_FULL: return "DPB/output queue full";
   case DE265_ERROR_IMAGE_SIZE_EXCEEDS_SECURITY_LIMIT: return "image size exceeds security limit";
+  case DE265_ERROR_NAL_SIZE_EXCEEDS_SECURITY_LIMIT: return "NAL unit size exceeds security limit";
   case DE265_ERROR_CANNOT_START_THREADPOOL: return "cannot start decoding threads";
   case DE265_ERROR_LIBRARY_INITIALIZATION_FAILED: return "global library initialization failed";
   case DE265_ERROR_LIBRARY_NOT_INITIALIZED: return "cannot free library data (not initialized";

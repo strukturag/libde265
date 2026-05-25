@@ -133,6 +133,7 @@ base_context::base_context()
 decoder_context::decoder_context()
 {
   param_image_allocation_functions = de265_image::default_image_allocation;
+  nal_parser.set_security_limits(&param_security_limits);
   compute_framedrop_table();
 }
 

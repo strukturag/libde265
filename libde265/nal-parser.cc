@@ -335,6 +335,14 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
         }
 #endif
 
+        // enforce the maximum NAL size: drop an oversized NAL and resync
+        if (!nal_size_within_limit(out - nal->data())) {
+          free_NAL_unit(pending_input_NAL);
+          pending_input_NAL = nullptr;
+          input_push_state = 0;
+          return DE265_ERROR_NAL_SIZE_EXCEEDS_SECURITY_LIMIT;
+        }
+
         nal->set_size(out - nal->data());;
 
         // push this NAL decoder queue
@@ -369,6 +377,18 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
   }
 
   nal->set_size(out - nal->data());
+
+  // Enforce the maximum NAL size on the still-incomplete pending NAL. This bounds
+  // memory when a single NAL grows across many push_data() calls without ever
+  // reaching a start code. The oversized pending NAL is dropped and the parser
+  // resyncs at the next start code.
+  if (!nal_size_within_limit(nal->size())) {
+    free_NAL_unit(pending_input_NAL);
+    pending_input_NAL = nullptr;
+    input_push_state = 0;
+    return DE265_ERROR_NAL_SIZE_EXCEEDS_SECURITY_LIMIT;
+  }
+
   return DE265_OK;
 }
 
@@ -381,6 +401,11 @@ de265_error NAL_Parser::push_NAL(const unsigned char* data, int len,
   assert(pending_input_NAL == nullptr);
 
   end_of_frame = false;
+
+  // enforce the maximum NAL size to bound memory usage
+  if (!nal_size_within_limit(len)) {
+    return DE265_ERROR_NAL_SIZE_EXCEEDS_SECURITY_LIMIT;
+  }
 
   NAL_unit* nal = alloc_NAL_unit(len);
   if (nal == nullptr || !nal->set_data(data, len)) {
