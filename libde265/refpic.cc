@@ -322,6 +322,22 @@ bool read_short_term_ref_pic_set(error_queue* errqueue,
 
   out_set->compute_derived_values();
 
+  // The unused short-term references are all collected into a single PocStFoll array
+  // of MAX_NUM_REF_PICS entries (see decoder_context::process_reference_picture_set).
+  // While each individual list is bounded above, the predicted-RPS construction can
+  // append the current-picture delta to an already-full source set, pushing the
+  // combined count past MAX_NUM_REF_PICS. Reject such sets to avoid an out-of-bounds
+  // write when filling PocStFoll.
+  if (out_set->NumDeltaPocs > MAX_NUM_REF_PICS) {
+    out_set->NumNegativePics = 0;
+    out_set->NumPositivePics = 0;
+    out_set->NumDeltaPocs = 0;
+    out_set->NumPocTotalCurr_shortterm_only = 0;
+
+    errqueue->add_warning(DE265_WARNING_MAX_NUM_REF_PICS_EXCEEDED, false);
+    return false;
+  }
+
   return true;
 }
 
