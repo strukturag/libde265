@@ -180,6 +180,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "Transform block split below minimum transform size";
   case DE265_WARNING_RICE_PARAMETER_OUT_OF_RANGE:
     return "Rice parameter or StatCoeff out of range, clamped";
+  case DE265_WARNING_MAX_NUMBER_OF_SEI_MESSAGES_EXCEEDED:
+    return "number of SEI messages exceeds security limit, dropped";
 
   default: return "unknown error";
   }
@@ -609,6 +611,53 @@ LIBDE265_API int de265_get_parameter_bool(de265_decoder_context* de265ctx, enum 
       assert(false);
       return false;
     }
+}
+
+
+static const de265_security_limits disabled_security_limits = {
+  1,    // version
+  0,    // max_image_size_pixels
+  0,    // max_NAL_size_bytes
+  0     // max_SEI_messages
+};
+
+
+LIBDE265_API de265_security_limits* de265_get_security_limits(de265_decoder_context* de265ctx)
+{
+  decoder_context* ctx = reinterpret_cast<decoder_context*>(de265ctx);
+  return &ctx->param_security_limits;
+}
+
+
+// Copy security limits field by field, but only those fields that exist in both
+// structs, i.e. up to min(dst->version, src->version). This keeps copying safe
+// when 'src' was compiled against a different (older or newer) header version
+// than 'dst'. Fields not covered by the common version keep their value in 'dst'.
+static void copy_security_limits(de265_security_limits* dst, const de265_security_limits* src)
+{
+  uint8_t version = (dst->version < src->version) ? dst->version : src->version;
+
+  if (version >= 1) {
+    dst->max_image_size_pixels = src->max_image_size_pixels;
+    dst->max_NAL_size_bytes    = src->max_NAL_size_bytes;
+    dst->max_SEI_messages      = src->max_SEI_messages;
+  }
+}
+
+
+LIBDE265_API void de265_set_security_limits(de265_decoder_context* de265ctx,
+                                            const de265_security_limits* limits)
+{
+  decoder_context* ctx = reinterpret_cast<decoder_context*>(de265ctx);
+  if (limits) {
+    copy_security_limits(&ctx->param_security_limits, limits);
+  }
+}
+
+
+LIBDE265_API const de265_security_limits* de265_get_disabled_security_limits()
+{
+  return &disabled_security_limits;
 }
 
 

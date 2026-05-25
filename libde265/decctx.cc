@@ -413,6 +413,14 @@ de265_error decoder_context::read_sei_NAL(bitreader& reader, bool suffix)
     dump_sei(&sei, current_sps.get());
 
     if (image_units.empty()==false && suffix) {
+      uint32_t max_SEI_messages = param_security_limits.max_SEI_messages;
+      if (max_SEI_messages != 0 &&
+          image_units.back()->suffix_SEIs.size() >= max_SEI_messages) {
+        // too many SEI messages for this access unit -> drop to bound memory usage
+        add_warning(DE265_WARNING_MAX_NUMBER_OF_SEI_MESSAGES_EXCEEDED, false);
+        return DE265_WARNING_MAX_NUMBER_OF_SEI_MESSAGES_EXCEEDED;
+      }
+
       image_units.back()->suffix_SEIs.push_back(sei);
     }
   }

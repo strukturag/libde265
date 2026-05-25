@@ -356,6 +356,13 @@ class decoder_context : public base_context {
   //bool param_disable_mc_residual_idct;  // not implemented yet
   //bool param_disable_intra_residual_idct;  // not implemented yet
 
+  de265_security_limits param_security_limits = {
+    1,                // version
+    8192 * 8192,      // max_image_size_pixels
+    16 * 1024 * 1024, // max_NAL_size_bytes
+    256               // max_SEI_messages
+  };
+
   void set_image_allocation_functions(de265_image_allocation* allocfunc, void* userdata);
 
   de265_image_allocation param_image_allocation_functions; // initialized in constructor

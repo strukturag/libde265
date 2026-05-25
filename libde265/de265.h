@@ -148,7 +148,8 @@ typedef enum {
   DE265_WARNING_REFERENCE_IMAGE_CHROMA_FORMAT_DOES_NOT_MATCH=1032,
   DE265_WARNING_INVALID_SLICE_HEADER_INDEX_ACCESS=1033,
   DE265_WARNING_INVALID_TU_BLOCK_SPLIT=1034,
-  DE265_WARNING_RICE_PARAMETER_OUT_OF_RANGE=1035
+  DE265_WARNING_RICE_PARAMETER_OUT_OF_RANGE=1035,
+  DE265_WARNING_MAX_NUMBER_OF_SEI_MESSAGES_EXCEEDED=1036
 } de265_error;
 
 LIBDE265_API const char* de265_get_error_text(de265_error err);
@@ -439,6 +440,25 @@ LIBDE265_API void de265_set_parameter_int(de265_decoder_context*, de265_param pa
 /* Get decoding parameters. */
 LIBDE265_API int  de265_get_parameter_bool(de265_decoder_context*, de265_param param);
 
+
+/* --- security limits --- */
+
+typedef struct de265_security_limits {
+  uint8_t version;
+
+  // --- version 1 ---
+
+  uint64_t max_image_size_pixels;
+  uint32_t max_NAL_size_bytes;
+  uint32_t max_SEI_messages;   // max number of SEI messages per access unit (0 = unlimited)
+
+} de265_security_limits;
+
+LIBDE265_API de265_security_limits* de265_get_security_limits(de265_decoder_context*);
+
+LIBDE265_API void de265_set_security_limits(de265_decoder_context*, const de265_security_limits* limits);
+
+LIBDE265_API const de265_security_limits* de265_get_disabled_security_limits();
 
 
 /* --- optional library initialization --- */
