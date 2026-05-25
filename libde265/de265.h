@@ -103,6 +103,7 @@ typedef enum {
   DE265_ERROR_NO_INITIAL_SLICE_HEADER=16,
   DE265_ERROR_PREMATURE_END_OF_SLICE=17,
   DE265_ERROR_UNSPECIFIED_DECODING_ERROR=18,
+  DE265_ERROR_IMAGE_SIZE_EXCEEDS_SECURITY_LIMIT=19,
 
   // --- errors that should become obsolete in later libde265 versions ---
 
@@ -448,7 +449,7 @@ typedef struct de265_security_limits {
 
   // --- version 1 ---
 
-  uint64_t max_image_size_pixels;
+  uint32_t max_image_size_pixels;
   uint32_t max_NAL_size_bytes;
   uint32_t max_SEI_messages;   // max number of SEI messages per access unit (0 = unlimited)
 

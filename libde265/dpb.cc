@@ -251,6 +251,14 @@ int decoded_picture_buffer::new_image(std::shared_ptr<const seq_parameter_set> s
   int w = sps->pic_width_in_luma_samples;
   int h = sps->pic_height_in_luma_samples;
 
+  // --- enforce maximum image size before allocating the image buffer ---
+
+  uint32_t max_image_size_pixels = decctx->param_security_limits.max_image_size_pixels;
+  if (max_image_size_pixels != 0 &&
+      (uint64_t)w * h > max_image_size_pixels) {
+    return -DE265_ERROR_IMAGE_SIZE_EXCEEDS_SECURITY_LIMIT;
+  }
+
   enum de265_chroma chroma;
   switch (sps->chroma_format_idc) {
   case 0: chroma = de265_chroma_mono; break;
