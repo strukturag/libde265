@@ -57,7 +57,7 @@ uint32_t SAD(const uint8_t* img, int imgStride,
   for (int y=0;y<height;y++) {
     for (int x=0;x<width;x++) {
       int diff = iPtr[x] - rPtr[x];
-      sum += abs_value(diff);
+      sum += std::abs(diff);
     }
 
     iPtr += imgStride;

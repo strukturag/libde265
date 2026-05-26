@@ -195,9 +195,8 @@ void intra_prediction_sample_filtering(const seq_parameter_set& sps,
   if (intraPredMode==INTRA_DC || nT==4) {
     filterFlag = 0;
   } else {
-    // int-cast below prevents a typing problem that leads to wrong results when abs_value is a macro
-    int minDistVerHor = std::min( abs_value((int)intraPredMode-26),
-                                      abs_value((int)intraPredMode-10) );
+    int minDistVerHor = std::min( std::abs((int)intraPredMode-26),
+                                  std::abs((int)intraPredMode-10) );
 
     //printf("mindist: %d\n",minDistVerHor);
 
@@ -217,8 +216,8 @@ void intra_prediction_sample_filtering(const seq_parameter_set& sps,
     int biIntFlag = (sps.strong_intra_smoothing_enable_flag &&
                      cIdx==0 &&
                      nT==32 &&
-                     abs_value(p[0]+p[ 64]-2*p[ 32]) < (1<<(sps.bit_depth_luma-5)) &&
-                     abs_value(p[0]+p[-64]-2*p[-32]) < (1<<(sps.bit_depth_luma-5)))
+                     std::abs(p[0]+p[ 64]-2*p[ 32]) < (1<<(sps.bit_depth_luma-5)) &&
+                     std::abs(p[0]+p[-64]-2*p[-32]) < (1<<(sps.bit_depth_luma-5)))
       ? 1 : 0;
 
     pixel_t  pF_mem[4*32+1];

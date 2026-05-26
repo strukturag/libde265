@@ -151,7 +151,7 @@ float estim_TB_bitrate(const encoder_context* ectx,
 
         float distortion=0;
         for (int i=0;i<blkSize*blkSize;i++) {
-          distortion += abs_value((int)coeffs[i]);
+          distortion += std::abs((int)coeffs[i]);
         }
 
         return distortion;

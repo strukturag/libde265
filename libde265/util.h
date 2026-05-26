@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <cstdlib>
 
 #include "libde265/de265.h"
 
@@ -74,12 +75,27 @@
   #endif
 #endif
 
-//inline uint8_t Clip1_8bit(int16_t value) { if (value<=0) return 0; else if (value>=255) return 255; else return value; }
-#define Clip1_8bit(value) ((value)<0 ? 0 : (value)>255 ? 255 : (value))
-#define Clip_BitDepth(value, bit_depth) ((value)<0 ? 0 : (value)>((1<<bit_depth)-1) ? ((1<<bit_depth)-1) : (value))
-#define Clip3(low,high,value) ((value)<(low) ? (low) : (value)>(high) ? (high) : (value))
-#define Sign(value) (((value)<0) ? -1 : ((value)>0) ? 1 : 0)
-#define abs_value(a) (((a)<0) ? -(a) : (a))
+LIBDE265_INLINE static int Clip1_8bit(int value)
+{
+  return value<0 ? 0 : value>255 ? 255 : value;
+}
+
+LIBDE265_INLINE static int Clip_BitDepth(int value, int bit_depth)
+{
+  const int maxval = (1<<bit_depth)-1;
+  return value<0 ? 0 : value>maxval ? maxval : value;
+}
+
+LIBDE265_INLINE static int Clip3(int low, int high, int value)
+{
+  return value<low ? low : value>high ? high : value;
+}
+
+// three-valued sign: returns -1, 0, or +1
+template <typename T> LIBDE265_INLINE int Sign(T value)
+{
+  return (T(0) < value) - (value < T(0));
+}
 
 LIBDE265_INLINE static int ceil_div(int num,int denom)
 {

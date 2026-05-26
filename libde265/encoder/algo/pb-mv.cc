@@ -152,7 +152,7 @@ int sad(const uint8_t* p1,int stride1,
 
   for (int y=0;y<h;y++) {
     for (int x=0;x<w;x++) {
-      cost += abs_value(*p1 - *p2);
+      cost += std::abs(*p1 - *p2);
       p1++;
       p2++;
     }
@@ -214,7 +214,7 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
 
     if (diff==0) { b=0; }
     else if (diff==1 || diff==-1) { b=2; }
-    else { b=abs_value(b+2); }
+    else { b=std::abs(b+2); }
 
     bits_h[i+hrange]=b;
   }
@@ -225,7 +225,7 @@ enc_cb* Algo_PB_MV_Search::analyze(encoder_context* ectx,
 
     if (diff==0) { b=0; }
     else if (diff==1 || diff==-1) { b=2; }
-    else { b=abs_value(b+2); }
+    else { b=std::abs(b+2); }
 
     bits_v[i+vrange]=b;
   }

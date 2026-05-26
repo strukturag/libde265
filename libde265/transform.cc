@@ -699,7 +699,7 @@ void quant_coefficients(//encoder_context* ectx,
       //logtrace(LogTransform,"(%d,%d) %d -> ", x,y,level);
       sign   = (level < 0 ? -1: 1);
 
-      level = (abs_value(level) * uiQ + rnd ) >> qBits;
+      level = (std::abs(level) * uiQ + rnd ) >> qBits;
       level *= sign;
       out_coeff[blockPos] = Clip3(-32768, 32767, level);
       //logtrace(LogTransform,"%d\n", out_coeff[blockPos]);

@@ -1128,12 +1128,12 @@ bool scale_mv(MotionVector* out_mv, MotionVector mv, int colDist, int currDist)
     return false;
   }
   else {
-    int tx = (16384 + (abs_value(td)>>1)) / td;
+    int tx = (16384 + (std::abs(td)>>1)) / td;
     int distScaleFactor = Clip3(-4096,4095, (tb*tx+32)>>6);
     out_mv->x = Clip3(-32768,32767,
-                      Sign(distScaleFactor*mv.x)*((abs_value(distScaleFactor*mv.x)+127)>>8));
+                      Sign(distScaleFactor*mv.x)*((std::abs(distScaleFactor*mv.x)+127)>>8));
     out_mv->y = Clip3(-32768,32767,
-                      Sign(distScaleFactor*mv.y)*((abs_value(distScaleFactor*mv.y)+127)>>8));
+                      Sign(distScaleFactor*mv.y)*((std::abs(distScaleFactor*mv.y)+127)>>8));
     return true;
   }
 }

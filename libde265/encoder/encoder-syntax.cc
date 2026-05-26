@@ -1363,8 +1363,8 @@ void encode_mvd(encoder_context* ectx,
                 CABAC_encoder* cabac,
                 const int16_t mvd[2])
 {
-  int mvd0abs = abs_value(mvd[0]);
-  int mvd1abs = abs_value(mvd[1]);
+  int mvd0abs = std::abs(mvd[0]);
+  int mvd1abs = std::abs(mvd[1]);
 
   int mvd0_greater_0 = !!(mvd0abs);
   int mvd1_greater_0 = !!(mvd1abs);

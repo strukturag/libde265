@@ -326,18 +326,18 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
 		if (refPicP0 != refPicP1) {
 
 		  if (refPicP0 == refPicQ0) {
-		    if (abs_value(mvP0.x-mvQ0.x) >= 4 ||
-			abs_value(mvP0.y-mvQ0.y) >= 4 ||
-			abs_value(mvP1.x-mvQ1.x) >= 4 ||
-			abs_value(mvP1.y-mvQ1.y) >= 4) {
+		    if (std::abs(mvP0.x-mvQ0.x) >= 4 ||
+			std::abs(mvP0.y-mvQ0.y) >= 4 ||
+			std::abs(mvP1.x-mvQ1.x) >= 4 ||
+			std::abs(mvP1.y-mvQ1.y) >= 4) {
 		      bS = 1;
 		    }
 		  }
 		  else {
-		    if (abs_value(mvP0.x-mvQ1.x) >= 4 ||
-			abs_value(mvP0.y-mvQ1.y) >= 4 ||
-			abs_value(mvP1.x-mvQ0.x) >= 4 ||
-			abs_value(mvP1.y-mvQ0.y) >= 4) {
+		    if (std::abs(mvP0.x-mvQ1.x) >= 4 ||
+			std::abs(mvP0.y-mvQ1.y) >= 4 ||
+			std::abs(mvP1.x-mvQ0.x) >= 4 ||
+			std::abs(mvP1.y-mvQ0.y) >= 4) {
 		      bS = 1;
 		    }
 		  }
@@ -345,15 +345,15 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
 		else {
 		  assert(refPicQ0==refPicQ1);
 
-		  if ((abs_value(mvP0.x-mvQ0.x) >= 4 ||
-		       abs_value(mvP0.y-mvQ0.y) >= 4 ||
-		       abs_value(mvP1.x-mvQ1.x) >= 4 ||
-		       abs_value(mvP1.y-mvQ1.y) >= 4)
+		  if ((std::abs(mvP0.x-mvQ0.x) >= 4 ||
+		       std::abs(mvP0.y-mvQ0.y) >= 4 ||
+		       std::abs(mvP1.x-mvQ1.x) >= 4 ||
+		       std::abs(mvP1.y-mvQ1.y) >= 4)
 		      &&
-		      (abs_value(mvP0.x-mvQ1.x) >= 4 ||
-		       abs_value(mvP0.y-mvQ1.y) >= 4 ||
-		       abs_value(mvP1.x-mvQ0.x) >= 4 ||
-		       abs_value(mvP1.y-mvQ0.y) >= 4)) {
+		      (std::abs(mvP0.x-mvQ1.x) >= 4 ||
+		       std::abs(mvP0.y-mvQ1.y) >= 4 ||
+		       std::abs(mvP1.x-mvQ0.x) >= 4 ||
+		       std::abs(mvP1.y-mvQ0.y) >= 4)) {
 		    bS = 1;
 		  }
 		}
@@ -532,10 +532,10 @@ void edge_filtering_luma_internal(de265_image* img, bool vertical,
 
         int dE=0, dEp=0, dEq=0;
 
-        int dp0 = abs_value(p[0][2] - 2*p[0][1] + p[0][0]);
-        int dp3 = abs_value(p[3][2] - 2*p[3][1] + p[3][0]);
-        int dq0 = abs_value(q[0][2] - 2*q[0][1] + q[0][0]);
-        int dq3 = abs_value(q[3][2] - 2*q[3][1] + q[3][0]);
+        int dp0 = std::abs(p[0][2] - 2*p[0][1] + p[0][0]);
+        int dp3 = std::abs(p[3][2] - 2*p[3][1] + p[3][0]);
+        int dq0 = std::abs(q[0][2] - 2*q[0][1] + q[0][0]);
+        int dq3 = std::abs(q[3][2] - 2*q[3][1] + q[3][0]);
 
         int dpq0 = dp0 + dq0;
         int dpq3 = dp3 + dq3;
@@ -547,12 +547,12 @@ void edge_filtering_luma_internal(de265_image* img, bool vertical,
         if (d < beta) {
           //int dpq = 2*dpq0;
           bool dSam0 = (2 * dpq0 < (beta >> 2) &&
-                        abs_value(p[0][3]-p[0][0]) + abs_value(q[0][0]-q[0][3]) < (beta >> 3) &&
-                        abs_value(p[0][0]-q[0][0]) < ((5 * tc + 1) >> 1));
+                        std::abs(p[0][3]-p[0][0]) + std::abs(q[0][0]-q[0][3]) < (beta >> 3) &&
+                        std::abs(p[0][0]-q[0][0]) < ((5 * tc + 1) >> 1));
 
           bool dSam3 = (2 * dpq3 < (beta >> 2) &&
-                        abs_value(p[3][3]-p[3][0]) + abs_value(q[3][0]-q[3][3]) < (beta >> 3) &&
-                        abs_value(p[3][0]-q[3][0]) < ((5 * tc + 1) >> 1));
+                        std::abs(p[3][3]-p[3][0]) + std::abs(q[3][0]-q[3][3]) < (beta >> 3) &&
+                        std::abs(p[3][0]-q[3][0]) < ((5 * tc + 1) >> 1));
 
           if (dSam0 && dSam3) {
             dE = 2;
@@ -641,7 +641,7 @@ void edge_filtering_luma_internal(de265_image* img, bool vertical,
               int delta = (9*(q0-p0) - 3*(q1-p1) + 8)>>4;
               logtrace(LogDeblock,"delta=%d, tc=%d\n",delta,tc);
 
-              if (abs_value(delta) < tc*10) {
+              if (std::abs(delta) < tc*10) {
 
                 delta = Clip3(-tc,tc,delta);
                 logtrace(LogDeblock," deblk + %d;%d [%02x->%02x]  - %d;%d [%02x->%02x] delta:%d\n",
