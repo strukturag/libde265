@@ -26,7 +26,7 @@
 
 extern const int tab8_22[];
 
-LIBDE265_INLINE static int table8_22(int qPi)
+inline static int table8_22(int qPi)
 {
   if (qPi<30) return qPi;
   if (qPi>=43) return qPi-6;

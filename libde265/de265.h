@@ -28,8 +28,6 @@ extern "C" {
 
 #include <libde265/de265-version.h>
 
-//#define inline static __inline
-
 
 #ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS 1
@@ -58,12 +56,6 @@ extern "C" {
 #define LIBDE265_DEPRECATED __declspec(deprecated)
 #else
 #define LIBDE265_DEPRECATED
-#endif
-
-#if defined(_MSC_VER)
-#define LIBDE265_INLINE __inline
-#else
-#define LIBDE265_INLINE inline
 #endif
 
 /* === version numbers === */
