@@ -1602,7 +1602,7 @@ static uint8_t decode_sao_type_idx(thread_context* tctx)
 static uint8_t decode_sao_offset_abs(thread_context* tctx, int bitDepth)
 {
   logtrace(LogSlice, "# sao_offset_abs\n");
-  int cMax = (1 << (libde265_min(bitDepth, 10) - 5)) - 1;
+  int cMax = (1 << (std::min(bitDepth, 10) - 5)) - 1;
   assert(cMax >= 7 && cMax<=31);
   uint8_t value = static_cast<uint8_t>(tctx->cabac_decoder.decode_TU_bypass( cMax));
   logtrace(LogSymbols, "$1 sao_offset_abs=%d\n", value);
@@ -3270,7 +3270,7 @@ int residual_coding(thread_context* tctx,
 
       int newLastGreater1ScanPos = -1;
 
-      int lastGreater1Coefficient = libde265_min(8, nCoefficients);
+      int lastGreater1Coefficient = std::min(8, nCoefficients);
       for (int c = 0; c < lastGreater1Coefficient; c++) {
         int greater1_flag =
             decode_coeff_abs_level_greater1(tctx, cIdx, i,
@@ -3602,7 +3602,7 @@ int read_transform_unit(thread_context* tctx,
   const int ChromaArrayType = sps.ChromaArrayType;
 
   int log2TrafoSizeC = (ChromaArrayType == CHROMA_444 ? log2TrafoSize : log2TrafoSize - 1);
-  log2TrafoSizeC = libde265_max(2, log2TrafoSizeC);
+  log2TrafoSizeC = std::max(2, log2TrafoSizeC);
 
   const int cbfLuma = cbf_luma;
   const int cbfChroma = cbf_cb | cbf_cr;

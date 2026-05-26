@@ -63,7 +63,7 @@ void mc_luma(const base_context* ctx,
 
   //const int shift1 = sps->BitDepth_Y-8;
   //const int shift2 = 6;
-  const int shift3 = libde265_max(2, 14 - sps->BitDepth_Y);
+  const int shift3 = std::max(2, 14 - sps->BitDepth_Y);
 
   int w = sps->pic_width_in_luma_samples;
   int h = sps->pic_height_in_luma_samples;
@@ -188,7 +188,7 @@ void mc_chroma(const base_context* ctx,
 
   //const int shift1 = sps->BitDepth_C-8;
   //const int shift2 = 6;
-  const int shift3 = libde265_max(2, 14 - sps->BitDepth_C);
+  const int shift3 = std::max(2, 14 - sps->BitDepth_C);
 
   int wC = sps->pic_width_in_luma_samples /sps->SubWidthC;
   int hC = sps->pic_height_in_luma_samples/sps->SubHeightC;
@@ -453,9 +453,9 @@ void generate_inter_prediction_samples(base_context* ctx,
 
   // weighted sample prediction  (8.5.3.2.3)
 
-  const int shift1_L = libde265_max(2,14-sps->BitDepth_Y);
+  const int shift1_L = std::max(2,14-sps->BitDepth_Y);
   const int offset_shift1_L = img->get_sps().WpOffsetBdShiftY;
-  const int shift1_C = libde265_max(2,14-sps->BitDepth_C);
+  const int shift1_C = std::max(2,14-sps->BitDepth_C);
   const int offset_shift1_C = img->get_sps().WpOffsetBdShiftC;
 
   /*
@@ -1074,7 +1074,7 @@ void derive_zero_motion_vector_candidates(const slice_segment_header* shdr,
     numRefIdx = shdr->num_ref_idx_l0_active;
   }
   else {
-    numRefIdx = libde265_min(shdr->num_ref_idx_l0_active,
+    numRefIdx = std::min(shdr->num_ref_idx_l0_active,
                              shdr->num_ref_idx_l1_active);
   }
 

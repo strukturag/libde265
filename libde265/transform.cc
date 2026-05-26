@@ -545,8 +545,8 @@ void scale_coefficients_internal(thread_context* tctx,
 
       int extended_precision_processing_flag = 0;
       int Log2nTbS = Log2(nT);
-      int bdShift = libde265_max( 20 - bit_depth, extended_precision_processing_flag ? 11 : 0 );
-      int tsShift = (extended_precision_processing_flag ? libde265_min( 5, bdShift - 2 ) : 5 )
+      int bdShift = std::max( 20 - bit_depth, extended_precision_processing_flag ? 11 : 0 );
+      int tsShift = (extended_precision_processing_flag ? std::min( 5, bdShift - 2 ) : 5 )
         + Log2nTbS;
 
       if (rotateCoeffs) {

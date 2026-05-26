@@ -80,8 +80,6 @@
 #define Clip3(low,high,value) ((value)<(low) ? (low) : (value)>(high) ? (high) : (value))
 #define Sign(value) (((value)<0) ? -1 : ((value)>0) ? 1 : 0)
 #define abs_value(a) (((a)<0) ? -(a) : (a))
-#define libde265_min(a,b) (((a)<(b)) ? (a) : (b))
-#define libde265_max(a,b) (((a)>(b)) ? (a) : (b))
 
 LIBDE265_INLINE static int ceil_div(int num,int denom)
 {

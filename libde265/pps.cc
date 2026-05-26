@@ -122,7 +122,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
 
   uvlc = br->get_uvlc();
   if (uvlc == UVLC_ERROR ||
-      uvlc > static_cast<uint32_t>(libde265_max(0, sps->BitDepth_Y-10))) {
+      uvlc > static_cast<uint32_t>(std::max(0, sps->BitDepth_Y-10))) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }
@@ -131,7 +131,7 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
 
   uvlc = br->get_uvlc();
   if (uvlc == UVLC_ERROR ||
-      uvlc > static_cast<uint32_t>(libde265_max(0, sps->BitDepth_C-10))) {
+      uvlc > static_cast<uint32_t>(std::max(0, sps->BitDepth_C-10))) {
     ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
     return false;
   }

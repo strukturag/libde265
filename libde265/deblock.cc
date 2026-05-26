@@ -250,8 +250,8 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
     (DEBLOCK_FLAG_HORIZ | DEBLOCK_PB_EDGE_HORIZ);
   int transformEdgeMask = vertical ? DEBLOCK_FLAG_VERTI : DEBLOCK_FLAG_HORIZ;
 
-  xEnd = libde265_min(xEnd,img->get_deblk_width());
-  yEnd = libde265_min(yEnd,img->get_deblk_height());
+  xEnd = std::min(xEnd,img->get_deblk_width());
+  yEnd = std::min(yEnd,img->get_deblk_height());
 
   //int TUShift = img->get_sps().Log2MinTrafoSize;
   //int TUStride= img->get_sps().PicWidthInTbsY;
@@ -422,8 +422,8 @@ void edge_filtering_luma_internal(de265_image* img, bool vertical,
 
   int bitDepth_Y = sps.BitDepth_Y;
 
-  xEnd = libde265_min(xEnd,img->get_deblk_width());
-  yEnd = libde265_min(yEnd,img->get_deblk_height());
+  xEnd = std::min(xEnd,img->get_deblk_width());
+  yEnd = std::min(yEnd,img->get_deblk_height());
 
   for (int y=yStart;y<yEnd;y+=yIncr)
     for (int x=xStart;x<xEnd;x+=xIncr) {
@@ -746,8 +746,8 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
 
   const int stride = img->get_image_stride(1);
 
-  xEnd = libde265_min(xEnd,img->get_deblk_width());
-  yEnd = libde265_min(yEnd,img->get_deblk_height());
+  xEnd = std::min(xEnd,img->get_deblk_width());
+  yEnd = std::min(yEnd,img->get_deblk_height());
 
   int bitDepth_C = sps.BitDepth_C;
 
@@ -815,7 +815,7 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
           if (sps.ChromaArrayType == CHROMA_420) {
             QP_C = table8_22(qP_i);
           } else {
-            QP_C = libde265_min(qP_i, 51);
+            QP_C = std::min(qP_i, 51);
           }
 
 

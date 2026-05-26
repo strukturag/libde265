@@ -335,7 +335,7 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
   int lumaImageSize   = img->get_image_stride(0) * img->get_height(0) * img->get_bytes_per_pixel(0);
   int chromaImageSize = img->get_image_stride(1) * img->get_height(1) * img->get_bytes_per_pixel(1);
 
-  uint8_t* inputCopy = new uint8_t[ libde265_max(lumaImageSize, chromaImageSize) ];
+  uint8_t* inputCopy = new uint8_t[ std::max(lumaImageSize, chromaImageSize) ];
   if (inputCopy == nullptr) {
     img->decctx->add_warning(DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY,false);
     return;

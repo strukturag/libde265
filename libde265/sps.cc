@@ -657,7 +657,7 @@ de265_error seq_parameter_set::compute_derived_values(bool sanitize_values)
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }
 
-  if (Log2MaxTrafoSize > libde265_min(Log2CtbSizeY,5)) {
+  if (Log2MaxTrafoSize > std::min((int)Log2CtbSizeY,5)) {
     if (D) fprintf(stderr,"SPS error: TB_max > 32 or CTB\n");
     return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
   }

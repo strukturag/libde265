@@ -1024,7 +1024,7 @@ void encode_residual(encoder_context* ectx,
 
       int newLastGreater1ScanPos=-1;
 
-      int lastGreater1Coefficient = libde265_min(8,nCoefficients);
+      int lastGreater1Coefficient = std::min(8,nCoefficients);
       for (int c=0;c<lastGreater1Coefficient;c++) {
         int greater1_flag = (coeff_value[c]>1);
 

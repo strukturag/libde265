@@ -1606,7 +1606,7 @@ de265_error decoder_context::process_reference_picture_set(slice_segment_header*
 bool decoder_context::construct_reference_picture_lists(slice_segment_header* hdr)
 {
   int NumPocTotalCurr = hdr->NumPocTotalCurr;
-  int NumRpsCurrTempList0 = libde265_max(hdr->num_ref_idx_l0_active, NumPocTotalCurr);
+  int NumRpsCurrTempList0 = std::max((int)hdr->num_ref_idx_l0_active, NumPocTotalCurr);
 
   // TODO: fold code for both lists together
 
@@ -1678,7 +1678,7 @@ bool decoder_context::construct_reference_picture_lists(slice_segment_header* hd
   */
 
   if (hdr->slice_type == SLICE_TYPE_B) {
-    int NumRpsCurrTempList1 = libde265_max(hdr->num_ref_idx_l1_active, NumPocTotalCurr);
+    int NumRpsCurrTempList1 = std::max((int)hdr->num_ref_idx_l1_active, NumPocTotalCurr);
 
     int rIdx=0;
     while (rIdx < NumRpsCurrTempList1) {

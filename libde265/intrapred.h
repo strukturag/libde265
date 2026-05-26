@@ -196,7 +196,7 @@ void intra_prediction_sample_filtering(const seq_parameter_set& sps,
     filterFlag = 0;
   } else {
     // int-cast below prevents a typing problem that leads to wrong results when abs_value is a macro
-    int minDistVerHor = libde265_min( abs_value((int)intraPredMode-26),
+    int minDistVerHor = std::min( abs_value((int)intraPredMode-26),
                                       abs_value((int)intraPredMode-10) );
 
     //printf("mindist: %d\n",minDistVerHor);
