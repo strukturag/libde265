@@ -63,7 +63,7 @@ void mc_luma(const base_context* ctx,
 
   //const int shift1 = sps->BitDepth_Y-8;
   //const int shift2 = 6;
-  const int shift3 = 14 - sps->BitDepth_Y;
+  const int shift3 = libde265_max(2, 14 - sps->BitDepth_Y);
 
   int w = sps->pic_width_in_luma_samples;
   int h = sps->pic_height_in_luma_samples;
@@ -188,7 +188,7 @@ void mc_chroma(const base_context* ctx,
 
   //const int shift1 = sps->BitDepth_C-8;
   //const int shift2 = 6;
-  const int shift3 = 14 - sps->BitDepth_C;
+  const int shift3 = libde265_max(2, 14 - sps->BitDepth_C);
 
   int wC = sps->pic_width_in_luma_samples /sps->SubWidthC;
   int hC = sps->pic_height_in_luma_samples/sps->SubHeightC;
