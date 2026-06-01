@@ -493,6 +493,12 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
     image_unit* imgunit = new image_unit;
     imgunit->img = this->img;
     image_units.push_back(imgunit);
+
+    // A new picture starts here. Drop the reference to the previous picture's
+    // slice header, whose storage may be released independently of this decoder
+    // state. Dependent slices only ever reference a preceding slice header
+    // within the same picture, which is set below as slices are retained.
+    previous_slice_header = nullptr;
   }
 
 
@@ -506,6 +512,11 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
     // which a crafted stream of non-first slice NALs can exploit to grow memory
     // without bound.
     this->img->add_slice_segment_header(shdr);
+
+    // The header is now owned by the image and stays alive at least until the
+    // image is released, so it is safe for a following dependent slice to copy
+    // from it. Only retained headers may become 'previous_slice_header'.
+    previous_slice_header = shdr;
 
     slice_unit* sliceunit = new slice_unit(this);
     sliceunit->nal = nal;
@@ -2001,7 +2012,9 @@ bool decoder_context::process_slice_segment_header(slice_segment_header* hdr,
     hdr->SliceAddrRS = previous_slice_header->SliceAddrRS;
   }
 
-  previous_slice_header = hdr;
+  // Note: previous_slice_header is updated by the caller (read_slice_NAL) only
+  // once the slice header is actually retained by the image. Setting it here
+  // would leave a dangling pointer when the caller discards/deletes 'hdr'.
 
 
   loginfo(LogHeaders,"SliceAddrRS = %d\n",hdr->SliceAddrRS);
