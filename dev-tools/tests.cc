@@ -22,48 +22,8 @@
 #include <iostream>
 #include <string.h>
 
+#include "tests.h"
 
-class Test
-{
-public:
-  Test() { next=s_firstTest; s_firstTest=this; }
-  virtual ~Test() { }
-
-  virtual const char* getName() const { return "noname"; }
-  virtual const char* getDescription() const { return "no description"; }
-  virtual bool work(bool quiet=false) = 0;
-
-  static void runTest(const char* name) {
-    Test* t = s_firstTest;
-    while (t) {
-      if (strcmp(t->getName(), name)==0) {
-        t->work();
-        break;
-      }
-      t=t->next;
-    }
-  }
-
-  static void runAllTests() {
-    Test* t = s_firstTest;
-    while (t) {
-      printf("%s ... ",t->getName());
-      fflush(stdout);
-      if (t->work(true) == false) {
-        printf("*** FAILED ***\n");
-      }
-      else {
-        printf("passed\n");
-      }
-
-      t=t->next;
-    }
-  }
-
-public:
-  Test* next;
-  static Test* s_firstTest;
-};
 
 Test* Test::s_firstTest = NULL;
 

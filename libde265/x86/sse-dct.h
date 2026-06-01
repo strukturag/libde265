@@ -32,4 +32,7 @@ void ff_hevc_transform_8x8_add_8_sse4(uint8_t *dst, const int16_t *coeffs, ptrdi
 void ff_hevc_transform_16x16_add_8_sse4(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
 void ff_hevc_transform_32x32_add_8_sse4(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
 
+void add_residual_8_sse4 (uint8_t  *dst, ptrdiff_t stride, const int32_t* r, int nT, int bit_depth);
+void add_residual_16_sse4(uint16_t *dst, ptrdiff_t stride, const int32_t* r, int nT, int bit_depth);
+
 #endif

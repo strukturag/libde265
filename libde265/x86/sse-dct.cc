@@ -7092,3 +7092,104 @@ void ff_hevc_transform_32x32_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
 }
 #endif
 
+
+#if HAVE_SSE4_1
+// Add the int32 residual block 'r' (nT x nT, row-major, nT values per row) to
+// the prediction samples in 'dst' and clip into the valid pixel range.
+// Equivalent to add_residual_fallback<uint8_t> (bit_depth is always 8 here).
+void add_residual_8_sse4(uint8_t *dst, ptrdiff_t stride,
+                         const int32_t* r, int nT, int bit_depth)
+{
+  if (nT==4) {
+    for (int y=0;y<4;y++) {
+      uint8_t* drow = dst + y*stride;
+
+      __m128i res = _mm_loadu_si128((const __m128i*)(r + y*4));     // 4 x int32 residual
+      __m128i pix = _mm_cvtsi32_si128(*(const int32_t*)drow);       // 4 x uint8
+      pix = _mm_cvtepu8_epi32(pix);                                 // -> 4 x int32
+
+      __m128i sum = _mm_add_epi32(res, pix);
+      sum = _mm_packs_epi32(sum, sum);                              // -> int16 (saturate)
+      sum = _mm_packus_epi16(sum, sum);                             // -> uint8  (clip 0..255)
+
+      *(int32_t*)drow = _mm_cvtsi128_si32(sum);
+    }
+  }
+  else {
+    // nT is 8, 16 or 32 -> always a multiple of 8
+    for (int y=0;y<nT;y++) {
+      const int32_t* rrow = r + y*nT;
+      uint8_t*       drow = dst + y*stride;
+
+      for (int x=0;x<nT;x+=8) {
+        __m128i r0  = _mm_loadu_si128((const __m128i*)(rrow + x));    // 4 x int32
+        __m128i r1  = _mm_loadu_si128((const __m128i*)(rrow + x+4));  // 4 x int32
+        __m128i pix = _mm_loadl_epi64((const __m128i*)(drow + x));    // 8 x uint8
+
+        __m128i p0 = _mm_cvtepu8_epi32(pix);                         // 4 x int32
+        __m128i p1 = _mm_cvtepu8_epi32(_mm_srli_si128(pix,4));       // 4 x int32
+
+        __m128i s0 = _mm_add_epi32(r0, p0);
+        __m128i s1 = _mm_add_epi32(r1, p1);
+
+        __m128i p16 = _mm_packs_epi32(s0, s1);                       // 8 x int16 (saturate)
+        __m128i p8  = _mm_packus_epi16(p16, p16);                    // 8 x uint8 (clip 0..255)
+
+        _mm_storel_epi64((__m128i*)(drow + x), p8);
+      }
+    }
+  }
+}
+
+
+// 16-bit (high bit-depth) variant. Equivalent to add_residual_fallback<uint16_t>.
+void add_residual_16_sse4(uint16_t *dst, ptrdiff_t stride,
+                          const int32_t* r, int nT, int bit_depth)
+{
+  const int32_t maxval = (1<<bit_depth)-1;
+  const __m128i vmax  = _mm_set1_epi32(maxval);
+  const __m128i vzero = _mm_setzero_si128();
+
+  if (nT==4) {
+    for (int y=0;y<4;y++) {
+      uint16_t* drow = dst + y*stride;
+
+      __m128i res = _mm_loadu_si128((const __m128i*)(r + y*4));     // 4 x int32 residual
+      __m128i pix = _mm_loadl_epi64((const __m128i*)drow);          // 4 x uint16
+      pix = _mm_cvtepu16_epi32(pix);                                // -> 4 x int32
+
+      __m128i sum = _mm_add_epi32(res, pix);
+      sum = _mm_min_epi32(_mm_max_epi32(sum, vzero), vmax);         // clip 0..maxval
+      sum = _mm_packus_epi32(sum, sum);                             // -> uint16
+
+      _mm_storel_epi64((__m128i*)drow, sum);
+    }
+  }
+  else {
+    // nT is 8, 16 or 32 -> always a multiple of 8
+    for (int y=0;y<nT;y++) {
+      const int32_t* rrow = r + y*nT;
+      uint16_t*      drow = dst + y*stride;
+
+      for (int x=0;x<nT;x+=8) {
+        __m128i r0  = _mm_loadu_si128((const __m128i*)(rrow + x));    // 4 x int32
+        __m128i r1  = _mm_loadu_si128((const __m128i*)(rrow + x+4));  // 4 x int32
+        __m128i pix = _mm_loadu_si128((const __m128i*)(drow + x));    // 8 x uint16
+
+        __m128i p0 = _mm_cvtepu16_epi32(pix);                        // 4 x int32
+        __m128i p1 = _mm_cvtepu16_epi32(_mm_srli_si128(pix,8));      // 4 x int32
+
+        __m128i s0 = _mm_add_epi32(r0, p0);
+        __m128i s1 = _mm_add_epi32(r1, p1);
+
+        s0 = _mm_min_epi32(_mm_max_epi32(s0, vzero), vmax);          // clip 0..maxval
+        s1 = _mm_min_epi32(_mm_max_epi32(s1, vzero), vmax);
+
+        __m128i out = _mm_packus_epi32(s0, s1);                      // 8 x uint16
+        _mm_storeu_si128((__m128i*)(drow + x), out);
+      }
+    }
+  }
+}
+#endif
+

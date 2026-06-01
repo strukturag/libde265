@@ -109,6 +109,9 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
     accel->transform_add_8[1] = ff_hevc_transform_8x8_add_8_sse4;
     accel->transform_add_8[2] = ff_hevc_transform_16x16_add_8_sse4;
     accel->transform_add_8[3] = ff_hevc_transform_32x32_add_8_sse4;
+
+    accel->add_residual_8  = add_residual_8_sse4;
+    accel->add_residual_16 = add_residual_16_sse4;
   }
 #endif
 }
