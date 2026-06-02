@@ -172,6 +172,14 @@ struct acceleration_functions
   template <class pixel_t>
   void add_residual(pixel_t *dst, ptrdiff_t stride, const int32_t* r, int nT, int bit_depth) const;
 
+  // Inverse quantization (no scaling list): for each of the nCoeff entries,
+  // coeffBuf[coeffPos[i]] = Clip16( (coeffList[i]*fact + offset) >> bdShift ).
+  // Contract: fact small enough that coeffList[i]*fact+offset fits in int32
+  // (caller checks this; the rare int64 case stays scalar). bdShift >= 1.
+  void (*dequant_coeff_block)(int16_t* coeffBuf, const int16_t* coeffList,
+                              const int16_t* coeffPos, int nCoeff,
+                              int32_t fact, int32_t offset, int32_t bdShift);
+
   void (*rdpcm_v)(int32_t* residual, const int16_t* coeffs, int nT,int tsShift,int bdShift);
   void (*rdpcm_h)(int32_t* residual, const int16_t* coeffs, int nT,int tsShift,int bdShift);
 

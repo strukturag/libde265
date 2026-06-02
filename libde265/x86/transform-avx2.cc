@@ -309,4 +309,10 @@ void transform_32x32_add_8_avx2(uint8_t *dst, const int16_t *coeffs, ptrdiff_t s
   }
 }
 
+// Note: an AVX2 inverse-quantization kernel was implemented and benchmarked too,
+// but inverse quantization is scatter-bound (the result is scattered to
+// coeffBuf[coeffPos[i]], and there is no 16-bit SIMD scatter), so the wider
+// arithmetic gave no benefit -- AVX2 measured ~equal-to-slightly-slower than the
+// SSE version. The SSE version (dequant_coeff_block_sse4) is used instead.
+
 #endif // HAVE_AVX2

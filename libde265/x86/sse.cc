@@ -120,6 +120,7 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
 
     accel->add_residual_8  = add_residual_8_sse4;
     accel->add_residual_16 = add_residual_16_sse4;
+    accel->dequant_coeff_block = dequant_coeff_block_sse4;
 
     accel->intra_pred_dc_8      = intra_pred_dc_8_sse4;
     accel->intra_pred_planar_8  = intra_pred_planar_8_sse4;
@@ -140,6 +141,10 @@ void init_acceleration_functions_avx2(struct acceleration_functions* accel)
   if (__builtin_cpu_supports("avx2")) {
     accel->transform_add_8[2] = transform_16x16_add_8_avx2;
     accel->transform_add_8[3] = transform_32x32_add_8_avx2;
+    // NB: dequant intentionally stays on the SSE version. An AVX2 variant was
+    // implemented and benchmarked, but inverse quantization is scatter-bound, so
+    // the wider arithmetic gave no benefit and AVX2 measured actually slightly
+    // slower than SSE. (AVX-512 would be no better, for the same reason.)
   }
 #endif
 #endif

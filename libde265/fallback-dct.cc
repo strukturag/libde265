@@ -1207,3 +1207,14 @@ void hadamard_32x32_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t 
 {
   hadamard_transform_8(coeffs,32, input,stride);
 }
+
+
+void dequant_coeff_block_fallback(int16_t* coeffBuf, const int16_t* coeffList,
+                                  const int16_t* coeffPos, int nCoeff,
+                                  int32_t fact, int32_t offset, int32_t bdShift)
+{
+  for (int i=0;i<nCoeff;i++) {
+    int32_t v = Clip3(-32768, 32767, (coeffList[i]*fact + offset) >> bdShift);
+    coeffBuf[ coeffPos[i] ] = (int16_t)v;
+  }
+}

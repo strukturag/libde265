@@ -105,6 +105,7 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->rotate_coefficients = rotate_coefficients_fallback;
   accel->add_residual_8  = add_residual_fallback<uint8_t>;
   accel->add_residual_16 = add_residual_fallback<uint16_t>;
+  accel->dequant_coeff_block = dequant_coeff_block_fallback;
   accel->rdpcm_h = rdpcm_h_fallback;
   accel->rdpcm_v = rdpcm_v_fallback;
   accel->transform_skip_residual = transform_skip_residual_fallback;

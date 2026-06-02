@@ -72,6 +72,11 @@ void add_residual_fallback(pixel_t *dst, ptrdiff_t stride,
     }
 }
 
+// Inverse quantization without scaling list (int32 fast path; see acceleration.h).
+void dequant_coeff_block_fallback(int16_t* coeffBuf, const int16_t* coeffList,
+                                  const int16_t* coeffPos, int nCoeff,
+                                  int32_t fact, int32_t offset, int32_t bdShift);
+
 
 void rdpcm_v_fallback(int32_t* residual, const int16_t* coeffs, int nT, int tsShift,int bdShift);
 void rdpcm_h_fallback(int32_t* residual, const int16_t* coeffs, int nT, int tsShift,int bdShift);

@@ -467,19 +467,23 @@ void scale_coefficients_internal(thread_context* tctx,
       const int offset = (1<<(bdShift-1));
       const int fact = m_x_y * levelScale[qP%6] << (qP/6);
 
-      for (int i=0;i<tctx->nCoeff[cIdx];i++) {
-
-        int64_t currCoeff  = tctx->coeffList[cIdx][i];
-
-        //logtrace(LogTransform,"coefficient[%d] = %d\n",tctx->coeffPos[cIdx][i],
-        //tctx->coeffList[cIdx][i]);
-
-        currCoeff = Clip3(-32768,32767,
-                          ( (currCoeff * fact + offset ) >> bdShift));
-
-        //logtrace(LogTransform," -> %d\n",currCoeff);
-
-        tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
+      // Fast path: when coeffList[i]*fact (|coeffList| <= 32767) fits in int32,
+      // the dequant can run in int32 SIMD. Otherwise (very high QP, high bit
+      // depth) fall back to the scalar int64 loop.
+      if (fact <= 32767) {
+        tctx->decctx->acceleration.dequant_coeff_block(tctx->coeffBuf,
+                                                       tctx->coeffList[cIdx],
+                                                       tctx->coeffPos[cIdx],
+                                                       tctx->nCoeff[cIdx],
+                                                       fact, offset, bdShift);
+      }
+      else {
+        for (int i=0;i<tctx->nCoeff[cIdx];i++) {
+          int64_t currCoeff  = tctx->coeffList[cIdx][i];
+          currCoeff = Clip3(-32768,32767,
+                            ( (currCoeff * fact + offset ) >> bdShift));
+          tctx->coeffBuf[ tctx->coeffPos[cIdx][i] ] = currCoeff;
+        }
       }
     }
     else {

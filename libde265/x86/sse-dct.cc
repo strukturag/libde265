@@ -7191,5 +7191,36 @@ void add_residual_16_sse4(uint16_t *dst, ptrdiff_t stride,
     }
   }
 }
+
+
+// Inverse quantization without scaling list, int32 fast path (see acceleration.h).
+// Vectorizes the multiply/round/clip 8 coefficients at a time; the scatter into
+// coeffBuf[coeffPos[i]] stays scalar (no 16-bit SIMD scatter exists).
+void dequant_coeff_block_sse4(int16_t* coeffBuf, const int16_t* coeffList,
+                              const int16_t* coeffPos, int nCoeff,
+                              int32_t fact, int32_t offset, int32_t bdShift)
+{
+  const __m128i vfact = _mm_set1_epi32(fact);
+  const __m128i voff  = _mm_set1_epi32(offset);
+  const __m128i vsh   = _mm_cvtsi32_si128(bdShift);
+
+  alignas(16) int16_t tmp[8];
+  int i = 0;
+  for (; i+8 <= nCoeff; i += 8) {
+    __m128i c  = _mm_loadu_si128((const __m128i*)(coeffList + i));  // 8 int16
+    __m128i lo = _mm_cvtepi16_epi32(c);                            // c[i..i+3]
+    __m128i hi = _mm_cvtepi16_epi32(_mm_srli_si128(c, 8));         // c[i+4..i+7]
+    lo = _mm_sra_epi32(_mm_add_epi32(_mm_mullo_epi32(lo, vfact), voff), vsh);
+    hi = _mm_sra_epi32(_mm_add_epi32(_mm_mullo_epi32(hi, vfact), voff), vsh);
+    __m128i r = _mm_packs_epi32(lo, hi);                           // signed sat == Clip3
+    _mm_store_si128((__m128i*)tmp, r);
+    for (int k=0;k<8;k++) coeffBuf[ coeffPos[i+k] ] = tmp[k];      // scatter
+  }
+  for (; i < nCoeff; i++) {
+    int32_t v = (coeffList[i]*fact + offset) >> bdShift;
+    v = v < -32768 ? -32768 : (v > 32767 ? 32767 : v);
+    coeffBuf[ coeffPos[i] ] = (int16_t)v;
+  }
+}
 #endif
 
