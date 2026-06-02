@@ -10,7 +10,8 @@ set (libde265_sources
   decctx.cc
   dpb.cc
   fallback-dct.cc
-  fallback-motion.cc 
+  fallback-intrapred.cc
+  fallback-motion.cc
   fallback.cc
   image-io.cc
   image.cc
@@ -47,6 +48,7 @@ set (libde265_headers
   decctx.h
   dpb.h
   fallback-dct.h
+  fallback-intrapred.h
   fallback-motion.h
   fallback.h
   image-io.h

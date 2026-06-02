@@ -25,6 +25,7 @@
 #include "x86/sse.h"
 #include "x86/sse-motion.h"
 #include "x86/sse-dct.h"
+#include "x86/sse-intrapred.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -112,6 +113,10 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
 
     accel->add_residual_8  = add_residual_8_sse4;
     accel->add_residual_16 = add_residual_16_sse4;
+
+    accel->intra_pred_dc_8      = intra_pred_dc_8_sse4;
+    accel->intra_pred_planar_8  = intra_pred_planar_8_sse4;
+    accel->intra_pred_angular_8 = intra_pred_angular_8_sse4;
   }
 #endif
 }

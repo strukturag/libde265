@@ -2,8 +2,8 @@ set (x86_sources
   sse.cc sse.h
 )
 
-set (x86_sse_sources 
-  sse-motion.cc sse-motion.h sse-dct.h sse-dct.cc
+set (x86_sse_sources
+  sse-motion.cc sse-motion.h sse-dct.h sse-dct.cc sse-intrapred.h sse-intrapred.cc
 )
 
 add_library(x86 OBJECT ${x86_sources})

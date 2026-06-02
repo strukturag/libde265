@@ -21,6 +21,7 @@
 #include "fallback.h"
 #include "fallback-motion.h"
 #include "fallback-dct.h"
+#include "fallback-intrapred.h"
 
 
 void init_acceleration_functions_fallback(struct acceleration_functions* accel)
@@ -124,4 +125,11 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->hadamard_transform_8[1] = hadamard_8x8_8_fallback;
   accel->hadamard_transform_8[2] = hadamard_16x16_8_fallback;
   accel->hadamard_transform_8[3] = hadamard_32x32_8_fallback;
+
+  accel->intra_pred_dc_8  = intra_pred_dc_fallback<uint8_t>;
+  accel->intra_pred_dc_16 = intra_pred_dc_fallback<uint16_t>;
+  accel->intra_pred_planar_8  = intra_pred_planar_fallback<uint8_t>;
+  accel->intra_pred_planar_16 = intra_pred_planar_fallback<uint16_t>;
+  accel->intra_pred_angular_8  = intra_pred_angular_fallback<uint8_t>;
+  accel->intra_pred_angular_16 = intra_pred_angular_fallback<uint16_t>;
 }
