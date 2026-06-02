@@ -31,6 +31,10 @@
 #include "config.h"
 #endif
 
+#if HAVE_AVX2
+#include "x86/transform-avx2.h"
+#endif
+
 #if defined(__GNUC__) && !defined(__EMSCRIPTEN__)
 #include <cpuid.h>
 #endif
@@ -118,6 +122,23 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
     accel->intra_pred_planar_8  = intra_pred_planar_8_sse4;
     accel->intra_pred_angular_8 = intra_pred_angular_8_sse4;
   }
+#endif
+}
+
+
+void init_acceleration_functions_avx2(struct acceleration_functions* accel)
+{
+#if HAVE_AVX2
+  // __builtin_cpu_supports("avx2") handles the OSXSAVE / XGETBV (YMM-enabled)
+  // checks internally, so this is safe to call on any CPU. This TU is *not*
+  // compiled with -mavx2, so reaching here never executes an AVX2 instruction.
+#if defined(__GNUC__) && !defined(__EMSCRIPTEN__)
+  __builtin_cpu_init();
+  if (__builtin_cpu_supports("avx2")) {
+    accel->transform_add_8[2] = transform_16x16_add_8_avx2;
+    accel->transform_add_8[3] = transform_32x32_add_8_avx2;
+  }
+#endif
 #endif
 }
 
