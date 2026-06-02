@@ -1,6 +1,6 @@
 /*
  * H.265 video codec.
- * Copyright (c) 2013-2014 struktur AG, Dirk Farin <farin@struktur.de>
+ * Copyright (c) 2026 Dirk Farin <dirk.farin@gmail.com>
  *
  * This file is part of libde265.
  *
@@ -18,20 +18,15 @@
  * along with libde265.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DE265_SSE_H
-#define DE265_SSE_H
+#ifndef SSE_TRANSFORM_AVX512_H
+#define SSE_TRANSFORM_AVX512_H
 
-#include "acceleration.h"
+#include <stddef.h>
+#include <stdint.h>
 
-void init_acceleration_functions_sse(struct acceleration_functions* accel);
-
-// Overrides selected transform kernels with AVX2 versions, but only if the
-// running CPU actually supports AVX2 (checked at runtime). Safe to call on any
-// CPU; a no-op when AVX2 is unavailable.
-void init_acceleration_functions_avx2(struct acceleration_functions* accel);
-
-// Overrides selected transform kernels with AVX-512 versions, runtime-checked.
-// Safe to call on any CPU; a no-op when AVX-512 is unavailable.
-void init_acceleration_functions_avx512(struct acceleration_functions* accel);
+// AVX-512 (F+BW) inverse DCT + add. Bit-identical to the SSE4.1 / AVX2 / scalar
+// versions (verified by dev-tools/test-transform). Same signature as
+// transform_add_8[].
+void transform_32x32_add_8_avx512(uint8_t *dst, const int16_t *coeffs, ptrdiff_t stride);
 
 #endif

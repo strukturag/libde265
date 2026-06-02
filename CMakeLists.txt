@@ -75,6 +75,7 @@ CHECK_FUNCTION_EXISTS(posix_memalign HAVE_POSIX_MEMALIGN)
 
 option(ENABLE_SIMD "Enable SIMD acceleration (SSE on x86, NEON on ARM)" ON)
 option(ENABLE_AVX2 "Enable AVX2 kernels on x86 (in addition to SSE)" ON)
+option(ENABLE_AVX512 "Enable AVX-512 kernels on x86 (in addition to AVX2)" ON)
 
 include(CheckCSourceCompiles)
 if(ENABLE_SIMD)
@@ -97,6 +98,7 @@ if(ENABLE_SIMD)
       check_c_compiler_flag(-mssse3 SUPPORTS_SSSE3)
       check_c_compiler_flag(-msse4.1 SUPPORTS_SSE4_1)
       check_c_compiler_flag(-mavx2 SUPPORTS_AVX2)
+      check_c_compiler_flag("-mavx512f -mavx512bw" SUPPORTS_AVX512)
     endif()
     if(SUPPORTS_SSE4_1)
       set(HAVE_SSE4_1 TRUE)
@@ -104,6 +106,10 @@ if(ENABLE_SIMD)
     # AVX2 kernels back the SSE4.1 ones; only built on 64-bit targets.
     if(ENABLE_AVX2 AND SUPPORTS_AVX2 AND HAVE_SSE4_1 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
       set(HAVE_AVX2 TRUE)
+    endif()
+    # AVX-512 (F+BW) kernels back the AVX2 ones.
+    if(ENABLE_AVX512 AND SUPPORTS_AVX512 AND HAVE_AVX2)
+      set(HAVE_AVX512 TRUE)
     endif()
   endif()
 

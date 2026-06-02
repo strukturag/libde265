@@ -31,6 +31,9 @@
 #if HAVE_AVX2
 #include "libde265/x86/transform-avx2.h"
 #endif
+#if HAVE_AVX512
+#include "libde265/x86/transform-avx512.h"
+#endif
 
 #include <stdio.h>
 #include <stdint.h>
@@ -123,10 +126,14 @@ public:
     bool ok = true;
     int n = 0;
 
-    struct Kern { int nT; tfunc scalar, sse, avx2; const char* name; };
+    struct Kern { int nT; tfunc scalar, sse, avx2, avx512; const char* name; };
     Kern kerns[] = {
-      {16, transform_16x16_add_8_fallback, ff_hevc_transform_16x16_add_8_sse4, transform_16x16_add_8_avx2, "16x16"},
-      {32, transform_32x32_add_8_fallback, ff_hevc_transform_32x32_add_8_sse4, transform_32x32_add_8_avx2, "32x32"},
+      {16, transform_16x16_add_8_fallback, ff_hevc_transform_16x16_add_8_sse4, transform_16x16_add_8_avx2, nullptr, "16x16"},
+#if HAVE_AVX512
+      {32, transform_32x32_add_8_fallback, ff_hevc_transform_32x32_add_8_sse4, transform_32x32_add_8_avx2, transform_32x32_add_8_avx512, "32x32"},
+#else
+      {32, transform_32x32_add_8_fallback, ff_hevc_transform_32x32_add_8_sse4, transform_32x32_add_8_avx2, nullptr, "32x32"},
+#endif
     };
 
     for (auto& k : kerns)
@@ -135,6 +142,10 @@ public:
           n++;
           if (!runCase(k.nT, k.sse,    k.avx2, scen, rng, "avx2-vs-sse",    quiet)) ok=false;
           if (!runCase(k.nT, k.scalar, k.avx2, scen, rng, "avx2-vs-scalar", quiet)) ok=false;
+          if (k.avx512) {
+            if (!runCase(k.nT, k.sse,    k.avx512, scen, rng, "avx512-vs-sse",    quiet)) ok=false;
+            if (!runCase(k.nT, k.scalar, k.avx512, scen, rng, "avx512-vs-scalar", quiet)) ok=false;
+          }
         }
 
     if (!quiet) {
@@ -146,6 +157,11 @@ public:
         double a = timeFunc(k.nT, k.avx2,   rng);
         printf("  idct %s  scalar=%8.2f  sse=%8.2f  avx2=%8.2f   avx2-vs-sse x%.2f\n",
                k.name, s, e, a, e/a);
+        if (k.avx512) {
+          double v = timeFunc(k.nT, k.avx512, rng);
+          printf("  idct %s                                    avx512=%8.2f   avx512-vs-avx2 x%.2f  avx512-vs-sse x%.2f\n",
+                 k.name, v, a/v, e/v);
+        }
       }
     }
     return ok;

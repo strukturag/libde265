@@ -7,7 +7,11 @@ set (x86_sse_sources
 )
 
 set (x86_avx2_sources
-  transform-avx2.cc transform-avx2.h
+  transform-avx2.cc transform-avx2.h transform-dct-tables.h
+)
+
+set (x86_avx512_sources
+  transform-avx512.cc transform-avx512.h
 )
 
 add_library(x86 OBJECT ${x86_sources})
@@ -39,6 +43,16 @@ if(HAVE_AVX2)
     SET_TARGET_PROPERTIES(x86_avx2 PROPERTIES COMPILE_FLAGS "-mavx2")
   endif()
   set(X86_OBJECTS ${X86_OBJECTS} $<TARGET_OBJECTS:x86_avx2>)
+endif()
+
+if(HAVE_AVX512)
+  add_library(x86_avx512 OBJECT ${x86_avx512_sources})
+  if(MSVC)
+    SET_TARGET_PROPERTIES(x86_avx512 PROPERTIES COMPILE_FLAGS "/arch:AVX512")
+  else()
+    SET_TARGET_PROPERTIES(x86_avx512 PROPERTIES COMPILE_FLAGS "-mavx512f -mavx512bw")
+  endif()
+  set(X86_OBJECTS ${X86_OBJECTS} $<TARGET_OBJECTS:x86_avx512>)
 endif()
 
 set(X86_OBJECTS ${X86_OBJECTS} PARENT_SCOPE)

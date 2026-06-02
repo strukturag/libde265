@@ -256,6 +256,12 @@ void base_context::set_acceleration_functions(enum de265_acceleration l)
     init_acceleration_functions_avx2(&acceleration);
   }
 #endif
+#if HAVE_AVX512
+  // layered on top of AVX2: overrides the 32x32 transform (runtime-checked)
+  if (l>=de265_acceleration_AVX2) {
+    init_acceleration_functions_avx512(&acceleration);
+  }
+#endif
 #ifdef HAVE_ARM32
   if (l>=de265_acceleration_ARM) {
     init_acceleration_functions_arm(&acceleration);

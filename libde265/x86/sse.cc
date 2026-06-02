@@ -34,6 +34,9 @@
 #if HAVE_AVX2
 #include "x86/transform-avx2.h"
 #endif
+#if HAVE_AVX512
+#include "x86/transform-avx512.h"
+#endif
 
 #if defined(__GNUC__) && !defined(__EMSCRIPTEN__)
 #include <cpuid.h>
@@ -137,6 +140,21 @@ void init_acceleration_functions_avx2(struct acceleration_functions* accel)
   if (__builtin_cpu_supports("avx2")) {
     accel->transform_add_8[2] = transform_16x16_add_8_avx2;
     accel->transform_add_8[3] = transform_32x32_add_8_avx2;
+  }
+#endif
+#endif
+}
+
+
+void init_acceleration_functions_avx512(struct acceleration_functions* accel)
+{
+#if HAVE_AVX512
+#if defined(__GNUC__) && !defined(__EMSCRIPTEN__)
+  __builtin_cpu_init();
+  // need AVX-512F + AVX-512BW (16-bit ops). __builtin_cpu_supports handles the
+  // OS (XCR0/ZMM-enabled) check. This TU is not compiled with -mavx512*.
+  if (__builtin_cpu_supports("avx512f") && __builtin_cpu_supports("avx512bw")) {
+    accel->transform_add_8[3] = transform_32x32_add_8_avx512;
   }
 #endif
 #endif
