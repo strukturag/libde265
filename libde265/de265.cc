@@ -221,8 +221,10 @@ LIBDE265_API de265_error de265_init()
   // do initializations
 
   init_scan_orders();
+  pps_scan_cache_init();
 
   if (!alloc_and_init_significant_coeff_ctxIdx_lookupTable()) {
+    pps_scan_cache_free();
     de265_init_count--;
     return DE265_ERROR_LIBRARY_INITIALIZATION_FAILED;
   }
@@ -242,6 +244,7 @@ LIBDE265_API de265_error de265_free()
 
   if (de265_init_count==0) {
     free_significant_coeff_ctxIdx_lookupTable();
+    pps_scan_cache_free();
   }
 
   return DE265_OK;

@@ -156,8 +156,8 @@ void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
 
 
             if (pps->loop_filter_across_tiles_enabled_flag==0 &&
-                pps->TileIdRS[(xS>>ctbshiftW) + (yS>>ctbshiftH)*picWidthInCtbs] !=
-                pps->TileIdRS[(xC>>ctbshiftW) + (yC>>ctbshiftH)*picWidthInCtbs]) {
+                pps->scan->TileIdRS[(xS>>ctbshiftW) + (yS>>ctbshiftH)*picWidthInCtbs] !=
+                pps->scan->TileIdRS[(xC>>ctbshiftW) + (yC>>ctbshiftH)*picWidthInCtbs]) {
               edgeIdx=0;
               break;
             }

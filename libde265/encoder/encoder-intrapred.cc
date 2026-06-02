@@ -112,7 +112,7 @@ void intra_border_computer_ctbtree<pixel_t>::fill_from_ctbtree(const enc_tb* blk
   int xBLuma = this->xB * this->SubWidth;
   int yBLuma = this->yB * this->SubHeight;
 
-  int currBlockAddr = this->pps->MinTbAddrZS[ (xBLuma >> this->sps->Log2MinTrafoSize) +
+  int currBlockAddr = this->pps->scan->MinTbAddrZS[ (xBLuma >> this->sps->Log2MinTrafoSize) +
                                               (yBLuma >> this->sps->Log2MinTrafoSize) * this->sps->PicWidthInTbsY ];
 
 
@@ -121,7 +121,7 @@ void intra_border_computer_ctbtree<pixel_t>::fill_from_ctbtree(const enc_tb* blk
   for (int y=this->nBottom-1 ; y>=0 ; y-=4)
     if (this->availableLeft)
       {
-        int NBlockAddr = this->pps->MinTbAddrZS[ (((this->xB-1)*this->SubWidth )>>this->sps->Log2MinTrafoSize) +
+        int NBlockAddr = this->pps->scan->MinTbAddrZS[ (((this->xB-1)*this->SubWidth )>>this->sps->Log2MinTrafoSize) +
                                                  (((this->yB+y)*this->SubHeight)>>this->sps->Log2MinTrafoSize)
                                                  * this->sps->PicWidthInTbsY ];
 
@@ -155,7 +155,7 @@ void intra_border_computer_ctbtree<pixel_t>::fill_from_ctbtree(const enc_tb* blk
 
   if (this->availableTopLeft)
     {
-      int NBlockAddr = this->pps->MinTbAddrZS[ (((this->xB-1)*this->SubWidth )>>this->sps->Log2MinTrafoSize) +
+      int NBlockAddr = this->pps->scan->MinTbAddrZS[ (((this->xB-1)*this->SubWidth )>>this->sps->Log2MinTrafoSize) +
                                                (((this->yB-1)*this->SubHeight)>>this->sps->Log2MinTrafoSize)
                                                * this->sps->PicWidthInTbsY ];
 
@@ -193,7 +193,7 @@ void intra_border_computer_ctbtree<pixel_t>::fill_from_ctbtree(const enc_tb* blk
 
     if (borderAvailable)
       {
-        int NBlockAddr = this->pps->MinTbAddrZS[ (((this->xB+x)*this->SubWidth )>>this->sps->Log2MinTrafoSize) +
+        int NBlockAddr = this->pps->scan->MinTbAddrZS[ (((this->xB+x)*this->SubWidth )>>this->sps->Log2MinTrafoSize) +
                                                  (((this->yB-1)*this->SubHeight)>>this->sps->Log2MinTrafoSize)
                                                  * this->sps->PicWidthInTbsY ];
 

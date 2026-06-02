@@ -187,8 +187,8 @@ bool derive_edgeFlags_CTBRow(de265_image* img, uint16_t ctby)
               filterLeftCbEdge = 0;
             }
           else if (pps.loop_filter_across_tiles_enabled_flag == 0 &&
-                   pps.TileIdRS[  x0ctb           +y0ctb*picWidthInCtbs] !=
-                   pps.TileIdRS[((x0-1)>>ctbshift)+y0ctb*picWidthInCtbs]) {
+                   pps.scan->TileIdRS[  x0ctb           +y0ctb*picWidthInCtbs] !=
+                   pps.scan->TileIdRS[((x0-1)>>ctbshift)+y0ctb*picWidthInCtbs]) {
             filterLeftCbEdge = 0;
           }
         }
@@ -201,8 +201,8 @@ bool derive_edgeFlags_CTBRow(de265_image* img, uint16_t ctby)
               filterTopCbEdge = 0;
             }
           else if (pps.loop_filter_across_tiles_enabled_flag == 0 &&
-                   pps.TileIdRS[x0ctb+  y0ctb           *picWidthInCtbs] !=
-                   pps.TileIdRS[x0ctb+((y0-1)>>ctbshift)*picWidthInCtbs]) {
+                   pps.scan->TileIdRS[x0ctb+  y0ctb           *picWidthInCtbs] !=
+                   pps.scan->TileIdRS[x0ctb+((y0-1)>>ctbshift)*picWidthInCtbs]) {
             filterTopCbEdge = 0;
           }
         }

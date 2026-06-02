@@ -2708,7 +2708,7 @@ bool setCtbAddrFromTS(thread_context* tctx)
   const seq_parameter_set& sps = tctx->img->get_sps();
 
   if (tctx->CtbAddrInTS < sps.PicSizeInCtbsY) {
-    tctx->CtbAddrInRS = tctx->img->get_pps().CtbAddrTStoRS[tctx->CtbAddrInTS];
+    tctx->CtbAddrInRS = tctx->img->get_pps().scan->CtbAddrTStoRS[tctx->CtbAddrInTS];
 
     tctx->CtbX = tctx->CtbAddrInRS % sps.PicWidthInCtbsY;
     tctx->CtbY = tctx->CtbAddrInRS / sps.PicWidthInCtbsY;
@@ -2753,8 +2753,8 @@ void read_sao(thread_context* tctx, int xCtb, int yCtb,
   if (xCtb > 0) {
     //char leftCtbInSliceSeg = (CtbAddrInSliceSeg>0);
     char leftCtbInSliceSeg = (tctx->CtbAddrInRS > shdr->SliceAddrRS);
-    char leftCtbInTile = (pps.TileIdRS[xCtb + yCtb * sps.PicWidthInCtbsY] ==
-                          pps.TileIdRS[xCtb - 1 + yCtb * sps.PicWidthInCtbsY]);
+    char leftCtbInTile = (pps.scan->TileIdRS[xCtb + yCtb * sps.PicWidthInCtbsY] ==
+                          pps.scan->TileIdRS[xCtb - 1 + yCtb * sps.PicWidthInCtbsY]);
 
     if (leftCtbInSliceSeg && leftCtbInTile) {
       sao_merge_left_flag = decode_sao_merge_flag(tctx);
@@ -2768,8 +2768,8 @@ void read_sao(thread_context* tctx, int xCtb, int yCtb,
              sps.PicWidthInCtbsY,
              shdr->slice_segment_address);
     bool upCtbInSliceSeg = (tctx->CtbAddrInRS - sps.PicWidthInCtbsY) >= shdr->SliceAddrRS;
-    bool upCtbInTile = (pps.TileIdRS[xCtb + yCtb * sps.PicWidthInCtbsY] ==
-                        pps.TileIdRS[xCtb + (yCtb - 1) * sps.PicWidthInCtbsY]);
+    bool upCtbInTile = (pps.scan->TileIdRS[xCtb + yCtb * sps.PicWidthInCtbsY] ==
+                        pps.scan->TileIdRS[xCtb + (yCtb - 1) * sps.PicWidthInCtbsY]);
 
     if (upCtbInSliceSeg && upCtbInTile) {
       sao_merge_up_flag = decode_sao_merge_flag(tctx);
@@ -2931,8 +2931,8 @@ int check_CTB_available(const de265_image* img,
 
   // check if both CTBs are in the same tile.
 
-  if (img->get_pps().TileIdRS[current_ctbAddrRS] !=
-      img->get_pps().TileIdRS[neighbor_ctbAddrRS]) {
+  if (img->get_pps().scan->TileIdRS[current_ctbAddrRS] !=
+      img->get_pps().scan->TileIdRS[neighbor_ctbAddrRS]) {
     return 0;
   }
 
@@ -4777,7 +4777,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
     const uint32_t ctbx = tctx->CtbX;
     const uint32_t ctby = tctx->CtbY;
 
-    if (ctbx + ctby * ctbW >= pps.CtbAddrRStoTS.size()) {
+    if (ctbx + ctby * ctbW >= pps.scan->CtbAddrRStoTS.size()) {
       return Decode_Error;
     }
 
@@ -4887,7 +4887,7 @@ enum DecodeResult decode_substream(thread_context* tctx,
     if (!end_of_slice_segment_flag) {
       bool end_of_sub_stream = false;
       end_of_sub_stream |= (pps.tiles_enabled_flag &&
-                            pps.TileId[tctx->CtbAddrInTS] != pps.TileId[tctx->CtbAddrInTS - 1]);
+                            pps.scan->TileId[tctx->CtbAddrInTS] != pps.scan->TileId[tctx->CtbAddrInTS - 1]);
       end_of_sub_stream |= (pps.entropy_coding_sync_enabled_flag &&
                             lastCtbY != tctx->CtbY);
 
@@ -4915,7 +4915,7 @@ bool initialize_CABAC_at_slice_segment_start(thread_context* tctx)
   slice_segment_header* shdr = tctx->shdr;
 
   if (shdr->dependent_slice_segment_flag) {
-    int prevCtb = pps.CtbAddrTStoRS[pps.CtbAddrRStoTS[shdr->slice_segment_address] - 1];
+    int prevCtb = pps.scan->CtbAddrTStoRS[pps.scan->CtbAddrRStoTS[shdr->slice_segment_address] - 1];
 
     uint16_t sliceIdx = img->get_SliceHeaderIndex_atIndex(prevCtb);
     if (sliceIdx >= img->slices.size()) {

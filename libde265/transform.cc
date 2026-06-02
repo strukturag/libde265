@@ -110,7 +110,7 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
   if (tctx->img->available_zscan(xQG,yQG, xQG-1,yQG)) {
     int xTmp = (xQG-1) >> sps.Log2MinTrafoSize;
     int yTmp = (yQG  ) >> sps.Log2MinTrafoSize;
-    int minTbAddrA = pps.MinTbAddrZS[xTmp + yTmp*sps.PicWidthInTbsY];
+    int minTbAddrA = pps.scan->MinTbAddrZS[xTmp + yTmp*sps.PicWidthInTbsY];
     uint32_t ctbAddrA = minTbAddrA >> (2 * (sps.Log2CtbSizeY-sps.Log2MinTrafoSize));
     if (ctbAddrA == tctx->CtbAddrInTS) {
       qPYA = tctx->img->get_QPY(xQG-1,yQG);
@@ -126,7 +126,7 @@ void decode_quantization_parameters(thread_context* tctx, int xC,int yC,
   if (tctx->img->available_zscan(xQG,yQG, xQG,yQG-1)) {
     int xTmp = (xQG  ) >> sps.Log2MinTrafoSize;
     int yTmp = (yQG-1) >> sps.Log2MinTrafoSize;
-    uint32_t minTbAddrB = pps.MinTbAddrZS[xTmp + yTmp*sps.PicWidthInTbsY];
+    uint32_t minTbAddrB = pps.scan->MinTbAddrZS[xTmp + yTmp*sps.PicWidthInTbsY];
     uint32_t ctbAddrB = minTbAddrB >> (2 * (sps.Log2CtbSizeY-sps.Log2MinTrafoSize));
     if (ctbAddrB == tctx->CtbAddrInTS) {
       qPYB = tctx->img->get_QPY(xQG,yQG-1);

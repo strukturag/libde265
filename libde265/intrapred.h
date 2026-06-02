@@ -490,17 +490,17 @@ void intra_border_computer<pixel_t>::preproc()
   int topleftCTBSlice  = availableTopLeft  ? img->get_SliceAddrRS(xLeftCtb, yTopCtb) : -1;
 
   /*
-  printf("size: %d\n",pps->TileIdRS.size());
+  printf("size: %d\n",pps->scan->TileIdRS.size());
   printf("curr: %d left: %d top: %d\n",
          xCurrCtb+yCurrCtb*picWidthInCtbs,
          availableLeft ? xLeftCtb+yCurrCtb*picWidthInCtbs : 9999,
          availableTop  ? xCurrCtb+yTopCtb*picWidthInCtbs  : 9999);
   */
-  uint32_t currCTBTileID = pps->TileIdRS[xCurrCtb+yCurrCtb*picWidthInCtbs];
-  uint32_t leftCTBTileID = availableLeft ? pps->TileIdRS[xLeftCtb+yCurrCtb*picWidthInCtbs] : UINT32_MAX;
-  uint32_t topCTBTileID  = availableTop ? pps->TileIdRS[xCurrCtb+yTopCtb*picWidthInCtbs] : UINT32_MAX;
-  uint32_t topleftCTBTileID = availableTopLeft ? pps->TileIdRS[xLeftCtb+yTopCtb*picWidthInCtbs] : UINT32_MAX;
-  uint32_t toprightCTBTileID= availableTopRight? pps->TileIdRS[xRightCtb+yTopCtb*picWidthInCtbs] : UINT32_MAX;
+  uint32_t currCTBTileID = pps->scan->TileIdRS[xCurrCtb+yCurrCtb*picWidthInCtbs];
+  uint32_t leftCTBTileID = availableLeft ? pps->scan->TileIdRS[xLeftCtb+yCurrCtb*picWidthInCtbs] : UINT32_MAX;
+  uint32_t topCTBTileID  = availableTop ? pps->scan->TileIdRS[xCurrCtb+yTopCtb*picWidthInCtbs] : UINT32_MAX;
+  uint32_t topleftCTBTileID = availableTopLeft ? pps->scan->TileIdRS[xLeftCtb+yTopCtb*picWidthInCtbs] : UINT32_MAX;
+  uint32_t toprightCTBTileID= availableTopRight? pps->scan->TileIdRS[xRightCtb+yTopCtb*picWidthInCtbs] : UINT32_MAX;
 
   if (leftCTBSlice != currCTBSlice  || leftCTBTileID != currCTBTileID ) availableLeft    = false;
   if (topCTBSlice  != currCTBSlice  || topCTBTileID  != currCTBTileID ) availableTop     = false;
@@ -539,7 +539,7 @@ void intra_border_computer<pixel_t>::fill_from_image()
   int xBLuma = xB * SubWidth;
   int yBLuma = yB * SubHeight;
 
-  int currBlockAddr = pps->MinTbAddrZS[ (xBLuma>>sps->Log2MinTrafoSize) +
+  int currBlockAddr = pps->scan->MinTbAddrZS[ (xBLuma>>sps->Log2MinTrafoSize) +
                                         (yBLuma>>sps->Log2MinTrafoSize) * sps->PicWidthInTbsY ];
 
 
@@ -548,7 +548,7 @@ void intra_border_computer<pixel_t>::fill_from_image()
   for (int y=nBottom-1 ; y>=0 ; y-=4)
     if (availableLeft)
       {
-        int NBlockAddr = pps->MinTbAddrZS[ (((xB-1)*SubWidth )>>sps->Log2MinTrafoSize) +
+        int NBlockAddr = pps->scan->MinTbAddrZS[ (((xB-1)*SubWidth )>>sps->Log2MinTrafoSize) +
                                            (((yB+y)*SubHeight)>>sps->Log2MinTrafoSize)
                                            * sps->PicWidthInTbsY ];
 
@@ -575,7 +575,7 @@ void intra_border_computer<pixel_t>::fill_from_image()
 
   if (availableTopLeft)
     {
-      int NBlockAddr = pps->MinTbAddrZS[ (((xB-1)*SubWidth )>>sps->Log2MinTrafoSize) +
+      int NBlockAddr = pps->scan->MinTbAddrZS[ (((xB-1)*SubWidth )>>sps->Log2MinTrafoSize) +
                                          (((yB-1)*SubHeight)>>sps->Log2MinTrafoSize)
                                          * sps->PicWidthInTbsY ];
 
@@ -605,7 +605,7 @@ void intra_border_computer<pixel_t>::fill_from_image()
 
     if (borderAvailable)
       {
-        int NBlockAddr = pps->MinTbAddrZS[ (((xB+x)*SubWidth )>>sps->Log2MinTrafoSize) +
+        int NBlockAddr = pps->scan->MinTbAddrZS[ (((xB+x)*SubWidth )>>sps->Log2MinTrafoSize) +
                                            (((yB-1)*SubHeight)>>sps->Log2MinTrafoSize)
                                            * sps->PicWidthInTbsY ];
 

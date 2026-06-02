@@ -56,6 +56,26 @@ class pps_range_extension
 };
 
 
+// Picture-geometry-derived scan-order tables (HEVC Sec. 6.5). They depend only
+// on the picture/tile geometry, are immutable after construction, and are shared
+// read-only across pic_parameter_set instances (and across independent decoder
+// contexts) through a small library-scope cache -- see pps.cc. Sharing avoids
+// recomputing the (potentially large) MinTbAddrZS table once per decoder when
+// many contexts decode images of the same geometry (e.g. libheif tile grids).
+struct pps_scan_tables {
+  std::vector<uint32_t> CtbAddrRStoTS; // #CTBs
+  std::vector<uint32_t> CtbAddrTStoRS; // #CTBs
+  std::vector<uint32_t> TileId;        // #CTBs  // index in tile-scan order
+  std::vector<uint32_t> TileIdRS;      // #CTBs  // index in raster-scan order
+  std::vector<uint32_t> MinTbAddrZS;   // #TBs   [x + y*PicWidthInTbsY]
+};
+
+// Library-scope scan-table cache lifecycle, tied to de265_init() / de265_free()
+// so the cache is released when the library is de-initialized (no leak at exit).
+void pps_scan_cache_init();
+void pps_scan_cache_free();
+
+
 class pic_parameter_set {
 public:
   pic_parameter_set();
@@ -151,11 +171,9 @@ public:
   uint16_t colBd    [ DE265_MAX_TILE_COLUMNS+1 ];
   uint16_t rowBd    [ DE265_MAX_TILE_ROWS+1 ];
 
-  std::vector<uint32_t> CtbAddrRStoTS; // #CTBs
-  std::vector<uint32_t> CtbAddrTStoRS; // #CTBs
-  std::vector<uint32_t> TileId;        // #CTBs  // index in tile-scan order
-  std::vector<uint32_t> TileIdRS;      // #CTBs  // index in raster-scan order
-  std::vector<uint32_t> MinTbAddrZS;   // #TBs   [x + y*PicWidthInTbsY]
+  // Derived scan-order tables (Sec. 6.5), shared read-only via the library-scope
+  // cache. Access as scan->CtbAddrRStoTS[...], scan->MinTbAddrZS[...], etc.
+  std::shared_ptr<const pps_scan_tables> scan;
 
   void set_derived_values(const seq_parameter_set* sps);
 };

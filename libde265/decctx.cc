@@ -277,7 +277,7 @@ void decoder_context::init_thread_context(thread_context* tctx)
 
 
   if (tctx->shdr->slice_segment_address > 0) {
-    int prevCtb = pps.CtbAddrTStoRS[ pps.CtbAddrRStoTS[tctx->shdr->slice_segment_address] -1 ];
+    int prevCtb = pps.scan->CtbAddrTStoRS[ pps.scan->CtbAddrRStoTS[tctx->shdr->slice_segment_address] -1 ];
 
     int ctbX = prevCtb % sps.PicWidthInCtbsY;
     int ctbY = prevCtb / sps.PicWidthInCtbsY;
@@ -655,7 +655,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   remove_images_from_dpb(sliceunit->shdr->RemoveReferencesList);
 
-  if (sliceunit->shdr->slice_segment_address >= imgunit->img->get_pps().CtbAddrRStoTS.size()) {
+  if (sliceunit->shdr->slice_segment_address >= imgunit->img->get_pps().scan->CtbAddrRStoTS.size()) {
     return DE265_ERROR_CTB_OUTSIDE_IMAGE_AREA;
   }
 
@@ -667,7 +667,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   tctx.decctx = this;
   tctx.imgunit = imgunit;
   tctx.sliceunit= sliceunit;
-  tctx.CtbAddrInTS = imgunit->img->get_pps().CtbAddrRStoTS[tctx.shdr->slice_segment_address];
+  tctx.CtbAddrInTS = imgunit->img->get_pps().scan->CtbAddrRStoTS[tctx.shdr->slice_segment_address];
   tctx.task = nullptr;
 
   init_thread_context(&tctx);
@@ -888,11 +888,11 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
     tctx->imgunit = imgunit;
     tctx->sliceunit= sliceunit;
 
-    if (ctbAddrRS >= pps.CtbAddrRStoTS.size()) {
+    if (ctbAddrRS >= pps.scan->CtbAddrRStoTS.size()) {
       err = DE265_WARNING_SLICEHEADER_INVALID;
       break;
     }
-    tctx->CtbAddrInTS = pps.CtbAddrRStoTS[ctbAddrRS];
+    tctx->CtbAddrInTS = pps.scan->CtbAddrRStoTS[ctbAddrRS];
 
     init_thread_context(tctx);
 
@@ -969,12 +969,12 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
   // first CTB in this slice
   uint32_t ctbAddrRS = shdr->slice_segment_address;
 
-  // pps.TileIdRS and pps.CtbAddrRStoTS are both sized to PicSizeInCtbsY in
+  // pps.scan->TileIdRS and pps.scan->CtbAddrRStoTS are both sized to PicSizeInCtbsY in
   // set_derived_values(), so one bound covers both accesses below.
-  if (ctbAddrRS >= pps.CtbAddrRStoTS.size()) {
+  if (ctbAddrRS >= pps.scan->CtbAddrRStoTS.size()) {
     return DE265_WARNING_SLICEHEADER_INVALID;
   }
-  int tileID = pps.TileIdRS[ctbAddrRS];
+  int tileID = pps.scan->TileIdRS[ctbAddrRS];
 
   for (uint16_t entryPt=0;entryPt<nTiles;entryPt++) {
     // entry points other than the first start at tile beginnings
@@ -990,7 +990,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
       uint16_t ctbY = pps.rowBd[tileID / pps.num_tile_columns];
       ctbAddrRS = ctbY * ctbsWidth + ctbX;
 
-      if (ctbAddrRS >= pps.CtbAddrRStoTS.size()) {
+      if (ctbAddrRS >= pps.scan->CtbAddrRStoTS.size()) {
         err = DE265_WARNING_SLICEHEADER_INVALID;
         break;
       }
@@ -1005,7 +1005,7 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
     tctx->img    = img;
     tctx->imgunit = imgunit;
     tctx->sliceunit= sliceunit;
-    tctx->CtbAddrInTS = pps.CtbAddrRStoTS[ctbAddrRS];
+    tctx->CtbAddrInTS = pps.scan->CtbAddrRStoTS[ctbAddrRS];
 
     init_thread_context(tctx);
 

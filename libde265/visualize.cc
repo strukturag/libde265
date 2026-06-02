@@ -467,7 +467,7 @@ LIBDE265_API void draw_Slices(const de265_image* img, uint8_t* dst, int stride, 
 
         int ctbAddrRS = ctby*sps.PicWidthInCtbsY + ctbx;
         int prevCtbRS = -1;
-        if (ctbx>0 || ctby>0) { prevCtbRS = img->get_pps().CtbAddrTStoRS[ img->get_pps().CtbAddrRStoTS[ctbAddrRS] -1 ]; }
+        if (ctbx>0 || ctby>0) { prevCtbRS = img->get_pps().scan->CtbAddrTStoRS[ img->get_pps().scan->CtbAddrRStoTS[ctbAddrRS] -1 ]; }
 
         if (prevCtbRS<0 ||
             img->get_SliceHeaderIndex_atIndex(ctbAddrRS) !=

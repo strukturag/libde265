@@ -790,9 +790,9 @@ bool de265_image::available_zscan(int xCurr,int yCurr, int xN,int yN) const
   if (xN>=sps->pic_width_in_luma_samples ||
       yN>=sps->pic_height_in_luma_samples) return false;
 
-  int minBlockAddrN = pps->MinTbAddrZS[ (xN>>sps->Log2MinTrafoSize) +
+  int minBlockAddrN = pps->scan->MinTbAddrZS[ (xN>>sps->Log2MinTrafoSize) +
                                         (yN>>sps->Log2MinTrafoSize) * sps->PicWidthInTbsY ];
-  int minBlockAddrCurr = pps->MinTbAddrZS[ (xCurr>>sps->Log2MinTrafoSize) +
+  int minBlockAddrCurr = pps->scan->MinTbAddrZS[ (xCurr>>sps->Log2MinTrafoSize) +
                                            (yCurr>>sps->Log2MinTrafoSize) * sps->PicWidthInTbsY ];
 
   if (minBlockAddrN > minBlockAddrCurr) return false;
@@ -807,8 +807,8 @@ bool de265_image::available_zscan(int xCurr,int yCurr, int xN,int yN) const
     return false;
   }
 
-  if (pps->TileIdRS[xCurrCtb + yCurrCtb*sps->PicWidthInCtbsY] !=
-      pps->TileIdRS[xNCtb    + yNCtb   *sps->PicWidthInCtbsY]) {
+  if (pps->scan->TileIdRS[xCurrCtb + yCurrCtb*sps->PicWidthInCtbsY] !=
+      pps->scan->TileIdRS[xNCtb    + yNCtb   *sps->PicWidthInCtbsY]) {
     return false;
   }
 
