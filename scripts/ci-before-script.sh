@@ -56,4 +56,13 @@ elif ( echo "$TARGET_HOST" | grep -q "^arm" ); then
     fi
 fi
 
+# The decode-stream tests only check the decoded output (which is bit-exact
+# regardless of optimization level), but the SIMD kernels are extremely slow
+# when built without optimization (-O0, the default), so a single 1080p stream
+# can exceed the per-file timeout. Build optimized for those tests. The
+# valgrind builds (no DECODESTREAMS) keep the default build for precise checks.
+if [ ! -z "$DECODESTREAMS" ]; then
+    CMAKE_OPTS="$CMAKE_OPTS -DCMAKE_BUILD_TYPE=Release"
+fi
+
 cmake -B build -S . $CMAKE_OPTS
