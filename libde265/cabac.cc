@@ -201,7 +201,8 @@ int  CABAC_decoder::decode_bit(context_model* model)
     "mov    %%eax, %%edx              \n\t"
     "shr    $1, %%edx                 \n\t" // edx = state
     "lea    (%%rcx,%%rdx,4), %%rcx    \n\t" // rcx = state*4 + ridx
-    "movzbl (%[lps],%%rcx,1), %%edx   \n\t" // edx = RangeLPS
+    "lea    %[lps], %%rdx             \n\t" // rdx = &LPS_table[0][0]
+    "movzbl (%%rdx,%%rcx,1), %%edx    \n\t" // edx = RangeLPS
     "sub    %%edx, %[range]           \n\t" // range = range - RangeLPS (MPS range)
     "mov    %[range], %%r8d           \n\t"
     "shl    $7, %%r8d                 \n\t" // r8d = scaled_range
@@ -209,18 +210,19 @@ int  CABAC_decoder::decode_bit(context_model* model)
     "sub    %%r8d, %%r9d              \n\t"
     "sar    $31, %%r9d                \n\t" // r9d = mps_mask (-1 if MPS)
     "not    %%r9d                     \n\t" // r9d = lps_mask (-1 if LPS)
-    "mov    %%r8d, %%r10d             \n\t"
-    "and    %%r9d, %%r10d             \n\t"
-    "sub    %%r10d, %[value]          \n\t" // value -= scaled & lps_mask
-    "mov    %%edx, %%r10d             \n\t" // RangeLPS
-    "sub    %[range], %%r10d          \n\t"
-    "and    %%r9d, %%r10d             \n\t"
-    "add    %%r10d, %[range]          \n\t" // range = RangeLPS if LPS, else unchanged
+    "mov    %%r8d, %%ecx              \n\t"
+    "and    %%r9d, %%ecx              \n\t"
+    "sub    %%ecx, %[value]           \n\t" // value -= scaled & lps_mask
+    "mov    %%edx, %%ecx              \n\t" // RangeLPS
+    "sub    %[range], %%ecx           \n\t"
+    "and    %%r9d, %%ecx              \n\t"
+    "add    %%ecx, %[range]           \n\t" // range = RangeLPS if LPS, else unchanged
     "and    $0xFF, %%r9d              \n\t"
     "xor    %%r9d, %%eax              \n\t" // eax = idx
     "mov    %%eax, %[bit]             \n\t"
     "and    $1, %[bit]                \n\t" // bit = idx & 1
-    "movzbl (%[trans],%%rax,1), %%edx \n\t"
+    "lea    %[trans], %%rcx           \n\t" // rcx = &cabac_transition[0]
+    "movzbl (%%rcx,%%rax,1), %%edx    \n\t"
     "mov    %%dl, (%[sp])             \n\t" // *sp = cabac_transition[idx]
     "bsr    %[range], %%ecx           \n\t" // ecx = MSB index
     "mov    $8, %%edx                 \n\t"
@@ -244,8 +246,8 @@ int  CABAC_decoder::decode_bit(context_model* model)
     : [range]"+r"(range_l), [value]"+r"(value_l), [bn]"+r"(bn_l),
       [curr]"+r"(curr_l), [bit]"=&r"(bit_l)
     : [sp]"r"(sp), [end]"r"(bitstream_end),
-      [lps]"r"(&LPS_table[0][0]), [trans]"r"(cabac_transition)
-    : "rax","rcx","rdx","r8","r9","r10","cc","memory"
+      [lps]"m"(LPS_table[0][0]), [trans]"m"(cabac_transition[0])
+    : "rax","rcx","rdx","r8","r9","cc","memory"
   );
 
   range = range_l; value = value_l; bits_needed = (int16_t)bn_l; bitstream_curr = curr_l;
