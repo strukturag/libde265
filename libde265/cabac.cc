@@ -371,6 +371,43 @@ int  CABAC_decoder::decode_term_bit()
 // we will eventually only return zeros.
 int  CABAC_decoder::decode_bypass()
 {
+#ifdef DE265_CABAC_ASM_X86_64
+  uint32_t value_l = value;
+  int      bn_l    = bits_needed;
+  uint8_t* curr_l  = bitstream_curr;
+  int bit_l;
+
+  __asm__ (
+    "add    %[value], %[value]        \n\t" // value <<= 1
+    "addl   $1, %[bn]                 \n\t" // bits_needed++
+    "js     1f                        \n\t" // bits_needed < 0: no refill
+    "cmp    %[end], %[curr]           \n\t"
+    "jae    2f                        \n\t" // curr >= end: no read
+    "movzbl (%[curr]), %%eax          \n\t"
+    "or     %%eax, %[value]           \n\t" // value |= *curr (bits_needed==0)
+    "inc    %[curr]                   \n\t"
+    "2:                               \n\t"
+    "movl   $-8, %[bn]                \n\t" // bits_needed = -8
+    "1:                               \n\t"
+    "mov    %[range], %%ecx           \n\t"
+    "shl    $7, %%ecx                 \n\t" // ecx = scaled_range
+    "mov    %[value], %%edx           \n\t"
+    "sub    %%ecx, %%edx              \n\t" // edx = value - scaled_range
+    "mov    %%edx, %%eax              \n\t"
+    "sar    $31, %%eax               \n\t"  // eax = mask (-1 if value<scaled -> bit 0)
+    "mov    %%eax, %[bit]             \n\t"
+    "add    $1, %[bit]                \n\t" // bit = mask + 1
+    "not    %%eax                     \n\t" // eax = ~mask
+    "and    %%eax, %%ecx              \n\t" // ecx = scaled & ~mask
+    "sub    %%ecx, %[value]           \n\t" // value -= scaled when bit==1
+    : [value]"+r"(value_l), [bn]"+r"(bn_l), [curr]"+r"(curr_l), [bit]"=&r"(bit_l)
+    : [range]"r"(range), [end]"r"(bitstream_end)
+    : "rax","rcx","rdx","cc","memory"
+  );
+
+  value = value_l; bits_needed = (int16_t)bn_l; bitstream_curr = curr_l;
+  return bit_l;
+#else
   logtrace(LogCABAC,"[%3d] bypass r:%x v:%x\n",logcnt,range, value);
 
   value <<= 1;
@@ -406,6 +443,7 @@ int  CABAC_decoder::decode_bypass()
 #endif
 
   return bit;
+#endif
 }
 
 
