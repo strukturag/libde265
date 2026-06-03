@@ -204,11 +204,18 @@ endif()
 # on the hot CABAC decode path — and shrinks the dynamic symbol table. Only the
 # symbols tagged LIBDE265_API (the public de265_*/en265_* C API) stay exported.
 #
-# The encoder CLI, sherlock265 and the dev tools all link against *internal*
-# (non-API) symbols of the library, so hiding would break their link. We
-# therefore only reduce visibility when none of those are built. The default is
-# on for optimized (non-Debug) builds and off for Debug, so a debug build keeps
-# every symbol available for introspection.
+# By default we reduce visibility for optimized (non-Debug) builds and keep
+# every symbol exported for Debug builds, so a debug build stays fully available
+# for introspection. The encoder CLI, sherlock265 and the dev tools all link
+# against *internal* (non-API) symbols of the library, so hiding would break
+# their link; visibility is therefore never reduced when any of those is built.
+#
+# Set FORCE_FULL_VISIBILITY=ON to override the default and export all symbols
+# even from an optimized build.
+option(FORCE_FULL_VISIBILITY
+  "Export all symbols, even from optimized builds (default: hide non-API symbols in optimized builds without the encoder/tools)"
+  OFF)
+
 set(_de265_internal_consumers OFF)
 if(ENABLE_ENCODER OR ENABLE_SHERLOCK265 OR ENABLE_INTERNAL_DEVELOPMENT_TOOLS)
   set(_de265_internal_consumers ON)
@@ -222,24 +229,9 @@ if(CMAKE_BUILD_TYPE)
   endif()
 endif()
 
-if(_de265_optimized_build AND NOT _de265_internal_consumers)
-  set(_de265_reduced_visibility_default ON)
-else()
-  set(_de265_reduced_visibility_default OFF)
-endif()
-
-option(ENABLE_REDUCED_VISIBILITY
-  "Hide non-API symbols in libde265 (faster intra-library calls; auto-on for optimized builds without the encoder/tools)"
-  ${_de265_reduced_visibility_default})
-
-if(ENABLE_REDUCED_VISIBILITY AND _de265_internal_consumers)
-  message(WARNING
-    "ENABLE_REDUCED_VISIBILITY is incompatible with the encoder / sherlock265 / "
-    "dev-tools (they reference internal symbols); disabling it.")
-  set(ENABLE_REDUCED_VISIBILITY OFF)
-endif()
-
-if(ENABLE_REDUCED_VISIBILITY)
+set(DE265_REDUCED_VISIBILITY OFF)
+if(_de265_optimized_build AND NOT _de265_internal_consumers AND NOT FORCE_FULL_VISIBILITY)
+  set(DE265_REDUCED_VISIBILITY ON)
   set(CMAKE_C_VISIBILITY_PRESET hidden)
   set(CMAKE_CXX_VISIBILITY_PRESET hidden)
   set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
