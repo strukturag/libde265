@@ -26,6 +26,7 @@
 #endif
 
 #include <assert.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -235,11 +236,11 @@ struct de265_image {
   /* */ uint8_t* get_image_plane(int cIdx)       { return pixels[cIdx]; }
   const uint8_t* get_image_plane(int cIdx) const { return pixels[cIdx]; }
 
-  void set_image_plane(int cIdx, uint8_t* mem, int stride, void *userdata);
+  void set_image_plane(int cIdx, uint8_t* mem, ptrdiff_t stride, void *userdata);
 
   uint8_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos)
   {
-    int stride = get_image_stride(cIdx);
+    ptrdiff_t stride = get_image_stride(cIdx);
     return pixels[cIdx] + xpos + ypos*stride;
   }
 
@@ -248,38 +249,38 @@ struct de265_image {
   template <class pixel_t>
   pixel_t* get_image_plane_at_pos_NEW(int cIdx, int xpos,int ypos)
   {
-    int stride = get_image_stride(cIdx);
+    ptrdiff_t stride = get_image_stride(cIdx);
     return (pixel_t*)(pixels[cIdx] + (xpos + ypos*stride)*sizeof(pixel_t));
   }
 
   const uint8_t* get_image_plane_at_pos(int cIdx, int xpos,int ypos) const
   {
-    int stride = get_image_stride(cIdx);
+    ptrdiff_t stride = get_image_stride(cIdx);
     return pixels[cIdx] + xpos + ypos*stride;
   }
 
   void* get_image_plane_at_pos_any_depth(int cIdx, int xpos,int ypos)
   {
-    int stride = get_image_stride(cIdx);
+    ptrdiff_t stride = get_image_stride(cIdx);
     return pixels[cIdx] + ((xpos + ypos*stride) << bpp_shift[cIdx]);
   }
 
   const void* get_image_plane_at_pos_any_depth(int cIdx, int xpos,int ypos) const
   {
-    int stride = get_image_stride(cIdx);
+    ptrdiff_t stride = get_image_stride(cIdx);
     return pixels[cIdx] + ((xpos + ypos*stride) << bpp_shift[cIdx]);
   }
 
   /* Number of pixels in one row (not number of bytes).
    */
-  int get_image_stride(int cIdx) const
+  ptrdiff_t get_image_stride(int cIdx) const
   {
     if (cIdx==0) return stride;
     else         return chroma_stride;
   }
 
-  int get_luma_stride() const { return stride; }
-  int get_chroma_stride() const { return chroma_stride; }
+  ptrdiff_t get_luma_stride() const { return stride; }
+  ptrdiff_t get_chroma_stride() const { return chroma_stride; }
 
   int get_width (int cIdx=0) const { return cIdx==0 ? width  : chroma_width;  }
   int get_height(int cIdx=0) const { return cIdx==0 ? height : chroma_height; }
@@ -333,7 +334,7 @@ private:
   int width = 0, height = 0;  // size in luma pixels
 
   int chroma_width = 0, chroma_height = 0;
-  int stride = 0, chroma_stride = 0;
+  ptrdiff_t stride = 0, chroma_stride = 0;
 
 public:
   uint8_t BitDepth_Y = 0, BitDepth_C = 0;

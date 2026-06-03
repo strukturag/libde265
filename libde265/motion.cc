@@ -50,7 +50,7 @@ void mc_luma(const base_context* ctx,
              const seq_parameter_set* sps, int mv_x, int mv_y,
              int xP,int yP,
              int16_t* out, int out_stride,
-             const pixel_t* ref, int ref_stride,
+             const pixel_t* ref, ptrdiff_t ref_stride,
              int nPbW, int nPbH, int bitDepth_L)
 {
   int xFracL = mv_x & 3;
@@ -129,7 +129,7 @@ void mc_luma(const base_context* ctx,
     pixel_t padbuf[(MAX_CU_SIZE+16)*(MAX_CU_SIZE+7)];
 
     const pixel_t* src_ptr;
-    int src_stride;
+    ptrdiff_t src_stride;
 
     if (-extra_left + xIntOffsL >= 0 &&
         -extra_top  + yIntOffsL >= 0 &&
@@ -181,7 +181,7 @@ void mc_chroma(const base_context* ctx,
                int mv_x, int mv_y,
                int xP,int yP,
                int16_t* out, int out_stride,
-               const pixel_t* ref, int ref_stride,
+               const pixel_t* ref, ptrdiff_t ref_stride,
                int nPbWC, int nPbHC, int bit_depth_C)
 {
   // chroma sample interpolation process (8.5.3.2.2.2)
@@ -227,7 +227,7 @@ void mc_chroma(const base_context* ctx,
     pixel_t padbuf[(MAX_CU_SIZE+16)*(MAX_CU_SIZE+3)];
 
     const pixel_t* src_ptr;
-    int src_stride;
+    ptrdiff_t src_stride;
 
     int extra_top  = 1;
     int extra_left = 1;

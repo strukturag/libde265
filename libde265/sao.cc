@@ -28,8 +28,8 @@
 template <class pixel_t>
 void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
                         const slice_segment_header* shdr, int cIdx, int nSW,int nSH,
-                        const pixel_t* in_img,  int in_stride,
-                        /* */ pixel_t* out_img, int out_stride)
+                        const pixel_t* in_img,  ptrdiff_t in_stride,
+                        /* */ pixel_t* out_img, ptrdiff_t out_stride)
 {
   const sao_info* saoinfo = img->get_sao_info(xCtb,yCtb);
 
@@ -77,7 +77,7 @@ void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
 
   if (SaoTypeIdx==2) {
     int hPos[2], vPos[2];
-    int vPosStride[2]; // vPos[] multiplied by image stride
+    ptrdiff_t vPosStride[2]; // vPos[] multiplied by image stride
     int SaoEoClass = (saoinfo->SaoEoClass >> (2*cIdx)) & 0x3;
 
     switch (SaoEoClass) {
@@ -266,8 +266,8 @@ void apply_sao_internal(de265_image* img, int xCtb,int yCtb,
 template <class pixel_t>
 void apply_sao(de265_image* img, int xCtb,int yCtb,
                const slice_segment_header* shdr, int cIdx, int nSW,int nSH,
-               const pixel_t* in_img,  int in_stride,
-               /* */ pixel_t* out_img, int out_stride)
+               const pixel_t* in_img,  ptrdiff_t in_stride,
+               /* */ pixel_t* out_img, ptrdiff_t out_stride)
 {
   if (img->high_bit_depth(cIdx)) {
     apply_sao_internal<uint16_t>(img,xCtb,yCtb, shdr,cIdx,nSW,nSH,
@@ -332,8 +332,8 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
     return;
   }
 
-  int lumaImageSize   = img->get_image_stride(0) * img->get_height(0) * img->get_bytes_per_pixel(0);
-  int chromaImageSize = img->get_image_stride(1) * img->get_height(1) * img->get_bytes_per_pixel(1);
+  size_t lumaImageSize   = static_cast<size_t>(img->get_image_stride(0)) * img->get_height(0) * img->get_bytes_per_pixel(0);
+  size_t chromaImageSize = static_cast<size_t>(img->get_image_stride(1)) * img->get_height(1) * img->get_bytes_per_pixel(1);
 
   uint8_t* inputCopy = new uint8_t[ std::max(lumaImageSize, chromaImageSize) ];
   if (inputCopy == nullptr) {
@@ -347,10 +347,10 @@ void apply_sample_adaptive_offset_sequential(de265_image* img)
 
   for (int cIdx=0;cIdx<nChannels;cIdx++) {
 
-    int stride = img->get_image_stride(cIdx);
+    ptrdiff_t stride = img->get_image_stride(cIdx);
     int height = img->get_height(cIdx);
 
-    memcpy(inputCopy, img->get_image_plane(cIdx), stride * height * img->get_bytes_per_pixel(cIdx));
+    memcpy(inputCopy, img->get_image_plane(cIdx), static_cast<size_t>(stride) * height * img->get_bytes_per_pixel(cIdx));
 
     for (int yCtb=0; yCtb<sps.PicHeightInCtbsY; yCtb++)
       for (int xCtb=0; xCtb<sps.PicWidthInCtbsY; xCtb++)

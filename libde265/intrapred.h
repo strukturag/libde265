@@ -532,7 +532,7 @@ void intra_border_computer<pixel_t>::fill_from_image()
   assert(nT<=32);
 
   pixel_t* image;
-  int stride;
+  ptrdiff_t stride;
   image  = (pixel_t*)img->get_image_plane(cIdx);
   stride = img->get_image_stride(cIdx);
 

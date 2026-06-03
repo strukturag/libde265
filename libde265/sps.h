@@ -39,6 +39,13 @@ constexpr int MAX_NUM_LT_REF_PICS_SPS = 32;
 constexpr int MAX_PICTURE_WIDTH  = 65535;
 constexpr int MAX_PICTURE_HEIGHT = 65535;
 
+// pic_width/height_in_luma_samples are stored as uint16_t and PicSizeInSamplesY as uint32_t,
+// so these limits must keep width/height in 16 bits and their product in 32 bits.
+static_assert(MAX_PICTURE_WIDTH  <= 0xFFFF, "picture width must fit in uint16_t");
+static_assert(MAX_PICTURE_HEIGHT <= 0xFFFF, "picture height must fit in uint16_t");
+static_assert((uint64_t)MAX_PICTURE_WIDTH * MAX_PICTURE_HEIGHT <= 0xFFFFFFFFu,
+              "total luma sample count must fit in uint32_t");
+
 enum {
   CHROMA_MONO = 0,
   CHROMA_420 = 1,
@@ -111,8 +118,8 @@ public:
   uint8_t chroma_format_idc;          // [0;3]
 
   bool separate_colour_plane_flag;
-  int  pic_width_in_luma_samples;
-  int  pic_height_in_luma_samples;
+  uint16_t pic_width_in_luma_samples;   // <= MAX_PICTURE_WIDTH  (validated on parse)
+  uint16_t pic_height_in_luma_samples;  // <= MAX_PICTURE_HEIGHT (validated on parse)
   bool conformance_window_flag;
 
   int conf_win_left_offset;

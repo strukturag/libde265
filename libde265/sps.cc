@@ -570,7 +570,7 @@ de265_error seq_parameter_set::compute_derived_values(bool sanitize_values)
   PicHeightInCtbsY   = ceil_div(pic_height_in_luma_samples,CtbSizeY);
   PicSizeInMinCbsY   = PicWidthInMinCbsY * PicHeightInMinCbsY;
   PicSizeInCtbsY = PicWidthInCtbsY * PicHeightInCtbsY;
-  PicSizeInSamplesY = pic_width_in_luma_samples * pic_height_in_luma_samples;
+  PicSizeInSamplesY = static_cast<uint32_t>(pic_width_in_luma_samples) * pic_height_in_luma_samples;
 
   if (chroma_format_idc==0 || separate_colour_plane_flag) {
     CtbWidthC  = 0;
@@ -1325,7 +1325,7 @@ de265_error seq_parameter_set::write(error_queue* errqueue, CABAC_encoder& out)
   PicHeightInCtbsY   = ceil_div(pic_height_in_luma_samples,CtbSizeY);
   PicSizeInMinCbsY   = PicWidthInMinCbsY * PicHeightInMinCbsY;
   PicSizeInCtbsY = PicWidthInCtbsY * PicHeightInCtbsY;
-  PicSizeInSamplesY = pic_width_in_luma_samples * pic_height_in_luma_samples;
+  PicSizeInSamplesY = static_cast<uint32_t>(pic_width_in_luma_samples) * pic_height_in_luma_samples;
   if (chroma_format_idc==0 || separate_colour_plane_flag) {
     CtbWidthC  = 0;
     CtbHeightC = 0;

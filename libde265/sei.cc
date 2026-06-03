@@ -99,7 +99,7 @@ static void dump_sei_decoded_picture_hash(const sei_message* sei,
 class raw_hash_data
 {
 public:
-  raw_hash_data(int w, int stride);
+  raw_hash_data(int w, ptrdiff_t stride);
   ~raw_hash_data();
 
   struct data_chunk {
@@ -111,13 +111,14 @@ public:
   data_chunk prepare_16bit(const uint8_t* data,int y);
 
 private:
-  int mWidth, mStride;
+  int mWidth;
+  ptrdiff_t mStride;
 
   uint8_t* mMem;
 };
 
 
-raw_hash_data::raw_hash_data(int w, int stride)
+raw_hash_data::raw_hash_data(int w, ptrdiff_t stride)
 {
   mWidth=w;
   mStride=stride;
@@ -157,7 +158,7 @@ raw_hash_data::data_chunk raw_hash_data::prepare_16bit(const uint8_t* data,int y
 }
 
 
-static uint32_t compute_checksum(uint8_t* data,int w,int h,int stride, int bit_depth)
+static uint32_t compute_checksum(uint8_t* data,int w,int h,ptrdiff_t stride, int bit_depth)
 {
   uint32_t sum = 0;
 
@@ -170,7 +171,7 @@ static uint32_t compute_checksum(uint8_t* data,int w,int h,int stride, int bit_d
   }
   else {
     auto* data16 = reinterpret_cast<uint16_t*>(data);
-    int stride16 = stride / 2;
+    ptrdiff_t stride16 = stride / 2;
     for (int y=0; y<h; y++)
       for(int x=0; x<w; x++) {
         uint8_t xorMask = ( x & 0xFF ) ^ ( y & 0xFF ) ^ ( x  >>  8 ) ^ ( y  >>  8 );
@@ -224,7 +225,7 @@ static inline uint16_t crc_process_byte_parallel(uint16_t crc, uint8_t byte)
 	   (t << 12)) & 0xFFFF;
 }
 
-static uint32_t compute_CRC_8bit_fast(const uint8_t* data,int w,int h,int stride, int bit_depth)
+static uint32_t compute_CRC_8bit_fast(const uint8_t* data,int w,int h,ptrdiff_t stride, int bit_depth)
 {
   raw_hash_data raw_data(w,stride);
 
@@ -250,7 +251,7 @@ static uint32_t compute_CRC_8bit_fast(const uint8_t* data,int w,int h,int stride
 }
 
 
-static void compute_MD5(uint8_t* data,int w,int h,int stride, uint8_t* result, int bit_depth)
+static void compute_MD5(uint8_t* data,int w,int h,ptrdiff_t stride, uint8_t* result, int bit_depth)
 {
   MD5_CTX md5;
   MD5_Init(&md5);
@@ -289,7 +290,8 @@ static de265_error process_sei_decoded_picture_hash(const sei_message* sei, de26
   int nHashes = img->get_sps().chroma_format_idc==0 ? 1 : 3;
   for (int i=0;i<nHashes;i++) {
     uint8_t* data;
-    int w,h,stride;
+    int w,h;
+    ptrdiff_t stride;
 
     w = img->get_width(i);
     h = img->get_height(i);

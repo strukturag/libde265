@@ -184,7 +184,7 @@ de265_image_allocation de265_image::default_image_allocation = {
 };
 
 
-void de265_image::set_image_plane(int cIdx, uint8_t* mem, int stride, void *userdata)
+void de265_image::set_image_plane(int cIdx, uint8_t* mem, ptrdiff_t stride, void *userdata)
 {
   pixels[cIdx] = mem;
   plane_user_data[cIdx] = userdata;
