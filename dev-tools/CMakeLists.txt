@@ -12,7 +12,7 @@ set(gen-enc-table_SOURCES gen-entropy-table.cc)
 set(yuv-distortion_SOURCES yuv-distortion.cc)
 set(rd-curves_SOURCES rd-curves.cc)
 set(block-rate-estim_SOURCES block-rate-estim.cc)
-set(tests_SOURCES tests.cc test-add-residual.cc test-intrapred.cc test-transform.cc test-dequant.cc)
+set(tests_SOURCES tests.cc test-add-residual.cc test-intrapred.cc test-transform.cc test-dequant.cc test-deblk.cc)
 set(bjoentegaard_SOURCES bjoentegaard.cc)
 set(mt-decode-test_SOURCES mt-decode-test.cc)
 

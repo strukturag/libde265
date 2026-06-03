@@ -180,6 +180,12 @@ struct acceleration_functions
                               const int16_t* coeffPos, int nCoeff,
                               int32_t fact, int32_t offset, int32_t bdShift);
 
+  // --- deblocking (8 bit; one 4-line edge segment) ---
+  void (*deblock_luma_8)(uint8_t* ptr, ptrdiff_t stride, int vertical,
+                         int dE, int dEp, int dEq, int tc, int filterP, int filterQ);
+  void (*deblock_chroma_8)(uint8_t* ptr, ptrdiff_t stride, int vertical,
+                           int tc, int filterP, int filterQ);
+
   void (*rdpcm_v)(int32_t* residual, const int16_t* coeffs, int nT,int tsShift,int bdShift);
   void (*rdpcm_h)(int32_t* residual, const int16_t* coeffs, int nT,int tsShift,int bdShift);
 

@@ -22,6 +22,7 @@
 #include "fallback-motion.h"
 #include "fallback-dct.h"
 #include "fallback-intrapred.h"
+#include "fallback-deblk.h"
 
 
 void init_acceleration_functions_fallback(struct acceleration_functions* accel)
@@ -133,4 +134,7 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->intra_pred_planar_16 = intra_pred_planar_fallback<uint16_t>;
   accel->intra_pred_angular_8  = intra_pred_angular_fallback<uint8_t>;
   accel->intra_pred_angular_16 = intra_pred_angular_fallback<uint16_t>;
+
+  accel->deblock_luma_8   = deblock_luma_8_fallback;
+  accel->deblock_chroma_8 = deblock_chroma_8_fallback;
 }

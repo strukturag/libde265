@@ -26,6 +26,7 @@
 #include "x86/sse-motion.h"
 #include "x86/sse-dct.h"
 #include "x86/sse-intrapred.h"
+#include "x86/sse-deblk.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -125,6 +126,10 @@ void init_acceleration_functions_sse(struct acceleration_functions* accel)
     accel->intra_pred_dc_8      = intra_pred_dc_8_sse4;
     accel->intra_pred_planar_8  = intra_pred_planar_8_sse4;
     accel->intra_pred_angular_8 = intra_pred_angular_8_sse4;
+
+    accel->deblock_luma_8   = deblock_luma_8_sse4;
+    // chroma deblock stays on the scalar fallback: the filter is too cheap to
+    // amortize the SIMD load/transpose/scatter overhead (SSE measured slower).
   }
 #endif
 }

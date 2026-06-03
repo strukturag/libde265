@@ -10,6 +10,7 @@ set (libde265_sources
   decctx.cc
   dpb.cc
   fallback-dct.cc
+  fallback-deblk.cc
   fallback-intrapred.cc
   fallback-motion.cc
   fallback.cc

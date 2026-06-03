@@ -22,6 +22,8 @@
 #include "util.h"
 #include "transform.h"
 #include "de265.h"
+#include "decctx.h"
+#include "fallback-deblk.h"
 
 #include <assert.h>
 
@@ -589,109 +591,13 @@ void edge_filtering_luma_internal(de265_image* img, bool vertical,
             if (img->get_cu_transquant_bypass(xDi,yDi)) filterQ=false;
           }
 
-          for (int k=0;k<4;k++) {
-            //int nDp,nDq;
-
-            logtrace(LogDeblock,"line:%d\n",k);
-
-            const pixel_t p0 = p[k][0];
-            const pixel_t p1 = p[k][1];
-            const pixel_t p2 = p[k][2];
-            const pixel_t p3 = p[k][3];
-            const pixel_t q0 = q[k][0];
-            const pixel_t q1 = q[k][1];
-            const pixel_t q2 = q[k][2];
-            const pixel_t q3 = q[k][3];
-
-            if (dE==2) {
-              // strong filtering
-
-              //nDp=nDq=3;
-
-              pixel_t pnew[3],qnew[3];
-              pnew[0] = Clip3(p0-2*tc,p0+2*tc, (p2 + 2*p1 + 2*p0 + 2*q0 + q1 +4)>>3);
-              pnew[1] = Clip3(p1-2*tc,p1+2*tc, (p2 + p1 + p0 + q0+2)>>2);
-              pnew[2] = Clip3(p2-2*tc,p2+2*tc, (2*p3 + 3*p2 + p1 + p0 + q0 + 4)>>3);
-              qnew[0] = Clip3(q0-2*tc,q0+2*tc, (p1+2*p0+2*q0+2*q1+q2+4)>>3);
-              qnew[1] = Clip3(q1-2*tc,q1+2*tc, (p0+q0+q1+q2+2)>>2);
-              qnew[2] = Clip3(q2-2*tc,q2+2*tc, (p0+q0+q1+3*q2+2*q3+4)>>3);
-
-              logtrace(LogDeblock,"strong filtering\n");
-
-              if (vertical) {
-                for (int i=0;i<3;i++) {
-                  if (filterP) { ptr[-i-1+k*stride] = pnew[i]; }
-                  if (filterQ) { ptr[ i + k*stride] = qnew[i]; }
-                }
-
-                // ptr[-1+k*stride] = ptr[ 0+k*stride] = 200;
-              }
-              else {
-                for (int i=0;i<3;i++) {
-                  if (filterP) { ptr[ k -(i+1)*stride] = pnew[i]; }
-                  if (filterQ) { ptr[ k + i   *stride] = qnew[i]; }
-                }
-              }
-            }
-            else {
-              // weak filtering
-
-              //nDp=nDq=0;
-
-              int delta = (9*(q0-p0) - 3*(q1-p1) + 8)>>4;
-              logtrace(LogDeblock,"delta=%d, tc=%d\n",delta,tc);
-
-              if (std::abs(delta) < tc*10) {
-
-                delta = Clip3(-tc,tc,delta);
-                logtrace(LogDeblock," deblk + %d;%d [%02x->%02x]  - %d;%d [%02x->%02x] delta:%d\n",
-                         vertical ? xDi-1 : xDi+k,
-                         vertical ? yDi+k : yDi-1, p0,Clip_BitDepth(p0+delta, bitDepth_Y),
-                         vertical ? xDi   : xDi+k,
-                         vertical ? yDi+k : yDi,   q0,Clip_BitDepth(q0-delta, bitDepth_Y),
-                         delta);
-
-                if (vertical) {
-                  if (filterP) { ptr[-0-1+k*stride] = Clip_BitDepth(p0+delta, bitDepth_Y); }
-                  if (filterQ) { ptr[ 0  +k*stride] = Clip_BitDepth(q0-delta, bitDepth_Y); }
-                }
-                else {
-                  if (filterP) { ptr[ k -1*stride] = Clip_BitDepth(p0+delta, bitDepth_Y); }
-                  if (filterQ) { ptr[ k +0*stride] = Clip_BitDepth(q0-delta, bitDepth_Y); }
-                }
-
-                //ptr[ 0+k*stride] = 200;
-
-                if (dEp==1 && filterP) {
-                  int delta_p = Clip3(-(tc>>1), tc>>1, (((p2+p0+1)>>1)-p1+delta)>>1);
-
-                  logtrace(LogDeblock," deblk dEp %d;%d delta:%d\n",
-                           vertical ? xDi-2 : xDi+k,
-                           vertical ? yDi+k : yDi-2,
-                           delta_p);
-
-                  if (vertical) { ptr[-1-1+k*stride] = Clip_BitDepth(p1+delta_p, bitDepth_Y); }
-                  else          { ptr[ k  -2*stride] = Clip_BitDepth(p1+delta_p, bitDepth_Y); }
-                }
-
-                if (dEq==1 && filterQ) {
-                  int delta_q = Clip3(-(tc>>1), tc>>1, (((q2+q0+1)>>1)-q1-delta)>>1);
-
-                  logtrace(LogDeblock," delkb dEq %d;%d delta:%d\n",
-                           vertical ? xDi+1 : xDi+k,
-                           vertical ? yDi+k : yDi+1,
-                           delta_q);
-
-                  if (vertical) { ptr[ 1  +k*stride] = Clip_BitDepth(q1+delta_q, bitDepth_Y); }
-                  else          { ptr[ k  +1*stride] = Clip_BitDepth(q1+delta_q, bitDepth_Y); }
-                }
-
-                //nDp = dEp+1;
-                //nDq = dEq+1;
-
-                //logtrace(LogDeblock,"weak filtering (%d:%d)\n",nDp,nDq);
-              }
-            }
+          if constexpr (sizeof(pixel_t)==1) {
+            img->decctx->acceleration.deblock_luma_8((uint8_t*)ptr, stride, vertical,
+                                                     dE,dEp,dEq,tc, filterP,filterQ);
+          }
+          else {
+            deblock_luma_kernel<pixel_t>(ptr, stride, vertical,
+                                         dE,dEp,dEq,tc, filterP,filterQ, bitDepth_Y);
           }
         }
       }
@@ -770,23 +676,6 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
 
           pixel_t* ptr = img->get_image_plane_at_pos_NEW<pixel_t>(cplane+1, xDi,yDi);
 
-          pixel_t p[2][4];
-          pixel_t q[2][4];
-
-          logtrace(LogDeblock,"-%s- %d %d\n",cplane==0 ? "Cb" : "Cr",xDi,yDi);
-
-          for (int i=0;i<2;i++)
-            for (int k=0;k<4;k++)
-              {
-                if (vertical) {
-                  q[i][k] = ptr[ i  +k*stride];
-                  p[i][k] = ptr[-i-1+k*stride];
-                }
-                else {
-                  q[i][k] = ptr[k + i   *stride];
-                  p[i][k] = ptr[k -(i+1)*stride];
-                }
-              }
 
 #if 0
           for (int k=0;k<4;k++)
@@ -843,11 +732,11 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
             if (img->get_cu_transquant_bypass(SubWidthC*xDi,SubHeightC*yDi)) filterQ=false;
 
 
-            for (int k=0;k<4;k++) {
-              int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])*4)+p[1][k]-q[1][k]+4)>>3)); // standard says <<2 in eq. (8-356), but the value can also be negative
-              logtrace(LogDeblock,"delta=%d\n",delta);
-              if (filterP) { ptr[-1+k*stride] = Clip_BitDepth(p[0][k]+delta, bitDepth_C); }
-              if (filterQ) { ptr[ 0+k*stride] = Clip_BitDepth(q[0][k]-delta, bitDepth_C); }
+            if constexpr (sizeof(pixel_t)==1) {
+              img->decctx->acceleration.deblock_chroma_8((uint8_t*)ptr, stride, 1, tc, filterP,filterQ);
+            }
+            else {
+              deblock_chroma_kernel<pixel_t>(ptr, stride, true, tc, filterP,filterQ, bitDepth_C);
             }
           }
           else {
@@ -859,10 +748,11 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
             if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(SubWidthC*xDi,SubHeightC*yDi)) filterQ=false;
             if (img->get_cu_transquant_bypass(SubWidthC*xDi,SubHeightC*yDi)) filterQ=false;
 
-            for (int k=0;k<4;k++) {
-              int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])*4)+p[1][k]-q[1][k]+4)>>3)); // standard says <<2, but the value can also be negative
-              if (filterP) { ptr[ k-1*stride] = Clip_BitDepth(p[0][k]+delta, bitDepth_C); }
-              if (filterQ) { ptr[ k+0*stride] = Clip_BitDepth(q[0][k]-delta, bitDepth_C); }
+            if constexpr (sizeof(pixel_t)==1) {
+              img->decctx->acceleration.deblock_chroma_8((uint8_t*)ptr, stride, 0, tc, filterP,filterQ);
+            }
+            else {
+              deblock_chroma_kernel<pixel_t>(ptr, stride, false, tc, filterP,filterQ, bitDepth_C);
             }
           }
         }

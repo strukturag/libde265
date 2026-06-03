@@ -4,6 +4,7 @@ set (x86_sources
 
 set (x86_sse_sources
   sse-motion.cc sse-motion.h sse-dct.h sse-dct.cc sse-intrapred.h sse-intrapred.cc
+  sse-deblk.h sse-deblk.cc
 )
 
 set (x86_avx2_sources
