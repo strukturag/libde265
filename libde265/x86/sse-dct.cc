@@ -2909,6 +2909,13 @@ void ff_hevc_transform_16x16_add_10_sse4(uint8_t *_dst, const int16_t *coeffs,
 
 
 #if HAVE_SSE4_1
+// All m128iS0..m128iS31 are unconditionally loaded at function entry before any
+// use, but GCC's path analysis gives up inside this very large inlined function
+// and emits spurious -Wmaybe-uninitialized warnings for them. Suppress them here.
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 void ff_hevc_transform_32x32_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
         ptrdiff_t _stride) {
     uint8_t shift_2nd = 12; // 20 - Bit depth
@@ -5197,6 +5204,9 @@ void ff_hevc_transform_32x32_add_8_sse4(uint8_t *_dst, const int16_t *coeffs,
         }
     }
 }
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 #endif
 
 
