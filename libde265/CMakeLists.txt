@@ -90,6 +90,13 @@ endif()
 
 add_definitions(-DLIBDE265_EXPORTS)
 
+# With hidden default visibility, LIBDE265_API must expand to
+# visibility("default") so the public C API stays exported. de265.h gates that
+# on HAVE_VISIBILITY (see the symbol-visibility block in the top CMakeLists).
+if(ENABLE_REDUCED_VISIBILITY)
+  add_definitions(-DHAVE_VISIBILITY)
+endif()
+
 if (ENABLE_ENCODER)
   add_subdirectory (encoder)
   list(APPEND libde265_sources en265.cc)
