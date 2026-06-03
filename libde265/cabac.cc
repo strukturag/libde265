@@ -158,8 +158,99 @@ void CABAC_decoder::init_CABAC()
 }
 
 
+#if defined(__x86_64__) && defined(__GNUC__) && !defined(DE265_LOG_TRACE)
+#define DE265_CABAC_ASM_X86_64 1
+// Combined state-transition table (folds the MPS-flip at state 0), indexed by
+// the packed context byte (state*2+MPSbit) for MPS and (packed ^ 0xFF) for LPS.
+static const uint8_t cabac_transition[256] =
+  {
+      2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17,
+     18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,
+     34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+     50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65,
+     66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81,
+     82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97,
+     98, 99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,
+    114,115,116,117,118,119,120,121,122,123,124,125,124,125,126,127,
+    127,126, 77, 76, 77, 76, 75, 74, 75, 74, 75, 74, 73, 72, 73, 72,
+     73, 72, 71, 70, 71, 70, 71, 70, 69, 68, 69, 68, 67, 66, 67, 66,
+     67, 66, 65, 64, 65, 64, 63, 62, 61, 60, 61, 60, 61, 60, 59, 58,
+     59, 58, 57, 56, 55, 54, 55, 54, 53, 52, 53, 52, 51, 50, 49, 48,
+     49, 48, 47, 46, 45, 44, 45, 44, 43, 42, 43, 42, 39, 38, 39, 38,
+     37, 36, 37, 36, 33, 32, 33, 32, 31, 30, 31, 30, 27, 26, 27, 26,
+     25, 24, 23, 22, 23, 22, 19, 18, 19, 18, 17, 16, 15, 14, 13, 12,
+     11, 10,  9,  8,  9,  8,  5,  4,  5,  4,  3,  2,  1,  0,  0,  1,
+  };
+#endif
+
 int  CABAC_decoder::decode_bit(context_model* model)
 {
+#ifdef DE265_CABAC_ASM_X86_64
+  // x86-64 branchless arithmetic decoder. Bit-identical to the C fallback below.
+  uint32_t range_l = range, value_l = value;
+  int      bn_l    = bits_needed;
+  uint8_t* curr_l = bitstream_curr;
+  uint8_t* sp = reinterpret_cast<uint8_t*>(model);
+  int bit_l;
+
+  __asm__ (
+    "movzbl (%[sp]), %%eax            \n\t" // eax = b (state*2 + MPS)
+    "mov    %[range], %%ecx           \n\t"
+    "shr    $6, %%ecx                 \n\t"
+    "sub    $4, %%ecx                 \n\t" // ecx = (range>>6)-4
+    "mov    %%eax, %%edx              \n\t"
+    "shr    $1, %%edx                 \n\t" // edx = state
+    "lea    (%%rcx,%%rdx,4), %%rcx    \n\t" // rcx = state*4 + ridx
+    "movzbl (%[lps],%%rcx,1), %%edx   \n\t" // edx = RangeLPS
+    "sub    %%edx, %[range]           \n\t" // range = range - RangeLPS (MPS range)
+    "mov    %[range], %%r8d           \n\t"
+    "shl    $7, %%r8d                 \n\t" // r8d = scaled_range
+    "mov    %[value], %%r9d           \n\t"
+    "sub    %%r8d, %%r9d              \n\t"
+    "sar    $31, %%r9d                \n\t" // r9d = mps_mask (-1 if MPS)
+    "not    %%r9d                     \n\t" // r9d = lps_mask (-1 if LPS)
+    "mov    %%r8d, %%r10d             \n\t"
+    "and    %%r9d, %%r10d             \n\t"
+    "sub    %%r10d, %[value]          \n\t" // value -= scaled & lps_mask
+    "mov    %%edx, %%r10d             \n\t" // RangeLPS
+    "sub    %[range], %%r10d          \n\t"
+    "and    %%r9d, %%r10d             \n\t"
+    "add    %%r10d, %[range]          \n\t" // range = RangeLPS if LPS, else unchanged
+    "and    $0xFF, %%r9d              \n\t"
+    "xor    %%r9d, %%eax              \n\t" // eax = idx
+    "mov    %%eax, %[bit]             \n\t"
+    "and    $1, %[bit]                \n\t" // bit = idx & 1
+    "movzbl (%[trans],%%rax,1), %%edx \n\t"
+    "mov    %%dl, (%[sp])             \n\t" // *sp = cabac_transition[idx]
+    "bsr    %[range], %%ecx           \n\t" // ecx = MSB index
+    "mov    $8, %%edx                 \n\t"
+    "sub    %%ecx, %%edx              \n\t" // edx = renorm shift = 8 - bsr
+    "mov    %%edx, %%ecx              \n\t"
+    "shl    %%cl, %[value]            \n\t"
+    "shl    %%cl, %[range]            \n\t"
+    "add    %%edx, %[bn]              \n\t" // bits_needed += shift
+    "test   %[bn], %[bn]              \n\t"
+    "js     1f                        \n\t" // bits_needed < 0: no refill
+    "cmp    %[end], %[curr]           \n\t"
+    "jae    2f                        \n\t" // curr >= end: no read
+    "movzbl (%[curr]), %%eax          \n\t"
+    "mov    %[bn], %%ecx              \n\t"
+    "shl    %%cl, %%eax              \n\t"
+    "or     %%eax, %[value]           \n\t" // value |= (*curr) << bits_needed
+    "inc    %[curr]                   \n\t"
+    "2:                               \n\t"
+    "sub    $8, %[bn]                 \n\t"
+    "1:                               \n\t"
+    : [range]"+r"(range_l), [value]"+r"(value_l), [bn]"+r"(bn_l),
+      [curr]"+r"(curr_l), [bit]"=&r"(bit_l)
+    : [sp]"r"(sp), [end]"r"(bitstream_end),
+      [lps]"r"(&LPS_table[0][0]), [trans]"r"(cabac_transition)
+    : "rax","rcx","rdx","r8","r9","r10","cc","memory"
+  );
+
+  range = range_l; value = value_l; bits_needed = (int16_t)bn_l; bitstream_curr = curr_l;
+  return bit_l;
+#else
   logtrace(LogCABAC,"[%3d] decodeBin r:%x v:%x state:%d\n",logcnt,range, value, model->state);
 
   int decoded_bit;
@@ -237,6 +328,7 @@ int  CABAC_decoder::decode_bit(context_model* model)
 #endif
 
   return decoded_bit;
+#endif
 }
 
 int  CABAC_decoder::decode_term_bit()
