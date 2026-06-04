@@ -40,7 +40,8 @@ extern "C" {
   #else
   #define LIBDE265_API __declspec(dllimport)
   #endif
-#elif HAVE_VISIBILITY
+#elif (defined(__GNUC__) || defined(__clang__)) && HAVE_VISIBILITY
+  // GCC-style visibility attributes
   #ifdef LIBDE265_EXPORTS
   #define LIBDE265_API __attribute__((__visibility__("default")))
   #else
