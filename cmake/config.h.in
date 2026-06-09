@@ -8,3 +8,4 @@
 #cmakedefine HAVE_ARM32 1
 #cmakedefine HAVE_ARM64 1
 #cmakedefine HAVE_NEON 1
+#cmakedefine HAVE_RISCV 1

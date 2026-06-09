@@ -78,58 +78,75 @@ option(ENABLE_AVX2 "Enable AVX2 kernels on x86 (in addition to SSE)" ON)
 option(ENABLE_AVX512 "Enable AVX-512 kernels on x86 (in addition to AVX2)" ON)
 
 include(CheckCSourceCompiles)
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" DE265_SYSTEM_PROCESSOR)
+set(HAVE_RISCV FALSE)
+if(DE265_SYSTEM_PROCESSOR MATCHES "^(riscv|rv32|rv64)")
+  set(HAVE_RISCV TRUE)
+else()
+  check_c_source_compiles(
+    "#if !defined(__riscv)
+    #error not RISC-V
+    #endif
+    int main(){return 0;}"
+    HAVE_RISCV)
+endif()
+
 if(ENABLE_SIMD)
-  check_c_source_compiles(
-    "#if !defined(__x86_64) && !defined(__i386__) \
-    && !defined(_M_IX86) && !defined(_M_AMD64) \
-    || defined(_M_ARM64EC) || defined(_ARM64EC_)
-    #error not x86
-    #endif
-    int main(){return 0;}"
-    HAVE_X86)
+  if(HAVE_RISCV)
+    message(STATUS "RISC-V target detected; using scalar fallback only")
+  else()
+    check_c_source_compiles(
+      "#if !defined(__x86_64) && !defined(__i386__) \
+      && !defined(_M_IX86) && !defined(_M_AMD64) \
+      || defined(_M_ARM64EC) || defined(_ARM64EC_)
+      #error not x86
+      #endif
+      int main(){return 0;}"
+      HAVE_X86)
 
-  if(HAVE_X86)
-    if (MSVC)
-      set(SUPPORTS_SSE2 1)
-      set(SUPPORTS_SSSE3 1)
-      set(SUPPORTS_SSE4_1 1)
-    else()
-      check_c_compiler_flag(-msse2 SUPPORTS_SSE2)
-      check_c_compiler_flag(-mssse3 SUPPORTS_SSSE3)
-      check_c_compiler_flag(-msse4.1 SUPPORTS_SSE4_1)
-      check_c_compiler_flag(-mavx2 SUPPORTS_AVX2)
-      check_c_compiler_flag("-mavx512f -mavx512bw" SUPPORTS_AVX512)
+    if(HAVE_X86)
+      if (MSVC)
+        set(SUPPORTS_SSE2 1)
+        set(SUPPORTS_SSSE3 1)
+        set(SUPPORTS_SSE4_1 1)
+      else()
+        check_c_compiler_flag(-msse2 SUPPORTS_SSE2)
+        check_c_compiler_flag(-mssse3 SUPPORTS_SSSE3)
+        check_c_compiler_flag(-msse4.1 SUPPORTS_SSE4_1)
+        check_c_compiler_flag(-mavx2 SUPPORTS_AVX2)
+        check_c_compiler_flag("-mavx512f -mavx512bw" SUPPORTS_AVX512)
+      endif()
+      if(SUPPORTS_SSE4_1)
+        set(HAVE_SSE4_1 TRUE)
+      endif()
+      # AVX2 kernels back the SSE4.1 ones; only built on 64-bit targets.
+      if(ENABLE_AVX2 AND SUPPORTS_AVX2 AND HAVE_SSE4_1 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(HAVE_AVX2 TRUE)
+      endif()
+      # AVX-512 (F+BW) kernels back the AVX2 ones.
+      if(ENABLE_AVX512 AND SUPPORTS_AVX512 AND HAVE_AVX2)
+        set(HAVE_AVX512 TRUE)
+      endif()
     endif()
-    if(SUPPORTS_SSE4_1)
-      set(HAVE_SSE4_1 TRUE)
-    endif()
-    # AVX2 kernels back the SSE4.1 ones; only built on 64-bit targets.
-    if(ENABLE_AVX2 AND SUPPORTS_AVX2 AND HAVE_SSE4_1 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
-      set(HAVE_AVX2 TRUE)
-    endif()
-    # AVX-512 (F+BW) kernels back the AVX2 ones.
-    if(ENABLE_AVX512 AND SUPPORTS_AVX512 AND HAVE_AVX2)
-      set(HAVE_AVX512 TRUE)
-    endif()
-  endif()
 
-  check_c_source_compiles(
-    "#if !defined(__arm__) && !defined(_M_ARM)
-    #error not 32-bit ARM
-    #endif
-    int main(){return 0;}"
-    HAVE_ARM32)
+    check_c_source_compiles(
+      "#if !defined(__arm__) && !defined(_M_ARM)
+      #error not 32-bit ARM
+      #endif
+      int main(){return 0;}"
+      HAVE_ARM32)
 
-  check_c_source_compiles(
-    "#if !defined(__aarch64__) && !defined(_M_ARM64)
-    #error not 64-bit ARM
-    #endif
-    int main(){return 0;}"
-    HAVE_ARM64)
+    check_c_source_compiles(
+      "#if !defined(__aarch64__) && !defined(_M_ARM64)
+      #error not 64-bit ARM
+      #endif
+      int main(){return 0;}"
+      HAVE_ARM64)
 
-  if(HAVE_ARM32)
-    enable_language(ASM)
-    check_c_compiler_flag(-mfpu=neon HAVE_NEON)
+    if(HAVE_ARM32)
+      enable_language(ASM)
+      check_c_compiler_flag(-mfpu=neon HAVE_NEON)
+    endif()
   endif()
 else()
   message(STATUS "SIMD acceleration disabled (ENABLE_SIMD=OFF) — using scalar fallback only")
