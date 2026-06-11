@@ -2,6 +2,8 @@ name: lint
 
 on: [push, pull_request]
 
+permissions: read-all
+
 jobs:
   licensecheck:
     runs-on: ubuntu-latest
