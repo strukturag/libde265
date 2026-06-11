@@ -2,6 +2,9 @@ name: osx
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     strategy:
