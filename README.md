@@ -150,7 +150,7 @@ Libde265 has been integrated into these applications:
 
 ## Packaging status
 
-[![libde265 packaging status](https://repology.org/badge/vertical-allrepos/libde265.svg?exclude_unsupported=1&columns=3&exclude_sources=modules,site&header=libde265%20packaging%20status)](https://repology.org/project/libheif/versions)
+[![libde265 packaging status](https://repology.org/badge/vertical-allrepos/libde265.svg?exclude_unsupported=1&columns=3&exclude_sources=modules,site&header=libde265%20packaging%20status)](https://repology.org/project/libde265/versions)
 
 
 License
