@@ -4,6 +4,8 @@ on:
   push:
     branches: [ coverity ]
 
+permissions: read-all
+
 jobs:
   scan:
     runs-on: ubuntu-22.04
