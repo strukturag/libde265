@@ -3633,7 +3633,7 @@ int read_transform_unit(thread_context* tctx,
       }
 
       // CuQpDeltaVal shall be in [-(26 + QpBdOffsetY/2), 25 + QpBdOffsetY/2] (Sec. 7.4.9.10)
-      int maxCuQpDeltaAbs = 25 + tctx->img->get_sps().QpBdOffset_Y / 2;
+      int maxCuQpDeltaAbs = 26 + tctx->img->get_sps().QpBdOffset_Y / 2;
       if (cu_qp_delta_abs > maxCuQpDeltaAbs) {
         tctx->decctx->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
         return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
