@@ -388,7 +388,7 @@ de265_error read_sei(bitreader* reader, sei_message* sei, bool suffix, const seq
     {
       uint32_t byte = reader->get_bits(8);
 
-      if (MAX_SEI_SIZE - byte < payload_type) {
+      if (MAX_SEI_SIZE - byte < payload_size) {
         return DE265_ERROR_CANNOT_PROCESS_SEI;
       }
 
