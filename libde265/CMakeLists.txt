@@ -125,7 +125,7 @@ write_basic_package_version_file(libde265-config-version.cmake COMPATIBILITY Exa
 
 # --- debug output
 
-set(LOG_LEVELS error info debug trace)
+set(LOG_LEVELS none error info debug trace)
 set(DE265_LOG_LEVEL "error" CACHE STRING "Log level (${LOG_LEVELS})")
 
 set_property(CACHE DE265_LOG_LEVEL PROPERTY STRINGS ${LOG_LEVELS})
@@ -133,7 +133,10 @@ if (NOT DE265_LOG_LEVEL IN_LIST LOG_LEVELS)
     message(FATAL_ERROR "DE265_LOG_LEVEL has to be one of: ${LOG_LEVELS}")
 endif ()
 
-if (DE265_LOG_LEVEL MATCHES "error")
+if (DE265_LOG_LEVEL STREQUAL "none")
+    # No logging compiled in — all logerror/loginfo/etc. calls become no-op
+    # macros via the #else branches in libde265/util.h.
+elseif (DE265_LOG_LEVEL MATCHES "error")
     target_compile_definitions(de265 PRIVATE DE265_LOG_ERROR)
 elseif (DE265_LOG_LEVEL MATCHES "info")
     target_compile_definitions(de265 PRIVATE DE265_LOG_ERROR DE265_LOG_INFO)
