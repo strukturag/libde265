@@ -99,10 +99,15 @@ LIBDE265_CHECK_RESULT bool NAL_unit::append(const unsigned char* in_data, int n)
 
 bool LIBDE265_CHECK_RESULT NAL_unit::set_data(const unsigned char* in_data, int n)
 {
+  if (n < 0) {
+    return false;
+  }
   if (!resize(n)) {
     return false;
   }
-  memcpy(nal_data, in_data, n);
+  if (n > 0) {
+    memcpy(nal_data, in_data, n);
+  }
   data_size = n;
   return true;
 }
