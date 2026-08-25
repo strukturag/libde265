@@ -324,7 +324,8 @@ void transform_4x4_luma_add_8_fallback(uint8_t *dst, const int16_t *coeffs, ptrd
         sum += mat_8_357[j][i] * g[y][j];
       }
 
-      int out = Clip3(-32768,32767, (sum+rndH)>>postShift);
+      // no clipping to -32768;32767 required
+      int out = (sum+rndH)>>postShift;
 
       dst[y*stride+i] = Clip1_8bit(dst[y*stride+i] + out);
 
@@ -395,7 +396,9 @@ void transform_4x4_luma_add_16_fallback(uint16_t *dst, const int16_t *coeffs, pt
         sum += mat_8_357[j][i] * g[y][j];
       }
 
-      int out = Clip3(-32768,32767, (sum+rndH)>>postShift);
+      // no clipping to -32768;32767 required
+      // (at bit depth 16 the residual needs 17 bits and clipping breaks it)
+      int out = (sum+rndH)>>postShift;
 
       dst[y*stride+i] = Clip_BitDepth(dst[y*stride+i] + out, bit_depth);
 
