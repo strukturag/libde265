@@ -98,6 +98,7 @@ typedef enum {
   DE265_ERROR_UNSPECIFIED_DECODING_ERROR=18,
   DE265_ERROR_IMAGE_SIZE_EXCEEDS_SECURITY_LIMIT=19,
   DE265_ERROR_NAL_SIZE_EXCEEDS_SECURITY_LIMIT=20,
+  DE265_ERROR_INVALID_ARGUMENT=21,
 
   // --- errors that should become obsolete in later libde265 versions ---
 
@@ -266,6 +267,9 @@ LIBDE265_API void        de265_push_end_of_frame(de265_decoder_context*);
 /* Push a complete NAL unit without startcode into the decoder. The data must still
    contain all stuffing-bytes.
    This function only pushes data into the decoder, nothing will be decoded.
+   The NAL unit must at least contain the two-byte NAL unit header. A shorter
+   (or negative) length is rejected with DE265_ERROR_INVALID_ARGUMENT and nothing
+   is pushed.
 */
 LIBDE265_API de265_error de265_push_NAL(de265_decoder_context*, const void* data, int length,
                                         de265_PTS pts, void* user_data);

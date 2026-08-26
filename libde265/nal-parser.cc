@@ -92,7 +92,9 @@ LIBDE265_CHECK_RESULT bool NAL_unit::append(const unsigned char* in_data, int n)
   if (!resize(data_size + n)) {
     return false;
   }
-  memcpy(nal_data + data_size, in_data, n);
+  if (n > 0) {
+    memcpy(nal_data + data_size, in_data, n);
+  }
   data_size += n;
   return true;
 }
@@ -102,7 +104,9 @@ bool LIBDE265_CHECK_RESULT NAL_unit::set_data(const unsigned char* in_data, int 
   if (!resize(n)) {
     return false;
   }
-  memcpy(nal_data, in_data, n);
+  if (n > 0) {
+    memcpy(nal_data, in_data, n);
+  }
   data_size = n;
   return true;
 }
@@ -399,6 +403,14 @@ de265_error NAL_Parser::push_NAL(const unsigned char* data, int len,
 
   // Cannot use byte-stream input and NAL input at the same time.
   assert(pending_input_NAL == nullptr);
+
+  // A NAL unit must at least contain its two-byte header. Reject anything shorter
+  // (including a negative length) before touching any state: a zero-length unit
+  // would otherwise end up as a memcpy() with a NULL destination and, once queued,
+  // would fail header parsing in decode_NAL() and abort decoding of the stream.
+  if (len < 2) {
+    return DE265_ERROR_INVALID_ARGUMENT;
+  }
 
   end_of_frame = false;
 
