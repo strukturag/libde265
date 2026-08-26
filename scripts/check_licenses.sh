@@ -46,6 +46,7 @@ IGNORE_FILES=(
     'NEWS',
     'README.md',
     'SECURITY.md',
+    'funding-manifest-urls',
     'testdata/girlshy.h265',
     'fuzz-libfuzzer.sh',
     'fuzz-afl.sh'
