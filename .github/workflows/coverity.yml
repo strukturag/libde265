@@ -14,6 +14,8 @@ jobs:
       TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+      with:
+        persist-credentials: false
 
     - name: Cache Coverity build tool
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae #v5.0.5

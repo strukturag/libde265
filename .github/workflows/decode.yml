@@ -30,12 +30,15 @@ jobs:
     continue-on-error: true
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+      with:
+        persist-credentials: false
 
     - name: Checkout sample streams
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
       with:
         repository: strukturag/libde265-data
         path: libde265-data
+        persist-credentials: false
 
     - name: Install dependencies
       run: |
