@@ -42,6 +42,7 @@
 #endif
 #endif  // _WIN32
 
+#include <atomic>
 #include <mutex>
 #include <condition_variable>
 #include <thread>
@@ -56,10 +57,16 @@ public:
   void set_progress(int progress);
   void increase_progress(int progress);
   int  get_progress() const;
-  void reset(int value=0) { mProgress=value; }
+  void reset(int value=0) { mProgress.store(value, std::memory_order_release); }
 
 private:
-  int mProgress;
+  // Read lock-free on the fast paths of wait_for_progress()/get_progress()
+  // while written under 'mutex'. It must be atomic so those reads are not a
+  // data race, and it carries acquire/release ordering so that the state a
+  // producer wrote before signalling progress (e.g. the saved WPP row context)
+  // is published to a consumer that observes the progress value without taking
+  // the mutex (GHSA-xp3h-6f5r-8cxp).
+  std::atomic<int> mProgress;
 
   // private data
 

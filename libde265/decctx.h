@@ -37,6 +37,7 @@
 
 #include <array>
 #include <memory>
+#include <mutex>
 
 constexpr int DE265_MAX_VPS_SETS = 16;   // this is the maximum as defined in the standard
 constexpr int DE265_MAX_SPS_SETS = 16;   // this is the maximum as defined in the standard
@@ -268,6 +269,24 @@ public:
      Per HEVC RExt, this state must be carried across WPP CTB rows together
      with the CABAC context. */
   std::vector<std::array<uint8_t, 4>> StatCoeff_models;
+
+  /* Serializes the producer/consumer handoff of the saved WPP row state
+     (ctx_models[] together with StatCoeff_models[]).
+
+     Each context_model_table is a reference-counted handle whose model
+     pointer, refcnt pointer, and the referenced count are all mutated
+     together by copy construction, assignment, release(), and decouple().
+     In WPP mode the producer row task stores its context into ctx_models[row]
+     while the consumer row task below copies it out and releases the slot.
+     The progress-lock fast path does not provide an acquire/release barrier
+     around this compound object, so without an explicit lock the two tasks
+     can concurrently mutate the same ownership metadata, corrupting it and
+     causing use-after-free / double-free (GHSA-xp3h-6f5r-8cxp).
+
+     Holding this mutex across the whole copy/assign/release/decouple of a
+     row slot (on both the producer and consumer side) both excludes
+     concurrent mutation and publishes the writes to the other thread. */
+  std::mutex ctx_models_mutex;
 };
 
 

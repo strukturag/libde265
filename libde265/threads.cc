@@ -31,7 +31,7 @@
 
 de265_progress_lock::de265_progress_lock()
 {
-  mProgress = 0;
+  mProgress.store(0, std::memory_order_relaxed);
 }
 
 de265_progress_lock::~de265_progress_lock()
@@ -40,12 +40,15 @@ de265_progress_lock::~de265_progress_lock()
 
 void de265_progress_lock::wait_for_progress(int progress)
 {
-  if (mProgress >= progress) {
+  // Fast path: acquire-load pairs with the release-store in set_progress()/
+  // increase_progress() so that everything the signalling thread wrote before
+  // reaching this progress value is visible once we observe it here.
+  if (mProgress.load(std::memory_order_acquire) >= progress) {
     return;
   }
 
   std::unique_lock<std::mutex> lock(mutex);
-  while (mProgress < progress) {
+  while (mProgress.load(std::memory_order_acquire) < progress) {
     cond.wait(lock);
   }
 }
@@ -54,8 +57,8 @@ void de265_progress_lock::set_progress(int progress)
 {
   std::unique_lock<std::mutex> lock(mutex);
 
-  if (progress>mProgress) {
-    mProgress = progress;
+  if (progress > mProgress.load(std::memory_order_relaxed)) {
+    mProgress.store(progress, std::memory_order_release);
 
     cond.notify_all();
   }
@@ -65,13 +68,14 @@ void de265_progress_lock::increase_progress(int progress)
 {
   std::unique_lock<std::mutex> lock(mutex);
 
-  mProgress += progress;
+  mProgress.store(mProgress.load(std::memory_order_relaxed) + progress,
+                  std::memory_order_release);
   cond.notify_all();
 }
 
 int  de265_progress_lock::get_progress() const
 {
-  return mProgress;
+  return mProgress.load(std::memory_order_acquire);
 }
 
 
