@@ -202,6 +202,16 @@ void decoder_context::reset()
 
   img = nullptr;
 
+  // Drop the back-reference to the previous picture's slice header before the
+  // DPB is cleared below. dpb.clear() releases the images, which own and free
+  // their slice_segment_header structs (see de265_image::release()). Leaving
+  // previous_slice_header pointing into that freed storage lets a following
+  // dependent slice read from it (slice.cc: '*this = *ctx->previous_slice_header'),
+  // a heap-use-after-free. This mirrors the in-stream new-picture guard in
+  // read_slice_NAL(): only a slice header still retained by a live image may
+  // remain as previous_slice_header.
+  previous_slice_header = nullptr;
+
 
   // TODO: remove all pending image_units
 
