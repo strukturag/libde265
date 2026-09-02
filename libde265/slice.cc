@@ -4757,22 +4757,19 @@ enum DecodeResult decode_substream(thread_context* tctx,
       // we have to wait until the context model data is there
       tctx->img->wait_for_progress(tctx->task, 1, tctx->CtbY - 1,CTB_PROGRESS_PREFILTER);
 
-      // Copy CABAC model (and StatCoeff state) from the previous CTB row.
-      // The whole handoff of this row slot must be serialized against the
-      // producer that stores into the same slot, because context_model_table
-      // is a reference-counted handle whose ownership metadata is mutated as
-      // a unit by the copy/release below (GHSA-xp3h-6f5r-8cxp).
-      {
-        std::lock_guard<std::mutex> lock(tctx->imgunit->ctx_models_mutex);
+      // Copy the CABAC model (and StatCoeff state) saved by the row above.
+      // No lock is needed: the producer stores into ctx_models[CtbY-1] before
+      // it signals the progress of CTB (1, CtbY-1), and the acquire load in
+      // wait_for_progress() above pairs with that release store. The slot has
+      // exactly one producer and one consumer, and after the copy/release
+      // below nobody touches it again. See image_unit::ctx_models for why a
+      // consumer can never skip this wait.
+      tctx->ctx_model = tctx->imgunit->ctx_models[(tctx->CtbY - 1)];
+      tctx->imgunit->ctx_models[(tctx->CtbY - 1)].release(); // not used anymore
 
-        // copy CABAC model from previous CTB row
-        tctx->ctx_model = tctx->imgunit->ctx_models[(tctx->CtbY - 1)];
-        tctx->imgunit->ctx_models[(tctx->CtbY - 1)].release(); // not used anymore
-
-        // also restore the StatCoeff[] state for persistent_rice_adaptation
-        for (int i = 0; i < 4; i++) {
-          tctx->StatCoeff[i] = tctx->imgunit->StatCoeff_models[(tctx->CtbY - 1)][i];
-        }
+      // also restore the StatCoeff[] state for persistent_rice_adaptation
+      for (int i = 0; i < 4; i++) {
+        tctx->StatCoeff[i] = tctx->imgunit->StatCoeff_models[(tctx->CtbY - 1)][i];
       }
     }
     else {
@@ -4826,20 +4823,17 @@ enum DecodeResult decode_substream(thread_context* tctx,
       }
 
       // Store an independent copy of the CABAC model (and StatCoeff state) for
-      // the row below to pick up. Serialize the whole store against the
-      // consumer that copies/releases the same slot: context_model_table is a
-      // reference-counted handle whose ownership metadata is mutated as a unit
-      // by the assignment/decouple below (GHSA-xp3h-6f5r-8cxp).
-      {
-        std::lock_guard<std::mutex> lock(tctx->imgunit->ctx_models_mutex);
+      // the row below to pick up. This store must stay ahead of the
+      // set_progress(CTB_PROGRESS_PREFILTER) for this CTB further down: that
+      // release store publishes the slot to the consumer row task, which waits
+      // for CTB (1, ctby) with an acquire load before reading it. No lock is
+      // needed, see image_unit::ctx_models.
+      tctx->imgunit->ctx_models[ctby] = tctx->ctx_model;
+      tctx->imgunit->ctx_models[ctby].decouple(); // store an independent copy
 
-        tctx->imgunit->ctx_models[ctby] = tctx->ctx_model;
-        tctx->imgunit->ctx_models[ctby].decouple(); // store an independent copy
-
-        // also save the StatCoeff[] state for persistent_rice_adaptation
-        for (int i = 0; i < 4; i++) {
-          tctx->imgunit->StatCoeff_models[ctby][i] = tctx->StatCoeff[i];
-        }
+      // also save the StatCoeff[] state for persistent_rice_adaptation
+      for (int i = 0; i < 4; i++) {
+        tctx->imgunit->StatCoeff_models[ctby][i] = tctx->StatCoeff[i];
       }
     }
 

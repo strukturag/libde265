@@ -262,31 +262,26 @@ public:
 
   /* Saved context models for WPP.
      There is one saved model for the initialization of each CTB row.
-     The array is unused for non-WPP streams. */
+     The array is unused for non-WPP streams.
+
+     Threading: context_model_table is a reference-counted handle (model
+     pointer plus refcount pointer) that is not thread-safe, so each slot is
+     touched by exactly one producer and one consumer and never concurrently.
+     The row task of row N stores into ctx_models[N] after decoding CTB x=1
+     and only then signals CTB_PROGRESS_PREFILTER for that CTB; the row task
+     of row N+1 waits for that progress before it copies and releases the
+     slot. The acquire/release ordering of de265_progress_lock makes the
+     store visible to the consumer, so no lock is needed. This relies on the
+     wait never being skipped because of stale progress: slice segments must
+     arrive in increasing address order (slice_segment_order_is_valid()) and
+     decode_slice_unit_WPP() resets the progress of the rows it schedules
+     (GHSA-xp3h-6f5r-8cxp). */
   std::vector<context_model_table> ctx_models;  // TODO: move this into image ?
 
   /* Saved StatCoeff[] (persistent_rice_adaptation state) parallel to ctx_models.
      Per HEVC RExt, this state must be carried across WPP CTB rows together
      with the CABAC context. */
   std::vector<std::array<uint8_t, 4>> StatCoeff_models;
-
-  /* Serializes the producer/consumer handoff of the saved WPP row state
-     (ctx_models[] together with StatCoeff_models[]).
-
-     Each context_model_table is a reference-counted handle whose model
-     pointer, refcnt pointer, and the referenced count are all mutated
-     together by copy construction, assignment, release(), and decouple().
-     In WPP mode the producer row task stores its context into ctx_models[row]
-     while the consumer row task below copies it out and releases the slot.
-     The progress-lock fast path does not provide an acquire/release barrier
-     around this compound object, so without an explicit lock the two tasks
-     can concurrently mutate the same ownership metadata, corrupting it and
-     causing use-after-free / double-free (GHSA-xp3h-6f5r-8cxp).
-
-     Holding this mutex across the whole copy/assign/release/decouple of a
-     row slot (on both the producer and consumer side) both excludes
-     concurrent mutation and publishes the writes to the other thread. */
-  std::mutex ctx_models_mutex;
 };
 
 
