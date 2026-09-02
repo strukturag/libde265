@@ -32,6 +32,7 @@
 #include <string.h>
 #include <limits>
 #include <memory>
+#include <atomic>
 
 #include "libde265/de265.h"
 #include "libde265/sps.h"
@@ -427,7 +428,8 @@ public:
                                      void* userdata);
   */
 
-  uint8_t integrity = INTEGRITY_NOT_DECODED; /* Whether an error occurred while the image was decoded.
+  // Written from several worker threads on error paths, hence atomic.
+  std::atomic<uint8_t> integrity{INTEGRITY_NOT_DECODED}; /* Whether an error occurred while the image was decoded.
                                                 When generated, this is initialized to INTEGRITY_CORRECT,
                                                 and changed on decoding errors.
                                               */

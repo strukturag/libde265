@@ -185,6 +185,8 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "Rice parameter or StatCoeff out of range, clamped";
   case DE265_WARNING_MAX_NUMBER_OF_SEI_MESSAGES_EXCEEDED:
     return "number of SEI messages exceeds security limit, dropped";
+  case DE265_WARNING_SLICE_SEGMENT_ADDRESS_NOT_INCREASING:
+    return "slice segment address not increasing within picture, slice segment dropped";
 
   default: return "unknown error";
   }

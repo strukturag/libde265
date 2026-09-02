@@ -535,6 +535,12 @@ class decoder_context : public base_context {
   void add_task_decode_slice_segment(thread_context* tctx, bool firstSliceSubstream,
                                      uint16_t ctbX, uint16_t ctbY);
 
+  /* Check that the slice segment 'shdr' may be appended to 'imgunit', i.e. that
+     its first CTB follows the previous slice segment of the picture in tile-scan
+     order (H.265 7.4.2.4.5). Adds a warning and marks the image as faulty when
+     the slice segment has to be dropped. */
+  bool slice_segment_order_is_valid(image_unit* imgunit, const slice_segment_header* shdr);
+
   void mark_whole_slice_as_processed(image_unit* imgunit,
                                      slice_unit* sliceunit,
                                      int progress);

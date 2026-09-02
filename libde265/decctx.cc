@@ -450,6 +450,49 @@ de265_error decoder_context::read_eos_NAL(bitreader& reader)
   return DE265_OK;
 }
 
+bool decoder_context::slice_segment_order_is_valid(image_unit* imgunit,
+                                                   const slice_segment_header* shdr)
+{
+  // Nothing to compare against for the first slice segment of the picture.
+  if (imgunit->slice_units.empty() || imgunit->img == nullptr) {
+    return true;
+  }
+
+  de265_image* img = imgunit->img;
+  const pic_parameter_set& pps = img->get_pps();
+  if (!pps.scan) {
+    return true;
+  }
+
+  const std::vector<uint32_t>& RStoTS = pps.scan->CtbAddrRStoTS;
+
+  uint32_t prevAddr = imgunit->slice_units.back()->shdr->slice_segment_address;
+  uint32_t thisAddr = shdr->slice_segment_address;
+
+  if (prevAddr >= RStoTS.size() || thisAddr >= RStoTS.size()) {
+    add_warning(DE265_WARNING_SLICE_SEGMENT_ADDRESS_INVALID, false);
+    img->integrity = INTEGRITY_DECODING_ERRORS;
+    return false;
+  }
+
+  // H.265 7.4.2.4.5: the slice segments of a coded picture shall be ordered by
+  // increasing tile-scan address of their first CTB, and (7.4.7.1) no two slice
+  // segments of a picture share a slice_segment_address. A slice segment that
+  // repeats or goes back to an earlier address would re-decode CTBs that were
+  // already decoded. In WPP mode the progress of those CTBs is already marked
+  // as finished, so the row tasks of the offending slice segment would not wait
+  // for the row above and would race with each other on the CTB metadata and
+  // the reconstructed pixels. Drop such slice segments.
+  if (RStoTS[thisAddr] <= RStoTS[prevAddr]) {
+    add_warning(DE265_WARNING_SLICE_SEGMENT_ADDRESS_NOT_INCREASING, false);
+    img->integrity = INTEGRITY_DECODING_ERRORS;
+    return false;
+  }
+
+  return true;
+}
+
+
 de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, nal_header& nal_hdr)
 {
   logdebug(LogHeaders,"---> read slice segment header\n");
@@ -516,7 +559,8 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
 
   // --- add slice to current picture ---
 
-  if ( ! image_units.empty() ) {
+  if ( ! image_units.empty() &&
+       slice_segment_order_is_valid(image_units.back(), shdr) ) {
 
     // Hand the slice header to the picture (which takes ownership and frees it
     // on release). Only do this when there is an active image unit to decode
@@ -871,6 +915,24 @@ de265_error decoder_context::decode_slice_unit_WPP(image_unit* imgunit,
 
   if (ctbRow + nRows > img->get_sps().PicHeightInCtbsY) {
     return DE265_WARNING_SLICEHEADER_INVALID;
+  }
+
+  // Reset the decoding progress of all CTBs that the row tasks of this slice
+  // segment are going to decode (from its first CTB to the end of its last
+  // CTB row). Their progress may already be marked as finished, e.g. by a
+  // preceding slice segment whose entry points claimed more rows than its
+  // data covered, because a row task marks the rest of its row as finished
+  // when it fails. Stale progress would let the row tasks of this slice
+  // segment skip waiting for the row above and race with each other on the
+  // CTB metadata and the reconstructed pixels. No task is running on the
+  // image at this point (asserted above), so nobody can be waiting on the
+  // CTBs that are reset here.
+  {
+    uint32_t endCtb = std::min<uint32_t>((uint32_t)(ctbRow + nRows) * ctbsWidth,
+                                         img->number_of_ctbs());
+    for (uint32_t ctb = ctbAddrRS; ctb < endCtb; ctb++) {
+      img->ctb_progress[ctb].reset(CTB_PROGRESS_NONE);
+    }
   }
 
   for (uint16_t entryPt=0;entryPt<nRows;entryPt++) {
