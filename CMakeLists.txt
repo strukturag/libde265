@@ -202,22 +202,24 @@ endif()
 # Hiding the library's non-API symbols turns cross-translation-unit calls inside
 # libde265 from indirect PLT/GOT dispatch into direct calls — a measurable win
 # on the hot CABAC decode path — and shrinks the dynamic symbol table. Only the
-# symbols tagged LIBDE265_API (the public de265_*/en265_* C API) stay exported.
+# symbols tagged LIBDE265_API (the public de265_*/en265_* C API and the draw_*
+# helpers used by sherlock265) stay exported.
 #
 # By default we reduce visibility for optimized (non-Debug) builds and keep
 # every symbol exported for Debug builds, so a debug build stays fully available
-# for introspection. The encoder CLI, sherlock265 and the dev tools all link
-# against *internal* (non-API) symbols of the library, so hiding would break
-# their link; visibility is therefore never reduced when any of those is built.
+# for introspection. The encoder CLI and the dev tools link against *internal*
+# (non-API) symbols of the library, so hiding would break their link;
+# visibility is therefore never reduced when either of those is built.
+# (sherlock265 only uses LIBDE265_API symbols and does not affect this.)
 #
 # Set FORCE_FULL_VISIBILITY=ON to override the default and export all symbols
 # even from an optimized build.
 option(FORCE_FULL_VISIBILITY
-  "Export all symbols, even from optimized builds (default: hide non-API symbols in optimized builds without the encoder/tools)"
+  "Export all symbols, even from optimized builds (default: hide non-API symbols in optimized builds without the encoder/dev-tools)"
   OFF)
 
 set(_de265_internal_consumers OFF)
-if(ENABLE_ENCODER OR ENABLE_SHERLOCK265 OR ENABLE_INTERNAL_DEVELOPMENT_TOOLS)
+if(ENABLE_ENCODER OR ENABLE_INTERNAL_DEVELOPMENT_TOOLS)
   set(_de265_internal_consumers ON)
 endif()
 
@@ -230,12 +232,18 @@ if(CMAKE_BUILD_TYPE)
 endif()
 
 set(DE265_REDUCED_VISIBILITY OFF)
-if(_de265_optimized_build AND NOT _de265_internal_consumers AND NOT FORCE_FULL_VISIBILITY)
+if(FORCE_FULL_VISIBILITY)
+  message(STATUS "Symbol visibility: all symbols exported (FORCE_FULL_VISIBILITY=ON)")
+elseif(_de265_internal_consumers)
+  message(STATUS "Symbol visibility: all symbols exported (enc265 / dev-tools need internal symbols)")
+elseif(NOT _de265_optimized_build)
+  message(STATUS "Symbol visibility: all symbols exported (Debug build or no CMAKE_BUILD_TYPE)")
+else()
   set(DE265_REDUCED_VISIBILITY ON)
   set(CMAKE_C_VISIBILITY_PRESET hidden)
   set(CMAKE_CXX_VISIBILITY_PRESET hidden)
   set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
-  message(STATUS "Reduced symbol visibility enabled (only LIBDE265_API symbols exported)")
+  message(STATUS "Symbol visibility: hidden (only LIBDE265_API symbols exported)")
 endif()
 
 add_subdirectory (libde265)

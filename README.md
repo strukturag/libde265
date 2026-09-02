@@ -100,6 +100,15 @@ You can disable building of the example programs by running `cmake` with
   -DENABLE_SHERLOCK265=off Do not build the sherlock265 visual inspection program.
 </pre>
 
+Optimized (non-Debug) builds hide all symbols except the public API, which makes
+the decoder faster and the shared library smaller. The encoder and the internal
+development tools need the internal symbols, so enabling them keeps everything
+exported. To export all symbols even from an optimized decoder-only build, run
+`cmake` with
+<pre>
+  -DFORCE_FULL_VISIBILITY=on
+</pre>
+
 Additional logging information can be turned on and off using these `./configure` flags:
 <pre>
   -DDE265_LOG_LEVEL={error;info;debug;trace}
