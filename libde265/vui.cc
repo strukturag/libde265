@@ -33,6 +33,31 @@
   (variable) = vlc;
 
 
+/* Read an advisory ue(v) VUI syntax element.
+
+   A malformed exp-Golomb code (UVLC_ERROR) is a hard error: we lost the bit
+   position and nothing after it can be parsed.
+
+   A well-formed value that merely exceeds the range allowed by the standard is
+   only a warning. The chroma siting and bitstream_restriction() elements are
+   hints for the decoder that are never used in the decoding process, so an
+   out-of-range value cannot affect correctness or memory safety. Real-world
+   streams (e.g. HEIF images from consumer encoders) contain such values, so we
+   clamp to the value the standard infers when the element is absent and keep
+   parsing instead of rejecting the whole SPS (issue #539).
+ */
+#define READ_ADVISORY_VLC(variable, maxval, defaultval)   \
+  if ((vlc = br->get_uvlc()) == UVLC_ERROR) {   \
+    errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);  \
+    return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE; \
+  } \
+  if (vlc > (maxval)) { \
+    errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);  \
+    vlc = (defaultval); \
+  } \
+  (variable) = vlc;
+
+
 #define NUM_SAR_PRESETS 17
 
 static uint16_t sar_presets[NUM_SAR_PRESETS+1][2] = {
@@ -246,17 +271,8 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
 
   chroma_loc_info_present_flag = br->get_bits(1);
   if (chroma_loc_info_present_flag) {
-    if ((vlc = br->get_uvlc()) == UVLC_ERROR || vlc > 5) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-    }
-    chroma_sample_loc_type_top_field = vlc;
-
-    if ((vlc = br->get_uvlc()) == UVLC_ERROR || vlc > 5) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-    }
-    chroma_sample_loc_type_bottom_field = vlc;
+    READ_ADVISORY_VLC(chroma_sample_loc_type_top_field,    5, 0);
+    READ_ADVISORY_VLC(chroma_sample_loc_type_bottom_field, 5, 0);
   }
   else {
     chroma_sample_loc_type_top_field = 0;
@@ -322,35 +338,12 @@ de265_error video_usability_information::read(error_queue* errqueue, bitreader* 
     motion_vectors_over_pic_boundaries_flag = br->get_bits(1);
     restricted_ref_pic_lists_flag = br->get_bits(1);
 
-    if ((vlc = br->get_uvlc()) == UVLC_ERROR || vlc > 4095) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-    }
-    min_spatial_segmentation_idc = vlc;
-
-    if ((vlc = br->get_uvlc()) == UVLC_ERROR || vlc > 16) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-    }
-    max_bytes_per_pic_denom = vlc;
-
-    if ((vlc = br->get_uvlc()) == UVLC_ERROR || vlc > 16) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-    }
-    max_bits_per_min_cu_denom = vlc;
-
-    if ((vlc = br->get_uvlc()) == UVLC_ERROR || vlc > 15) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-    }
-    log2_max_mv_length_horizontal = vlc;
-
-    if ((vlc = br->get_uvlc()) == UVLC_ERROR || vlc > 15) {
-      errqueue->add_warning(DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE, false);
-      return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
-    }
-    log2_max_mv_length_vertical = vlc;
+    // Same defaults as in the else-branch below (the values inferred when absent).
+    READ_ADVISORY_VLC(min_spatial_segmentation_idc,  4095, 0);
+    READ_ADVISORY_VLC(max_bytes_per_pic_denom,       16,   2);
+    READ_ADVISORY_VLC(max_bits_per_min_cu_denom,     16,   1);
+    READ_ADVISORY_VLC(log2_max_mv_length_horizontal, 15,   15);
+    READ_ADVISORY_VLC(log2_max_mv_length_vertical,   15,   15);
   }
   else {
     tiles_fixed_structure_flag = false;
