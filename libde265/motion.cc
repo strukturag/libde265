@@ -45,11 +45,14 @@ static int extra_after [4] = { 0,3,4,4 };
 
 
 
-template <class pixel_t>
+// Luma sample interpolation process (8.5.3.3.3.2).
+// inter_t is the type of the intermediate prediction samples (see
+// generate_inter_prediction_samples_plane below).
+template <class pixel_t, class inter_t>
 void mc_luma(const base_context* ctx,
              const seq_parameter_set* sps, int mv_x, int mv_y,
              int xP,int yP,
-             int16_t* out, int out_stride,
+             inter_t* out, int out_stride,
              const pixel_t* ref, ptrdiff_t ref_stride,
              int nPbW, int nPbH, int bitDepth_L)
 {
@@ -59,16 +62,14 @@ void mc_luma(const base_context* ctx,
   int xIntOffsL = xP + (mv_x>>2);
   int yIntOffsL = yP + (mv_y>>2);
 
-  // luma sample interpolation process (8.5.3.2.2.1)
-
-  //const int shift1 = sps->BitDepth_Y-8;
+  //const int shift1 = std::min(4, sps->BitDepth_Y-8);
   //const int shift2 = 6;
   const int shift3 = std::max(2, 14 - sps->BitDepth_Y);
 
   int w = sps->pic_width_in_luma_samples;
   int h = sps->pic_height_in_luma_samples;
 
-  ALIGNED_16(int16_t) mcbuffer[MAX_CU_SIZE * (MAX_CU_SIZE+7)];
+  ALIGNED_16(inter_t) mcbuffer[MAX_CU_SIZE * (MAX_CU_SIZE+7)];
 
   if (xFracL==0 && yFracL==0) {
 
@@ -175,18 +176,17 @@ void mc_luma(const base_context* ctx,
 
 
 
-template <class pixel_t>
+// Chroma sample interpolation process (8.5.3.3.3.3).
+template <class pixel_t, class inter_t>
 void mc_chroma(const base_context* ctx,
                const seq_parameter_set* sps,
                int mv_x, int mv_y,
                int xP,int yP,
-               int16_t* out, int out_stride,
+               inter_t* out, int out_stride,
                const pixel_t* ref, ptrdiff_t ref_stride,
                int nPbWC, int nPbHC, int bit_depth_C)
 {
-  // chroma sample interpolation process (8.5.3.2.2.2)
-
-  //const int shift1 = sps->BitDepth_C-8;
+  //const int shift1 = std::min(4, sps->BitDepth_C-8);
   //const int shift2 = 6;
   const int shift3 = std::max(2, 14 - sps->BitDepth_C);
 
@@ -202,7 +202,7 @@ void mc_chroma(const base_context* ctx,
   int xIntOffsC = xP/sps->SubWidthC  + (mv_x>>3);
   int yIntOffsC = yP/sps->SubHeightC + (mv_y>>3);
 
-  ALIGNED_32(int16_t mcbuffer[MAX_CU_SIZE*(MAX_CU_SIZE+7)]);
+  ALIGNED_32(inter_t mcbuffer[MAX_CU_SIZE*(MAX_CU_SIZE+7)]);
 
   if (xFracC == 0 && yFracC == 0) {
     if (xIntOffsC>=0 && nPbWC+xIntOffsC<=wC &&
@@ -283,7 +283,160 @@ void mc_chroma(const base_context* ctx,
 
 
 
-// 8.5.3.2
+// Fractional sample interpolation (8.5.3.3.3) and weighted sample prediction
+// (8.5.3.3.4) for one colour plane.
+//
+// inter_t is the type of the intermediate prediction samples predSamplesLX.
+// The spec keeps them at max(14, BitDepth+2) bits plus the overshoot of the
+// interpolation filters, which fits into int16_t only up to
+// MC_MAX_BIT_DEPTH_INT16. Above that, int32_t is used (see acceleration.h).
+//
+// refPic[l] is NULL when list l is not used or when its reference picture is
+// unusable. The caller has already reported the latter; the prediction is then
+// filled with mid-grey.
+//
+// Forced inline: called once per colour plane from a hot loop, and inlining lets
+// the compiler set up the prediction sample buffer once per PB instead of once
+// per plane.
+template <class inter_t>
+static LIBDE265_ALWAYS_INLINE void generate_inter_prediction_samples_plane(base_context* ctx,
+                                                    const slice_segment_header* shdr,
+                                                    de265_image* img,
+                                                    int cIdx,
+                                                    int xP,int yP,
+                                                    int nCS, int nPbW,int nPbH,
+                                                    const PBMotion* vi,
+                                                    const int predFlag[2],
+                                                    const de265_image* const refPic[2])
+{
+  const pic_parameter_set* pps = shdr->pps.get();
+  const seq_parameter_set* sps = pps->sps.get();
+
+  const int bit_depth = sps->get_bit_depth(cIdx);
+
+  const int SubWidthC  = (cIdx==0 ? 1 : sps->SubWidthC);
+  const int SubHeightC = (cIdx==0 ? 1 : sps->SubHeightC);
+  const int w = nPbW / SubWidthC;
+  const int h = nPbH / SubHeightC;
+
+  void* pixels = img->get_image_plane_at_pos_any_depth(cIdx, xP/SubWidthC, yP/SubHeightC);
+  const ptrdiff_t stride = img->get_image_stride(cIdx);
+
+  // TODO: must predSamples stride really be nCS or can it be something smaller like nPbW?
+  ALIGNED_16(inter_t) predSamples[2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
+
+
+  // --- fractional sample interpolation (8.5.3.3.3) ---
+
+  for (int l=0;l<2;l++) {
+    if (!predFlag[l]) continue;
+
+    if (!refPic[l]) {
+      // Fill with mid-grey in intermediate precision: (1 << (bit_depth-1)) << shift3.
+      const inter_t fill = inter_t(1) << (bit_depth-1 + std::max(2, 14-bit_depth));
+
+      for (int y=0;y<h;y++)
+        for (int x=0;x<w;x++)
+          predSamples[l][y*nCS+x] = fill;
+
+      continue;
+    }
+
+    if (cIdx==0) {
+      if (img->high_bit_depth(0)) {
+        mc_luma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
+                predSamples[l],nCS,
+                (const uint16_t*)refPic[l]->get_image_plane(0),
+                refPic[l]->get_luma_stride(), nPbW,nPbH, bit_depth);
+      }
+      else {
+        mc_luma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
+                predSamples[l],nCS,
+                (const uint8_t*)refPic[l]->get_image_plane(0),
+                refPic[l]->get_luma_stride(), nPbW,nPbH, bit_depth);
+      }
+    }
+    else {
+      if (img->high_bit_depth(cIdx)) {
+        mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
+                  predSamples[l],nCS,
+                  (const uint16_t*)refPic[l]->get_image_plane(cIdx),
+                  refPic[l]->get_chroma_stride(), w,h, bit_depth);
+      }
+      else {
+        mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
+                  predSamples[l],nCS,
+                  (const uint8_t*)refPic[l]->get_image_plane(cIdx),
+                  refPic[l]->get_chroma_stride(), w,h, bit_depth);
+      }
+    }
+  }
+
+
+  // --- weighted sample prediction (8.5.3.3.4) ---
+
+  const bool weightedPredFlag = (shdr->slice_type == SLICE_TYPE_P ?
+                                 pps->weighted_pred_flag : pps->weighted_bipred_flag);
+
+  // explicit weighted prediction parameters (8.5.3.3.4.3)
+
+  const int shift1 = std::max(2, 14-bit_depth);
+  const int log2WD = (cIdx==0 ? shdr->luma_log2_weight_denom : shdr->ChromaLog2WeightDenom) + shift1;
+  const int offsetShift = (cIdx==0 ? sps->WpOffsetBdShiftY : sps->WpOffsetBdShiftC);
+
+  auto weight = [&](int l) -> int {
+    const int refIdx = vi->refIdx[l];
+    return (cIdx==0 ? shdr->LumaWeight[l][refIdx] : shdr->ChromaWeight[l][refIdx][cIdx-1]);
+  };
+
+  auto offset = [&](int l) -> int {
+    const int refIdx = vi->refIdx[l];
+    const int o = (cIdx==0 ? shdr->luma_offset[l][refIdx] : shdr->ChromaOffset[l][refIdx][cIdx-1]);
+    return o * (1<<offsetShift);
+  };
+
+
+  if (predFlag[0] && predFlag[1]) {
+    if (!weightedPredFlag) {
+      ctx->acceleration.put_weighted_pred_avg(pixels, stride,
+                                              predSamples[0], predSamples[1], nCS,
+                                              w,h, bit_depth);
+    }
+    else {
+      logtrace(LogMotion,"weighted-BI-0 [%d] %d %d %d  %dx%d\n", vi->refIdx[0], log2WD-6,weight(0),offset(0),w,h);
+      logtrace(LogMotion,"weighted-BI-1 [%d] %d %d %d  %dx%d\n", vi->refIdx[1], log2WD-6,weight(1),offset(1),w,h);
+
+      ctx->acceleration.put_weighted_bipred(pixels, stride,
+                                            predSamples[0], predSamples[1], nCS,
+                                            w,h,
+                                            weight(0),offset(0),
+                                            weight(1),offset(1),
+                                            log2WD, bit_depth);
+    }
+  }
+  else {
+    const int l = (predFlag[0] ? 0 : 1); // the caller ensures that one list is used
+
+    if (!weightedPredFlag) {
+      ctx->acceleration.put_unweighted_pred(pixels, stride,
+                                            predSamples[l], nCS,
+                                            w,h, bit_depth);
+    }
+    else {
+      logtrace(LogMotion,"weighted-L%d [%d] %d %d %d  %dx%d\n", l, vi->refIdx[l], log2WD-6,weight(l),offset(l),w,h);
+
+      ctx->acceleration.put_weighted_pred(pixels, stride,
+                                          predSamples[l], nCS,
+                                          w,h,
+                                          weight(l),offset(l),
+                                          log2WD, bit_depth);
+    }
+  }
+}
+
+
+
+// Decoding process for inter prediction samples (8.5.3.3).
 // NOTE: for full-pel shifts, we can introduce a fast path, simply copying without shifts
 void generate_inter_prediction_samples(base_context* ctx,
                                        const slice_segment_header* shdr,
@@ -293,11 +446,8 @@ void generate_inter_prediction_samples(base_context* ctx,
                                        int nCS, int nPbW,int nPbH,
                                        const PBMotion* vi)
 {
-  int xP = xC+xB;
-  int yP = yC+yB;
-
-  void*  pixels[3];
-  int    stride[3];
+  const int xP = xC+xB;
+  const int yP = yC+yB;
 
   const pic_parameter_set* pps = shdr->pps.get();
   const seq_parameter_set* sps = pps->sps.get();
@@ -315,36 +465,15 @@ void generate_inter_prediction_samples(base_context* ctx,
     return;
   }
 
-  const int SubWidthC  = sps->SubWidthC;
-  const int SubHeightC = sps->SubHeightC;
-
-  pixels[0] = img->get_image_plane_at_pos_any_depth(0,xP,yP);
-  stride[0] = img->get_image_stride(0);
-
-  pixels[1] = img->get_image_plane_at_pos_any_depth(1,xP/SubWidthC,yP/SubHeightC);
-  stride[1] = img->get_image_stride(1);
-
-  pixels[2] = img->get_image_plane_at_pos_any_depth(2,xP/SubWidthC,yP/SubHeightC);
-  stride[2] = img->get_image_stride(2);
-
-
-  ALIGNED_16(int16_t) predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
-  ALIGNED_16(int16_t) predSamplesC[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
-
-  //int xP = xC+xB;
-  //int yP = yC+yB;
 
   int predFlag[2];
   predFlag[0] = vi->predFlag[0];
   predFlag[1] = vi->predFlag[1];
 
-  const int bit_depth_L = sps->BitDepth_Y;
-  const int bit_depth_C = sps->BitDepth_C;
+  // Some encoders use bi-prediction with two identical MVs onto the same picture.
+  // Identify this case and use only one MV. This is not possible with explicit
+  // weighted prediction, where the two lists may have different weights/offsets.
 
-  // Some encoders use bi-prediction with two similar MVs.
-  // Identify this case and use only one MV.
-
-  // do this only without weighted prediction, because the weights/offsets may be different
   if (pps->weighted_pred_flag==0) {
     if (predFlag[0] && predFlag[1]) {
       if (vi->mv[0].x == vi->mv[1].x &&
@@ -356,378 +485,74 @@ void generate_inter_prediction_samples(base_context* ctx,
     }
   }
 
-
-  // Fill prediction samples with mid-grey in intermediate precision.
-  // Used on error paths where the reference picture is unavailable or mismatched.
-  auto fill_pred_samples = [&](int l) {
-    const int16_t fill = 1 << 13; // mid-grey: (1 << (bd-1)) << (14-bd) for any bd
-    for (int y = 0; y < nPbH; y++)
-      for (int x = 0; x < nPbW; x++)
-        predSamplesL[l][y * nCS + x] = fill;
-    if (img->get_chroma_format() != de265_chroma_mono) {
-      int cW = nPbW / SubWidthC;
-      int cH = nPbH / SubHeightC;
-      for (int y = 0; y < cH; y++)
-        for (int x = 0; x < cW; x++) {
-          predSamplesC[0][l][y * nCS + x] = fill;
-          predSamplesC[1][l][y * nCS + x] = fill;
-        }
-    }
-  };
-
-  for (int l=0;l<2;l++) {
-    if (predFlag[l]) {
-      // 8.5.3.2.1
-
-      const de265_image* refPic = ctx->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
-
-      logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
-
-      if (!refPic || refPic->PicState == UnusedForReference) {
-        img->integrity = INTEGRITY_DECODING_ERRORS;
-        ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
-        fill_pred_samples(l);
-      }
-      else if (refPic->get_width(0) != sps->pic_width_in_luma_samples ||
-               refPic->get_height(0) != sps->pic_height_in_luma_samples ||
-               img->get_chroma_format() != refPic->get_chroma_format()) {
-        img->integrity = INTEGRITY_DECODING_ERRORS;
-        ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_SIZE_DOES_NOT_MATCH_SPS, false);
-        fill_pred_samples(l);
-      }
-      else if (img->get_bit_depth(0) != refPic->get_bit_depth(0) ||
-               img->get_bit_depth(1) != refPic->get_bit_depth(1)) {
-        img->integrity = INTEGRITY_DECODING_ERRORS;
-        ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_BIT_DEPTH_DOES_NOT_MATCH, false);
-        fill_pred_samples(l);
-      }
-      else if (img->get_chroma_format() != refPic->get_chroma_format()) {
-        img->integrity = INTEGRITY_DECODING_ERRORS;
-        ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_CHROMA_FORMAT_DOES_NOT_MATCH, false);
-        fill_pred_samples(l);
-      }
-      else {
-        // 8.5.3.2.2
-
-        logtrace(LogMotion,"do MC: L%d,MV=%d;%d RefPOC=%d\n",
-                 l,vi->mv[l].x,vi->mv[l].y,refPic->PicOrderCntVal);
-
-
-        // TODO: must predSamples stride really be nCS or can it be something smaller like nPbW?
-
-        if (img->high_bit_depth(0)) {
-          mc_luma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
-                  predSamplesL[l],nCS,
-                  (const uint16_t*)refPic->get_image_plane(0),
-                  refPic->get_luma_stride(), nPbW,nPbH, bit_depth_L);
-        }
-        else {
-          mc_luma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP,yP,
-                  predSamplesL[l],nCS,
-                  (const uint8_t*)refPic->get_image_plane(0),
-                  refPic->get_luma_stride(), nPbW,nPbH, bit_depth_L);
-        }
-
-        if (img->get_chroma_format() != de265_chroma_mono) {
-          if (img->high_bit_depth(1)) {
-            mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP, yP,
-                      predSamplesC[0][l], nCS, (const uint16_t*) refPic->get_image_plane(1),
-                      refPic->get_chroma_stride(), nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
-            mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP, yP,
-                      predSamplesC[1][l], nCS, (const uint16_t*) refPic->get_image_plane(2),
-                      refPic->get_chroma_stride(), nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
-          }
-          else {
-            mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP, yP,
-                      predSamplesC[0][l], nCS, (const uint8_t*) refPic->get_image_plane(1),
-                      refPic->get_chroma_stride(), nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
-            mc_chroma(ctx, sps, vi->mv[l].x, vi->mv[l].y, xP, yP,
-                      predSamplesC[1][l], nCS, (const uint8_t*) refPic->get_image_plane(2),
-                      refPic->get_chroma_stride(), nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
-          }
-        }
-      }
-    }
-  }
-
-
-  // weighted sample prediction  (8.5.3.2.3)
-
-  const int shift1_L = std::max(2,14-sps->BitDepth_Y);
-  const int offset_shift1_L = img->get_sps().WpOffsetBdShiftY;
-  const int shift1_C = std::max(2,14-sps->BitDepth_C);
-  const int offset_shift1_C = img->get_sps().WpOffsetBdShiftC;
-
-  /*
-  const int shift1_L = 14-img->sps.BitDepth_Y;
-  const int offset_shift1_L = img->sps.BitDepth_Y-8;
-  const int shift1_C = 14-img->sps.BitDepth_C;
-  const int offset_shift1_C = img->sps.BitDepth_C-8;
-  */
-
-  /*
-  if (0)
-  printf("%d/%d %d/%d %d/%d %d/%d\n",
-         shift1_L,
-         Nshift1_L,
-         offset_shift1_L,
-         Noffset_shift1_L,
-         shift1_C,
-         Nshift1_C,
-         offset_shift1_C,
-         Noffset_shift1_C);
-
-  assert(shift1_L==
-         Nshift1_L);
-  assert(offset_shift1_L==
-         Noffset_shift1_L);
-  assert(shift1_C==
-         Nshift1_C);
-  assert(offset_shift1_C==
-         Noffset_shift1_C);
-  */
-
-
   logtrace(LogMotion,"predFlags (modified): %d %d\n", predFlag[0], predFlag[1]);
 
-  if (shdr->slice_type == SLICE_TYPE_P) {
-    if (pps->weighted_pred_flag==0) {
-      if (predFlag[0]==1 && predFlag[1]==0) {
-        ctx->acceleration.put_unweighted_pred(pixels[0], stride[0],
-                                              predSamplesL[0],nCS, nPbW,nPbH, bit_depth_L);
+  if (!predFlag[0] && !predFlag[1]) {
+    // TODO: check why it can actually happen that both predFlags[] are false.
+    // For now, we ignore this and continue decoding.
 
-        if (img->get_chroma_format() != de265_chroma_mono) {
-          ctx->acceleration.put_unweighted_pred(pixels[1], stride[1],
-                                                predSamplesC[0][0], nCS,
-                                                nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
-          ctx->acceleration.put_unweighted_pred(pixels[2], stride[2],
-                                                predSamplesC[1][0], nCS,
-                                                nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
-        }
-      }
-      else {
-        ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
-        img->integrity = INTEGRITY_DECODING_ERRORS;
-      }
-    }
-    else {
-      // weighted prediction
-
-      if (predFlag[0]==1 && predFlag[1]==0) {
-
-        int refIdx0 = vi->refIdx[0];
-
-        int luma_log2WD   = shdr->luma_log2_weight_denom + shift1_L;
-        int chroma_log2WD = shdr->ChromaLog2WeightDenom  + shift1_C;
-
-        int luma_w0 = shdr->LumaWeight[0][refIdx0];
-        int luma_o0 = shdr->luma_offset[0][refIdx0] * (1<<(offset_shift1_L));
-
-        int chroma0_w0 = shdr->ChromaWeight[0][refIdx0][0];
-        int chroma0_o0 = shdr->ChromaOffset[0][refIdx0][0] * (1<<(offset_shift1_C));
-        int chroma1_w0 = shdr->ChromaWeight[0][refIdx0][1];
-        int chroma1_o0 = shdr->ChromaOffset[0][refIdx0][1] * (1<<(offset_shift1_C));
-
-        logtrace(LogMotion,"weighted-0 [%d] %d %d %d  %dx%d\n", refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
-
-        ctx->acceleration.put_weighted_pred(pixels[0], stride[0],
-                                            predSamplesL[0],nCS, nPbW,nPbH,
-                                            luma_w0, luma_o0, luma_log2WD, bit_depth_L);
-        if (img->get_chroma_format() != de265_chroma_mono) {
-          ctx->acceleration.put_weighted_pred(pixels[1], stride[1],
-                                              predSamplesC[0][0], nCS, nPbW / SubWidthC, nPbH / SubHeightC,
-                                              chroma0_w0, chroma0_o0, chroma_log2WD, bit_depth_C);
-          ctx->acceleration.put_weighted_pred(pixels[2], stride[2],
-                                              predSamplesC[1][0], nCS, nPbW / SubWidthC, nPbH / SubHeightC,
-                                              chroma1_w0, chroma1_o0, chroma_log2WD, bit_depth_C);
-        }
-      }
-      else {
-        ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
-        img->integrity = INTEGRITY_DECODING_ERRORS;
-      }
-    }
+    ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
+    img->integrity = INTEGRITY_DECODING_ERRORS;
+    return;
   }
-  else {
-    assert(shdr->slice_type == SLICE_TYPE_B);
 
-    if (predFlag[0]==1 && predFlag[1]==1) {
-      if (pps->weighted_bipred_flag==0) {
-        //const int shift2  = 15-8; // TODO: real bit depth
-        //const int offset2 = 1<<(shift2-1);
 
-        int16_t* in0 = predSamplesL[0];
-        int16_t* in1 = predSamplesL[1];
+  // --- reference picture selection (8.5.3.3.2) ---
 
-        ctx->acceleration.put_weighted_pred_avg(pixels[0], stride[0],
-                                                in0,in1, nCS, nPbW, nPbH, bit_depth_L);
+  // refPic[l] stays NULL when the reference picture cannot be used.
 
-        int16_t* in00 = predSamplesC[0][0];
-        int16_t* in01 = predSamplesC[0][1];
-        int16_t* in10 = predSamplesC[1][0];
-        int16_t* in11 = predSamplesC[1][1];
+  const de265_image* refPic[2] = { nullptr, nullptr };
 
-        if (img->get_chroma_format() != de265_chroma_mono) {
-          ctx->acceleration.put_weighted_pred_avg(pixels[1], stride[1],
-                                                  in00, in01, nCS,
-                                                  nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
-          ctx->acceleration.put_weighted_pred_avg(pixels[2], stride[2],
-                                                  in10, in11, nCS,
-                                                  nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
-        }
-      }
-      else {
-        // weighted prediction
+  for (int l=0;l<2;l++) {
+    if (!predFlag[l]) continue;
 
-        int refIdx0 = vi->refIdx[0];
-        int refIdx1 = vi->refIdx[1];
+    const de265_image* ref = ctx->get_image(shdr->RefPicList[l][vi->refIdx[l]]);
 
-        int luma_log2WD   = shdr->luma_log2_weight_denom + shift1_L;
-        int chroma_log2WD = shdr->ChromaLog2WeightDenom + shift1_C;
+    logtrace(LogMotion, "refIdx: %d -> dpb[%d]\n", vi->refIdx[l], shdr->RefPicList[l][vi->refIdx[l]]);
 
-        int luma_w0 = shdr->LumaWeight[0][refIdx0];
-        int luma_o0 = shdr->luma_offset[0][refIdx0] * (1<<(offset_shift1_L));
-        int luma_w1 = shdr->LumaWeight[1][refIdx1];
-        int luma_o1 = shdr->luma_offset[1][refIdx1] * (1<<(offset_shift1_L));
-
-        int chroma0_w0 = shdr->ChromaWeight[0][refIdx0][0];
-        int chroma0_o0 = shdr->ChromaOffset[0][refIdx0][0] * (1<<(offset_shift1_C));
-        int chroma1_w0 = shdr->ChromaWeight[0][refIdx0][1];
-        int chroma1_o0 = shdr->ChromaOffset[0][refIdx0][1] * (1<<(offset_shift1_C));
-        int chroma0_w1 = shdr->ChromaWeight[1][refIdx1][0];
-        int chroma0_o1 = shdr->ChromaOffset[1][refIdx1][0] * (1<<(offset_shift1_C));
-        int chroma1_w1 = shdr->ChromaWeight[1][refIdx1][1];
-        int chroma1_o1 = shdr->ChromaOffset[1][refIdx1][1] * (1<<(offset_shift1_C));
-
-        logtrace(LogMotion,"weighted-BI-0 [%d] %d %d %d  %dx%d\n", refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
-        logtrace(LogMotion,"weighted-BI-1 [%d] %d %d %d  %dx%d\n", refIdx1, luma_log2WD-6,luma_w1,luma_o1,nPbW,nPbH);
-
-        int16_t* in0 = predSamplesL[0];
-        int16_t* in1 = predSamplesL[1];
-
-        ctx->acceleration.put_weighted_bipred(pixels[0], stride[0],
-                                              in0,in1, nCS, nPbW, nPbH,
-                                              luma_w0,luma_o0,
-                                              luma_w1,luma_o1,
-                                              luma_log2WD, bit_depth_L);
-
-        int16_t* in00 = predSamplesC[0][0];
-        int16_t* in01 = predSamplesC[0][1];
-        int16_t* in10 = predSamplesC[1][0];
-        int16_t* in11 = predSamplesC[1][1];
-
-        if (img->get_chroma_format() != de265_chroma_mono) {
-          ctx->acceleration.put_weighted_bipred(pixels[1], stride[1],
-                                                in00, in01, nCS, nPbW / SubWidthC, nPbH / SubHeightC,
-                                                chroma0_w0, chroma0_o0,
-                                                chroma0_w1, chroma0_o1,
-                                                chroma_log2WD, bit_depth_C);
-          ctx->acceleration.put_weighted_bipred(pixels[2], stride[2],
-                                                in10, in11, nCS, nPbW / SubWidthC, nPbH / SubHeightC,
-                                                chroma1_w0, chroma1_o0,
-                                                chroma1_w1, chroma1_o1,
-                                                chroma_log2WD, bit_depth_C);
-        }
-      }
-    }
-    else if (predFlag[0]==1 || predFlag[1]==1) {
-      int l = predFlag[0] ? 0 : 1;
-
-      if (pps->weighted_bipred_flag==0) {
-        ctx->acceleration.put_unweighted_pred(pixels[0], stride[0],
-                                              predSamplesL[l],nCS, nPbW,nPbH, bit_depth_L);
-
-        if (img->get_chroma_format() != de265_chroma_mono) {
-          ctx->acceleration.put_unweighted_pred(pixels[1], stride[1],
-                                                predSamplesC[0][l], nCS,
-                                                nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
-          ctx->acceleration.put_unweighted_pred(pixels[2], stride[2],
-                                                predSamplesC[1][l], nCS,
-                                                nPbW / SubWidthC, nPbH / SubHeightC, bit_depth_C);
-        }
-      }
-      else {
-        int refIdx = vi->refIdx[l];
-
-        int luma_log2WD   = shdr->luma_log2_weight_denom + shift1_L;
-        int chroma_log2WD = shdr->ChromaLog2WeightDenom  + shift1_C;
-
-        int luma_w = shdr->LumaWeight[l][refIdx];
-        int luma_o = shdr->luma_offset[l][refIdx] * (1<<(offset_shift1_L));
-
-        int chroma0_w = shdr->ChromaWeight[l][refIdx][0];
-        int chroma0_o = shdr->ChromaOffset[l][refIdx][0] * (1<<(offset_shift1_C));
-        int chroma1_w = shdr->ChromaWeight[l][refIdx][1];
-        int chroma1_o = shdr->ChromaOffset[l][refIdx][1] * (1<<(offset_shift1_C));
-
-        logtrace(LogMotion,"weighted-B-L%d [%d] %d %d %d  %dx%d\n", l, refIdx, luma_log2WD-6,luma_w,luma_o,nPbW,nPbH);
-
-        ctx->acceleration.put_weighted_pred(pixels[0], stride[0],
-                                            predSamplesL[l],nCS, nPbW,nPbH,
-                                            luma_w, luma_o, luma_log2WD, bit_depth_L);
-
-        if (img->get_chroma_format() != de265_chroma_mono) {
-          ctx->acceleration.put_weighted_pred(pixels[1], stride[1],
-                                              predSamplesC[0][l], nCS,
-                                              nPbW / SubWidthC, nPbH / SubHeightC,
-                                              chroma0_w, chroma0_o, chroma_log2WD, bit_depth_C);
-          ctx->acceleration.put_weighted_pred(pixels[2], stride[2],
-                                              predSamplesC[1][l], nCS,
-                                              nPbW / SubWidthC, nPbH / SubHeightC,
-                                              chroma1_w, chroma1_o, chroma_log2WD, bit_depth_C);
-        }
-      }
-    }
-    else {
-      // TODO: check why it can actually happen that both predFlags[] are false.
-      // For now, we ignore this and continue decoding.
-
-      ctx->add_warning(DE265_WARNING_BOTH_PREDFLAGS_ZERO, false);
+    if (!ref || ref->PicState == UnusedForReference) {
       img->integrity = INTEGRITY_DECODING_ERRORS;
+      ctx->add_warning(DE265_WARNING_NONEXISTING_REFERENCE_PICTURE_ACCESSED, false);
+    }
+    else if (ref->get_width(0)  != sps->pic_width_in_luma_samples ||
+             ref->get_height(0) != sps->pic_height_in_luma_samples) {
+      img->integrity = INTEGRITY_DECODING_ERRORS;
+      ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_SIZE_DOES_NOT_MATCH_SPS, false);
+    }
+    else if (img->get_bit_depth(0) != ref->get_bit_depth(0) ||
+             img->get_bit_depth(1) != ref->get_bit_depth(1)) {
+      img->integrity = INTEGRITY_DECODING_ERRORS;
+      ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_BIT_DEPTH_DOES_NOT_MATCH, false);
+    }
+    else if (img->get_chroma_format() != ref->get_chroma_format()) {
+      img->integrity = INTEGRITY_DECODING_ERRORS;
+      ctx->add_warning(DE265_WARNING_REFERENCE_IMAGE_CHROMA_FORMAT_DOES_NOT_MATCH, false);
+    }
+    else {
+      logtrace(LogMotion,"do MC: L%d,MV=%d;%d RefPOC=%d\n",
+               l,vi->mv[l].x,vi->mv[l].y,ref->PicOrderCntVal);
+
+      refPic[l] = ref;
     }
   }
 
-#if defined(DE265_LOG_TRACE) && 0
-  logtrace(LogTransform,"MC pixels (luma), position %d %d:\n", xP,yP);
 
-  for (int y=0;y<nPbH;y++) {
-    logtrace(LogTransform,"MC-y-%d-%d ",xP,yP+y);
+  // --- prediction, per colour plane ---
 
-    for (int x=0;x<nPbW;x++) {
-      logtrace(LogTransform,"*%02x ", pixels[0][x+y*stride[0]]);
+  // Up to MC_MAX_BIT_DEPTH_INT16, the intermediate prediction samples fit
+  // into int16_t. Above that, int32_t is needed.
+
+  const int nPlanes = (img->get_chroma_format() == de265_chroma_mono ? 1 : 3);
+
+  for (int cIdx=0;cIdx<nPlanes;cIdx++) {
+    if (sps->get_bit_depth(cIdx) <= MC_MAX_BIT_DEPTH_INT16) {
+      generate_inter_prediction_samples_plane<int16_t>(ctx,shdr,img, cIdx, xP,yP, nCS,nPbW,nPbH, vi, predFlag, refPic);
     }
-
-    logtrace(LogTransform,"*\n");
-  }
-
-
-  logtrace(LogTransform,"MC pixels (chroma cb), position %d %d:\n", xP/2,yP/2);
-
-  for (int y=0;y<nPbH/2;y++) {
-    logtrace(LogTransform,"MC-cb-%d-%d ",xP/2,yP/2+y);
-
-    for (int x=0;x<nPbW/2;x++) {
-      logtrace(LogTransform,"*%02x ", pixels[1][x+y*stride[1]]);
+    else {
+      generate_inter_prediction_samples_plane<int32_t>(ctx,shdr,img, cIdx, xP,yP, nCS,nPbW,nPbH, vi, predFlag, refPic);
     }
-
-    logtrace(LogTransform,"*\n");
   }
-
-
-  logtrace(LogTransform,"MC pixels (chroma cr), position %d %d:\n", xP/2,yP/2);
-
-  for (int y=0;y<nPbH/2;y++) {
-    logtrace(LogTransform,"MC-cr-%d-%d ",xP/2,yP/2+y);
-
-    for (int x=0;x<nPbW/2;x++) {
-      logtrace(LogTransform,"*%02x ", pixels[2][x+y*stride[2]]);
-    }
-
-    logtrace(LogTransform,"*\n");
-  }
-#endif
 }
-
 
 #ifdef DE265_LOG_TRACE
 void logmvcand(const PBMotion& p)

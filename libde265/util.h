@@ -65,6 +65,16 @@
 #define ALIGNED_8( var )  LIBDE265_DECLARE_ALIGNED( var, 8 )
 #define ALIGNED_4( var )  LIBDE265_DECLARE_ALIGNED( var, 4 )
 
+// Force inlining of a function. Used where the compiler's heuristics would
+// otherwise leave a large helper as a separate call on a hot path.
+#if defined(_MSC_VER)
+#define LIBDE265_ALWAYS_INLINE __forceinline
+#elif defined(__GNUC__) || defined(__clang__)
+#define LIBDE265_ALWAYS_INLINE inline __attribute__((always_inline))
+#else
+#define LIBDE265_ALWAYS_INLINE inline
+#endif
+
 #ifdef _MSC_VER
   #ifdef _CPPRTTI
   #define RTTI_ENABLED
