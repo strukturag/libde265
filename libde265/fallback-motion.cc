@@ -161,9 +161,10 @@ void put_weighted_pred_avg_8_fallback(uint8_t *dst, ptrdiff_t dststride,
 
 
 
-void put_unweighted_pred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
-                                     const int16_t *src, ptrdiff_t srcstride,
-                                     int width, int height, int bit_depth)
+template <class pixel_t, class inter_t>
+void put_unweighted_pred_fallback(pixel_t *dst, ptrdiff_t dststride,
+                                    const inter_t *src, ptrdiff_t srcstride,
+                                    int width, int height, int bit_depth)
 {
   // shift1 per HEVC v2 (10/2014) spec 8.5.3.3.4.2: Max(2, 14 - BitDepth).
   // The Max() was added with the Range Extensions in v2 to handle BitDepth up to 16;
@@ -174,8 +175,8 @@ void put_unweighted_pred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
   assert((width&1)==0);
 
   for (int y=0;y<height;y++) {
-    const int16_t* in  = &src[y*srcstride];
-    uint16_t* out = &dst[y*dststride];
+    const inter_t* in  = &src[y*srcstride];
+    pixel_t* out = &dst[y*dststride];
 
     for (int x=0;x<width;x+=2) {
       out[0] = Clip_BitDepth((in[0] + offset1)>>shift1, bit_depth);
@@ -185,20 +186,23 @@ void put_unweighted_pred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
   }
 }
 
+
+
 #include <stdlib.h>
 
-void put_weighted_pred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
-                                   const int16_t *src, ptrdiff_t srcstride,
-                                   int width, int height,
-                                   int w,int o,int log2WD, int bit_depth)
+template <class pixel_t, class inter_t>
+void put_weighted_pred_fallback(pixel_t *dst, ptrdiff_t dststride,
+                                  const inter_t *src, ptrdiff_t srcstride,
+                                  int width, int height,
+                                  int w,int o,int log2WD, int bit_depth)
 {
   assert(log2WD>=1); // TODO
 
   const int rnd = (1<<(log2WD-1));
 
   for (int y=0;y<height;y++) {
-    const int16_t* in  = &src[y*srcstride];
-    uint16_t* out = &dst[y*dststride];
+    const inter_t* in  = &src[y*srcstride];
+    pixel_t* out = &dst[y*dststride];
 
     for (int x=0;x<width;x++) {
       out[0] = Clip_BitDepth(((in[0]*w + rnd)>>log2WD) + o, bit_depth);
@@ -207,19 +211,22 @@ void put_weighted_pred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
   }
 }
 
-void put_weighted_bipred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
-                                     const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
-                                     int width, int height,
-                                     int w1,int o1, int w2,int o2, int log2WD, int bit_depth)
+
+
+template <class pixel_t, class inter_t>
+void put_weighted_bipred_fallback(pixel_t *dst, ptrdiff_t dststride,
+                                    const inter_t *src1, const inter_t *src2, ptrdiff_t srcstride,
+                                    int width, int height,
+                                    int w1,int o1, int w2,int o2, int log2WD, int bit_depth)
 {
   assert(log2WD>=1); // TODO
 
   const int rnd = static_cast<int>(static_cast<unsigned int>(o1+o2+1) << log2WD);
 
   for (int y=0;y<height;y++) {
-    const int16_t* in1 = &src1[y*srcstride];
-    const int16_t* in2 = &src2[y*srcstride];
-    uint16_t* out = &dst[y*dststride];
+    const inter_t* in1 = &src1[y*srcstride];
+    const inter_t* in2 = &src2[y*srcstride];
+    pixel_t* out = &dst[y*dststride];
 
     for (int x=0;x<width;x++) {
       out[0] = Clip_BitDepth((in1[0]*w1 + in2[0]*w2 + rnd)>>(log2WD+1), bit_depth);
@@ -229,10 +236,13 @@ void put_weighted_bipred_16_fallback(uint16_t *dst, ptrdiff_t dststride,
 }
 
 
-void put_weighted_pred_avg_16_fallback(uint16_t *dst, ptrdiff_t dststride,
-                                       const int16_t *src1, const int16_t *src2,
-                                       ptrdiff_t srcstride, int width,
-                                       int height, int bit_depth)
+
+
+template <class pixel_t, class inter_t>
+void put_weighted_pred_avg_fallback(pixel_t *dst, ptrdiff_t dststride,
+                                      const inter_t *src1, const inter_t *src2,
+                                      ptrdiff_t srcstride, int width,
+                                      int height, int bit_depth)
 {
   // shift2 per HEVC v2 (10/2014) spec 8.5.3.3.4.2: Max(3, 15 - BitDepth).
   // The Max() was added with the Range Extensions in v2 to handle BitDepth up to 16;
@@ -243,9 +253,9 @@ void put_weighted_pred_avg_16_fallback(uint16_t *dst, ptrdiff_t dststride,
   assert((width&1)==0);
 
   for (int y=0;y<height;y++) {
-    const int16_t* in1 = &src1[y*srcstride];
-    const int16_t* in2 = &src2[y*srcstride];
-    uint16_t* out = &dst[y*dststride];
+    const inter_t* in1 = &src1[y*srcstride];
+    const inter_t* in2 = &src2[y*srcstride];
+    pixel_t* out = &dst[y*dststride];
 
     for (int x=0;x<width;x+=2) {
       out[0] = Clip_BitDepth((in1[0] + in2[0] + offset2)>>shift2, bit_depth);
@@ -254,6 +264,19 @@ void put_weighted_pred_avg_16_fallback(uint16_t *dst, ptrdiff_t dststride,
     }
   }
 }
+
+#define INSTANTIATE_WEIGHTED_PRED(pixel_t, inter_t) \
+  template void put_unweighted_pred_fallback<pixel_t,inter_t>(pixel_t*, ptrdiff_t, const inter_t*, ptrdiff_t, int, int, int); \
+  template void put_weighted_pred_fallback<pixel_t,inter_t>(pixel_t*, ptrdiff_t, const inter_t*, ptrdiff_t, int, int, int, int, int, int); \
+  template void put_weighted_bipred_fallback<pixel_t,inter_t>(pixel_t*, ptrdiff_t, const inter_t*, const inter_t*, ptrdiff_t, int, int, int, int, int, int, int, int); \
+  template void put_weighted_pred_avg_fallback<pixel_t,inter_t>(pixel_t*, ptrdiff_t, const inter_t*, const inter_t*, ptrdiff_t, int, int, int);
+
+INSTANTIATE_WEIGHTED_PRED(uint16_t, int16_t)  // the acceleration table's _16 entries
+INSTANTIATE_WEIGHTED_PRED(uint8_t,  int32_t)
+INSTANTIATE_WEIGHTED_PRED(uint16_t, int32_t)
+#undef INSTANTIATE_WEIGHTED_PRED
+
+
 
 
 
@@ -279,19 +302,20 @@ void put_epel_8_fallback(int16_t *out, ptrdiff_t out_stride,
 }
 
 
-void put_epel_16_fallback(int16_t *out, ptrdiff_t out_stride,
-                          const uint16_t *src, ptrdiff_t src_stride,
-                          int width, int height,
-                          int mx, int my, int16_t* mcbuffer, int bit_depth)
+// full-sample position (8.5.3.3.3.2 / 8.5.3.3.3.3): predSample = ref << shift3
+template <class pixel_t, class inter_t>
+static void put_fullpel_fallback(inter_t *out, ptrdiff_t out_stride,
+                                 const pixel_t *src, ptrdiff_t src_stride,
+                                 int width, int height, int bit_depth)
 {
-  // shift3 per HEVC v2 (10/2014) spec 8.5.3.3.3.3 (chroma): Max(2, 14 - BitDepth).
+  // shift3 per HEVC v2 (10/2014) spec: Max(2, 14 - BitDepth).
   // The Max() was added with the Range Extensions in v2 to handle BitDepth up to 16;
   // the v1 (04/2013) formula was just (14 - BitDepth), valid only for BitDepth <= 14.
   int shift3 = std::max(2, 14 - bit_depth);
 
   for (int y=0;y<height;y++) {
-    int16_t* o = &out[y*out_stride];
-    const uint16_t* i = &src[y*src_stride];
+    inter_t* o = &out[y*out_stride];
+    const pixel_t* i = &src[y*src_stride];
 
     for (int x=0;x<width;x++) {
       *o = *i << shift3;
@@ -301,14 +325,36 @@ void put_epel_16_fallback(int16_t *out, ptrdiff_t out_stride,
   }
 }
 
+void put_epel_16_fallback(int16_t *out, ptrdiff_t out_stride,
+                          const uint16_t *src, ptrdiff_t src_stride,
+                          int width, int height,
+                          int mx, int my, int16_t* mcbuffer, int bit_depth)
+{
+  put_fullpel_fallback(out,out_stride, src,src_stride, width,height, bit_depth);
+}
 
 template <class pixel_t>
-void put_epel_hv_fallback(int16_t *dst, ptrdiff_t dst_stride,
+void put_epel_32_fallback(int32_t *out, ptrdiff_t out_stride,
+                          const pixel_t *src, ptrdiff_t src_stride,
+                          int width, int height, int bit_depth)
+{
+  put_fullpel_fallback(out,out_stride, src,src_stride, width,height, bit_depth);
+}
+
+template void put_epel_32_fallback<uint8_t> (int32_t*, ptrdiff_t, const uint8_t*,  ptrdiff_t, int, int, int);
+template void put_epel_32_fallback<uint16_t>(int32_t*, ptrdiff_t, const uint16_t*, ptrdiff_t, int, int, int);
+
+
+template <class pixel_t, class inter_t>
+void put_epel_hv_fallback(inter_t *dst, ptrdiff_t dst_stride,
                           const pixel_t *src, ptrdiff_t src_stride,
                           int nPbWC, int nPbHC,
-                          int xFracC, int yFracC, int16_t* mcbuffer, int bit_depth)
+                          int xFracC, int yFracC, inter_t* mcbuffer, int bit_depth)
 {
-  const int shift1 = bit_depth-8;
+  // shift1 per HEVC v2 (10/2014) spec 8.5.3.3.3.3: Min(4, BitDepth - 8).
+  // The Min() was added with the Range Extensions in v2; the v1 (04/2013)
+  // formula was just (BitDepth - 8). See MC_MAX_BIT_DEPTH_INT16 for inter_t.
+  const int shift1 = std::min(4, bit_depth-8);
   const int shift2 = 6;
   //const int shift3 = 6;
 
@@ -320,7 +366,7 @@ void put_epel_hv_fallback(int16_t *dst, ptrdiff_t dst_stride,
 
   int nPbH_extra = extra_top  + nPbHC + extra_bottom;
 
-  int16_t* tmp2buf = (int16_t*)alloca( nPbWC      * nPbH_extra * sizeof(int16_t) );
+  inter_t* tmp2buf = (inter_t*)alloca( nPbWC      * nPbH_extra * sizeof(inter_t) );
 
   /*
   int nPbW_extra = extra_left + nPbWC + extra_right;
@@ -351,7 +397,7 @@ void put_epel_hv_fallback(int16_t *dst, ptrdiff_t dst_stride,
     const pixel_t* p = &src[y*src_stride - extra_left];
 
     for (int x=0;x<nPbWC;x++) {
-      int16_t v;
+      inter_t v;
       switch (xFracC) {
       case 0: v = p[1]; break;
       case 1: v = (-2*p[0]+58*p[1]+10*p[2]-2*p[3])>>shift1; break;
@@ -379,10 +425,10 @@ void put_epel_hv_fallback(int16_t *dst, ptrdiff_t dst_stride,
   int vshift = (xFracC==0 ? shift1 : shift2);
 
   for (int x=0;x<nPbWC;x++) {
-    int16_t* p = &tmp2buf[x*nPbH_extra];
+    inter_t* p = &tmp2buf[x*nPbH_extra];
 
     for (int y=0;y<nPbHC;y++) {
-      int16_t v;
+      inter_t v;
       //logtrace(LogMotion,"%x %x %x  %x  %x %x %x\n",p[0],p[1],p[2],p[3],p[4],p[5],p[6]);
 
       switch (yFracC) {
@@ -415,16 +461,10 @@ void put_epel_hv_fallback(int16_t *dst, ptrdiff_t dst_stride,
 }
 
 
-template
-void put_epel_hv_fallback<uint8_t>(int16_t *dst, ptrdiff_t dst_stride,
-                                   const uint8_t *src, ptrdiff_t src_stride,
-                                   int nPbWC, int nPbHC,
-                                   int xFracC, int yFracC, int16_t* mcbuffer, int bit_depth);
-template
-void put_epel_hv_fallback<uint16_t>(int16_t *dst, ptrdiff_t dst_stride,
-                                    const uint16_t *src, ptrdiff_t src_stride,
-                                    int nPbWC, int nPbHC,
-                                    int xFracC, int yFracC, int16_t* mcbuffer, int bit_depth);
+template void put_epel_hv_fallback<uint8_t, int16_t>(int16_t*, ptrdiff_t, const uint8_t*,  ptrdiff_t, int, int, int, int, int16_t*, int);
+template void put_epel_hv_fallback<uint16_t,int16_t>(int16_t*, ptrdiff_t, const uint16_t*, ptrdiff_t, int, int, int, int, int16_t*, int);
+template void put_epel_hv_fallback<uint8_t, int32_t>(int32_t*, ptrdiff_t, const uint8_t*,  ptrdiff_t, int, int, int, int, int32_t*, int);
+template void put_epel_hv_fallback<uint16_t,int32_t>(int32_t*, ptrdiff_t, const uint16_t*, ptrdiff_t, int, int, int, int, int32_t*, int);
 
 
 
@@ -465,23 +505,7 @@ void put_qpel_0_0_fallback_16(int16_t *out, ptrdiff_t out_stride,
                               const uint16_t *src, ptrdiff_t srcstride,
                               int nPbW, int nPbH, int16_t* mcbuffer, int bit_depth)
 {
-  //const int shift1 = bit_depth-8;
-  //const int shift2 = 6;
-  // shift3 per HEVC v2 (10/2014) spec 8.5.3.3.3.2 (luma): Max(2, 14 - BitDepth).
-  // The Max() was added with the Range Extensions in v2 to handle BitDepth up to 16;
-  // the v1 (04/2013) formula was just (14 - BitDepth), valid only for BitDepth <= 14.
-  const int shift3 = std::max(2, 14-bit_depth);
-
-  // straight copy
-
-  for (int y=0;y<nPbH;y++) {
-    const uint16_t* p = src + srcstride*y;
-    int16_t* o = out + out_stride*y;
-
-    for (int x=0;x<nPbW;x++) {
-      *o++ = *p++ << shift3;
-    }
-  }
+  put_fullpel_fallback(out,out_stride, src,srcstride, nPbW,nPbH, bit_depth);
 }
 
 
@@ -489,11 +513,11 @@ void put_qpel_0_0_fallback_16(int16_t *out, ptrdiff_t out_stride,
 static int extra_before[4] = { 0,3,3,2 };
 static int extra_after [4] = { 0,3,4,4 };
 
-template <class pixel_t>
-void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
-                       const pixel_t *src, ptrdiff_t srcstride,
-                       int nPbW, int nPbH, int16_t* mcbuffer,
-                       int xFracL, int yFracL, int bit_depth)
+template <class pixel_t, class inter_t>
+static void put_qpel_fallback(inter_t *out, ptrdiff_t out_stride,
+                              const pixel_t *src, ptrdiff_t srcstride,
+                              int nPbW, int nPbH, inter_t* mcbuffer,
+                              int xFracL, int yFracL, int bit_depth)
 {
   int extra_left   = extra_before[xFracL];
   //int extra_right  = extra_after [xFracL];
@@ -503,7 +527,10 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
   //int nPbW_extra = extra_left + nPbW + extra_right;
   int nPbH_extra = extra_top  + nPbH + extra_bottom;
 
-  const int shift1 = bit_depth-8;
+  // shift1 per HEVC v2 (10/2014) spec 8.5.3.3.3.2: Min(4, BitDepth - 8).
+  // The Min() was added with the Range Extensions in v2; the v1 (04/2013)
+  // formula was just (BitDepth - 8). See MC_MAX_BIT_DEPTH_INT16 for inter_t.
+  const int shift1 = std::min(4, bit_depth-8);
   const int shift2 = 6;
 
 
@@ -513,7 +540,7 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
   case 0:
     for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
       const pixel_t* p = src + srcstride*y - extra_left;
-      int16_t* o = &mcbuffer[y+extra_top];
+      inter_t* o = &mcbuffer[y+extra_top];
 
       for (int x=0;x<nPbW;x++) {
         *o = *p;
@@ -525,7 +552,7 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
   case 1:
     for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
       const pixel_t* p = src + srcstride*y - extra_left;
-      int16_t* o = &mcbuffer[y+extra_top];
+      inter_t* o = &mcbuffer[y+extra_top];
 
       for (int x=0;x<nPbW;x++) {
         *o = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>shift1;
@@ -537,7 +564,7 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
   case 2:
     for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
       const pixel_t* p = src + srcstride*y - extra_left;
-      int16_t* o = &mcbuffer[y+extra_top];
+      inter_t* o = &mcbuffer[y+extra_top];
 
       for (int x=0;x<nPbW;x++) {
         *o = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>shift1;
@@ -549,7 +576,7 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
   case 3:
     for (int y=-extra_top;y<nPbH+extra_bottom;y++) {
       const pixel_t* p = src + srcstride*y - extra_left;
-      int16_t* o = &mcbuffer[y+extra_top];
+      inter_t* o = &mcbuffer[y+extra_top];
 
       for (int x=0;x<nPbW;x++) {
         *o = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>shift1;
@@ -577,8 +604,8 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
   switch (yFracL) {
   case 0:
     for (int x=0;x<nPbW;x++) {
-      const int16_t* p = &mcbuffer[x*nPbH_extra];
-      int16_t* o = &out[x];
+      const inter_t* p = &mcbuffer[x*nPbH_extra];
+      inter_t* o = &out[x];
 
       for (int y=0;y<nPbH;y++) {
         *o = *p;
@@ -589,8 +616,8 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
     break;
   case 1:
     for (int x=0;x<nPbW;x++) {
-      const int16_t* p = &mcbuffer[x*nPbH_extra];
-      int16_t* o = &out[x];
+      const inter_t* p = &mcbuffer[x*nPbH_extra];
+      inter_t* o = &out[x];
 
       for (int y=0;y<nPbH;y++) {
         *o = (-p[0]+4*p[1]-10*p[2]+58*p[3]+17*p[4] -5*p[5]  +p[6])>>vshift;
@@ -601,8 +628,8 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
     break;
   case 2:
     for (int x=0;x<nPbW;x++) {
-      const int16_t* p = &mcbuffer[x*nPbH_extra];
-      int16_t* o = &out[x];
+      const inter_t* p = &mcbuffer[x*nPbH_extra];
+      inter_t* o = &out[x];
 
       for (int y=0;y<nPbH;y++) {
         *o = (-p[0]+4*p[1]-11*p[2]+40*p[3]+40*p[4]-11*p[5]+4*p[6]-p[7])>>vshift;
@@ -613,8 +640,8 @@ void put_qpel_fallback(int16_t *out, ptrdiff_t out_stride,
     break;
   case 3:
     for (int x=0;x<nPbW;x++) {
-      const int16_t* p = &mcbuffer[x*nPbH_extra];
-      int16_t* o = &out[x];
+      const inter_t* p = &mcbuffer[x*nPbH_extra];
+      inter_t* o = &out[x];
 
       for (int y=0;y<nPbH;y++) {
         *o = ( p[0]-5*p[1]+17*p[2]+58*p[3]-10*p[4] +4*p[5]  -p[6])>>vshift;
@@ -657,3 +684,21 @@ QPEL(3,0) QPEL(3,1) QPEL(3,2) QPEL(3,3)
 QPEL16(1,0) QPEL16(1,1) QPEL16(1,2) QPEL16(1,3)
 QPEL16(2,0) QPEL16(2,1) QPEL16(2,2) QPEL16(2,3)
 QPEL16(3,0) QPEL16(3,1) QPEL16(3,2) QPEL16(3,3)
+
+
+template <class pixel_t>
+void put_qpel_32_fallback(int32_t *out, ptrdiff_t out_stride,
+                          const pixel_t *src, ptrdiff_t srcstride,
+                          int nPbW, int nPbH, int32_t* mcbuffer,
+                          int xFracL, int yFracL, int bit_depth)
+{
+  if (xFracL==0 && yFracL==0) {
+    put_fullpel_fallback(out,out_stride, src,srcstride, nPbW,nPbH, bit_depth);
+  }
+  else {
+    put_qpel_fallback(out,out_stride, src,srcstride, nPbW,nPbH,mcbuffer, xFracL,yFracL, bit_depth);
+  }
+}
+
+template void put_qpel_32_fallback<uint8_t> (int32_t*, ptrdiff_t, const uint8_t*,  ptrdiff_t, int, int, int32_t*, int, int, int);
+template void put_qpel_32_fallback<uint16_t>(int32_t*, ptrdiff_t, const uint16_t*, ptrdiff_t, int, int, int32_t*, int, int, int);

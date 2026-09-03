@@ -25,6 +25,8 @@
 #include <stdint.h>
 #include <assert.h>
 
+#include "fallback-motion.h"
+
 
 struct acceleration_functions
 {
@@ -78,6 +80,25 @@ struct acceleration_functions
                          int w,int o,int log2WD, int bit_depth) const;
   void put_weighted_bipred(void *_dst, ptrdiff_t dststride,
                            const int16_t *src1, const int16_t *src2, ptrdiff_t srcstride,
+                           int width, int height,
+                           int w1,int o1, int w2,int o2, int log2WD, int bit_depth) const;
+
+  // int32_t prediction samples (bit depths above MC_MAX_BIT_DEPTH_INT16), fallback only
+
+  void put_weighted_pred_avg(void *_dst, ptrdiff_t dststride,
+                             const int32_t *src1, const int32_t *src2, ptrdiff_t srcstride,
+                             int width, int height, int bit_depth) const;
+
+  void put_unweighted_pred(void *_dst, ptrdiff_t dststride,
+                           const int32_t *src, ptrdiff_t srcstride,
+                           int width, int height, int bit_depth) const;
+
+  void put_weighted_pred(void *_dst, ptrdiff_t dststride,
+                         const int32_t *src, ptrdiff_t srcstride,
+                         int width, int height,
+                         int w,int o,int log2WD, int bit_depth) const;
+  void put_weighted_bipred(void *_dst, ptrdiff_t dststride,
+                           const int32_t *src1, const int32_t *src2, ptrdiff_t srcstride,
                            int width, int height,
                            int w1,int o1, int w2,int o2, int log2WD, int bit_depth) const;
 
@@ -136,6 +157,25 @@ struct acceleration_functions
   void put_hevc_qpel(int16_t *dst, ptrdiff_t dststride,
                      const void *src, ptrdiff_t srcstride, int width, int height,
                      int16_t* mcbuffer, int dX,int dY, int bit_depth) const;
+
+  // int32_t prediction samples (bit depths above MC_MAX_BIT_DEPTH_INT16), fallback only
+
+  void put_hevc_epel(int32_t *dst, ptrdiff_t dststride,
+                     const void *src, ptrdiff_t srcstride, int width, int height,
+                     int mx, int my, int32_t* mcbuffer, int bit_depth) const;
+  void put_hevc_epel_h(int32_t *dst, ptrdiff_t dststride,
+                       const void *src, ptrdiff_t srcstride, int width, int height,
+                       int mx, int my, int32_t* mcbuffer, int bit_depth) const;
+  void put_hevc_epel_v(int32_t *dst, ptrdiff_t dststride,
+                       const void *src, ptrdiff_t srcstride, int width, int height,
+                       int mx, int my, int32_t* mcbuffer, int bit_depth) const;
+  void put_hevc_epel_hv(int32_t *dst, ptrdiff_t dststride,
+                        const void *src, ptrdiff_t srcstride, int width, int height,
+                        int mx, int my, int32_t* mcbuffer, int bit_depth) const;
+
+  void put_hevc_qpel(int32_t *dst, ptrdiff_t dststride,
+                     const void *src, ptrdiff_t srcstride, int width, int height,
+                     int32_t* mcbuffer, int dX,int dY, int bit_depth) const;
 
 
   // --- inverse transforms ---
@@ -366,6 +406,93 @@ inline void acceleration_functions::put_hevc_qpel(int16_t *dst, ptrdiff_t dststr
     put_hevc_qpel_8[dX][dY](dst,dststride,(const uint8_t*)src,srcstride,width,height,mcbuffer);
   else
     put_hevc_qpel_16[dX][dY](dst,dststride,(const uint16_t*)src,srcstride,width,height,mcbuffer, bit_depth);
+}
+
+
+inline void acceleration_functions::put_weighted_pred_avg(void* _dst, ptrdiff_t dststride,
+                                                          const int32_t *src1, const int32_t *src2, ptrdiff_t srcstride,
+                                                          int width, int height, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_weighted_pred_avg_fallback((uint8_t*)_dst,dststride,src1,src2,srcstride,width,height,bit_depth);
+  else
+    put_weighted_pred_avg_fallback((uint16_t*)_dst,dststride,src1,src2,srcstride,width,height,bit_depth);
+}
+
+inline void acceleration_functions::put_unweighted_pred(void* _dst, ptrdiff_t dststride,
+                                                        const int32_t *src, ptrdiff_t srcstride,
+                                                        int width, int height, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_unweighted_pred_fallback((uint8_t*)_dst,dststride,src,srcstride,width,height,bit_depth);
+  else
+    put_unweighted_pred_fallback((uint16_t*)_dst,dststride,src,srcstride,width,height,bit_depth);
+}
+
+inline void acceleration_functions::put_weighted_pred(void* _dst, ptrdiff_t dststride,
+                                                      const int32_t *src, ptrdiff_t srcstride,
+                                                      int width, int height,
+                                                      int w,int o,int log2WD, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_weighted_pred_fallback((uint8_t*)_dst,dststride,src,srcstride,width,height,w,o,log2WD,bit_depth);
+  else
+    put_weighted_pred_fallback((uint16_t*)_dst,dststride,src,srcstride,width,height,w,o,log2WD,bit_depth);
+}
+
+inline void acceleration_functions::put_weighted_bipred(void* _dst, ptrdiff_t dststride,
+                                                        const int32_t *src1, const int32_t *src2, ptrdiff_t srcstride,
+                                                        int width, int height,
+                                                        int w1,int o1, int w2,int o2, int log2WD, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_weighted_bipred_fallback((uint8_t*)_dst,dststride,src1,src2,srcstride, width,height, w1,o1,w2,o2,log2WD,bit_depth);
+  else
+    put_weighted_bipred_fallback((uint16_t*)_dst,dststride,src1,src2,srcstride, width,height, w1,o1,w2,o2,log2WD,bit_depth);
+}
+
+inline void acceleration_functions::put_hevc_epel(int32_t *dst, ptrdiff_t dststride,
+                                                  const void *src, ptrdiff_t srcstride, int width, int height,
+                                                  int mx, int my, int32_t* mcbuffer, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_epel_32_fallback(dst,dststride,(const uint8_t*)src,srcstride,width,height,bit_depth);
+  else
+    put_epel_32_fallback(dst,dststride,(const uint16_t*)src,srcstride,width,height,bit_depth);
+}
+
+inline void acceleration_functions::put_hevc_epel_h(int32_t *dst, ptrdiff_t dststride,
+                                                    const void *src, ptrdiff_t srcstride, int width, int height,
+                                                    int mx, int my, int32_t* mcbuffer, int bit_depth) const
+{
+  put_hevc_epel_hv(dst,dststride,src,srcstride,width,height,mx,my,mcbuffer,bit_depth);
+}
+
+inline void acceleration_functions::put_hevc_epel_v(int32_t *dst, ptrdiff_t dststride,
+                                                    const void *src, ptrdiff_t srcstride, int width, int height,
+                                                    int mx, int my, int32_t* mcbuffer, int bit_depth) const
+{
+  put_hevc_epel_hv(dst,dststride,src,srcstride,width,height,mx,my,mcbuffer,bit_depth);
+}
+
+inline void acceleration_functions::put_hevc_epel_hv(int32_t *dst, ptrdiff_t dststride,
+                                                     const void *src, ptrdiff_t srcstride, int width, int height,
+                                                     int mx, int my, int32_t* mcbuffer, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_epel_hv_fallback(dst,dststride,(const uint8_t*)src,srcstride,width,height,mx,my,mcbuffer,bit_depth);
+  else
+    put_epel_hv_fallback(dst,dststride,(const uint16_t*)src,srcstride,width,height,mx,my,mcbuffer,bit_depth);
+}
+
+inline void acceleration_functions::put_hevc_qpel(int32_t *dst, ptrdiff_t dststride,
+                                                  const void *src, ptrdiff_t srcstride, int width, int height,
+                                                  int32_t* mcbuffer, int dX,int dY, int bit_depth) const
+{
+  if (bit_depth <= 8)
+    put_qpel_32_fallback(dst,dststride,(const uint8_t*)src,srcstride,width,height,mcbuffer,dX,dY,bit_depth);
+  else
+    put_qpel_32_fallback(dst,dststride,(const uint16_t*)src,srcstride,width,height,mcbuffer,dX,dY,bit_depth);
 }
 
 template <> inline void acceleration_functions::transform_skip<uint8_t>(uint8_t *dst, const int16_t *coeffs,ptrdiff_t stride, int bit_depth) const { transform_skip_8(dst,coeffs,stride); }

@@ -24,6 +24,7 @@
 #include "dpb.h"
 
 #include <assert.h>
+#include <memory>
 
 
 #include <sys/types.h>
@@ -44,12 +45,40 @@ static int extra_before[4] = { 0,3,3,2 };
 static int extra_after [4] = { 0,3,4,4 };
 
 
+/* Prediction samples of one PB (predSamplesL0/L1 of 8.5.3.3.4).
+   With int16_t they live on the stack. The int32_t set for bit depths above
+   MC_MAX_BIT_DEPTH_INT16 is twice as large (96 KB), which is more than some
+   default thread stacks allow for, so it is kept in per-thread storage.
+ */
+template <class inter_t> struct pred_samples
+{
+  ALIGNED_16(inter_t) L                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
+  ALIGNED_16(inter_t) C[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
+};
 
-template <class pixel_t>
+template <class inter_t> struct pred_samples_storage
+{
+  pred_samples<inter_t> samples;
+  pred_samples<inter_t>& get() { return samples; }
+};
+
+template <> struct pred_samples_storage<int32_t>
+{
+  pred_samples<int32_t>& get()
+  {
+    static thread_local std::unique_ptr<pred_samples<int32_t> > samples;
+    if (!samples) { samples.reset(new pred_samples<int32_t>); }
+    return *samples;
+  }
+};
+
+
+
+template <class pixel_t, class inter_t>
 void mc_luma(const base_context* ctx,
              const seq_parameter_set* sps, int mv_x, int mv_y,
              int xP,int yP,
-             int16_t* out, int out_stride,
+             inter_t* out, int out_stride,
              const pixel_t* ref, ptrdiff_t ref_stride,
              int nPbW, int nPbH, int bitDepth_L)
 {
@@ -68,7 +97,7 @@ void mc_luma(const base_context* ctx,
   int w = sps->pic_width_in_luma_samples;
   int h = sps->pic_height_in_luma_samples;
 
-  ALIGNED_16(int16_t) mcbuffer[MAX_CU_SIZE * (MAX_CU_SIZE+7)];
+  ALIGNED_16(inter_t) mcbuffer[MAX_CU_SIZE * (MAX_CU_SIZE+7)];
 
   if (xFracL==0 && yFracL==0) {
 
@@ -175,12 +204,12 @@ void mc_luma(const base_context* ctx,
 
 
 
-template <class pixel_t>
+template <class pixel_t, class inter_t>
 void mc_chroma(const base_context* ctx,
                const seq_parameter_set* sps,
                int mv_x, int mv_y,
                int xP,int yP,
-               int16_t* out, int out_stride,
+               inter_t* out, int out_stride,
                const pixel_t* ref, ptrdiff_t ref_stride,
                int nPbWC, int nPbHC, int bit_depth_C)
 {
@@ -202,7 +231,7 @@ void mc_chroma(const base_context* ctx,
   int xIntOffsC = xP/sps->SubWidthC  + (mv_x>>3);
   int yIntOffsC = yP/sps->SubHeightC + (mv_y>>3);
 
-  ALIGNED_32(int16_t mcbuffer[MAX_CU_SIZE*(MAX_CU_SIZE+7)]);
+  ALIGNED_32(inter_t mcbuffer[MAX_CU_SIZE*(MAX_CU_SIZE+7)]);
 
   if (xFracC == 0 && yFracC == 0) {
     if (xIntOffsC>=0 && nPbWC+xIntOffsC<=wC &&
@@ -285,13 +314,15 @@ void mc_chroma(const base_context* ctx,
 
 // 8.5.3.2
 // NOTE: for full-pel shifts, we can introduce a fast path, simply copying without shifts
-void generate_inter_prediction_samples(base_context* ctx,
-                                       const slice_segment_header* shdr,
-                                       de265_image* img,
-                                       int xC,int yC,
-                                       int xB,int yB,
-                                       int nCS, int nPbW,int nPbH,
-                                       const PBMotion* vi)
+// inter_t is the type of the prediction samples (see MC_MAX_BIT_DEPTH_INT16).
+template <class inter_t>
+static void generate_inter_prediction_samples_impl(base_context* ctx,
+                                                   const slice_segment_header* shdr,
+                                                   de265_image* img,
+                                                   int xC,int yC,
+                                                   int xB,int yB,
+                                                   int nCS, int nPbW,int nPbH,
+                                                   const PBMotion* vi)
 {
   int xP = xC+xB;
   int yP = yC+yB;
@@ -328,8 +359,9 @@ void generate_inter_prediction_samples(base_context* ctx,
   stride[2] = img->get_image_stride(2);
 
 
-  ALIGNED_16(int16_t) predSamplesL                 [2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
-  ALIGNED_16(int16_t) predSamplesC[2 /* chroma */ ][2 /* LX */][MAX_CU_SIZE* MAX_CU_SIZE];
+  pred_samples_storage<inter_t> storage;
+  auto& predSamplesL = storage.get().L;
+  auto& predSamplesC = storage.get().C;
 
   //int xP = xC+xB;
   //int yP = yC+yB;
@@ -360,17 +392,19 @@ void generate_inter_prediction_samples(base_context* ctx,
   // Fill prediction samples with mid-grey in intermediate precision.
   // Used on error paths where the reference picture is unavailable or mismatched.
   auto fill_pred_samples = [&](int l) {
-    const int16_t fill = 1 << 13; // mid-grey: (1 << (bd-1)) << (14-bd) for any bd
+    // mid-grey, i.e. (1 << (bd-1)) << shift3 with shift3 = Max(2, 14-bd) (8.5.3.3.3)
+    const inter_t fillL = (1 << (bit_depth_L-1)) << std::max(2, 14-bit_depth_L);
+    const inter_t fillC = (1 << (bit_depth_C-1)) << std::max(2, 14-bit_depth_C);
     for (int y = 0; y < nPbH; y++)
       for (int x = 0; x < nPbW; x++)
-        predSamplesL[l][y * nCS + x] = fill;
+        predSamplesL[l][y * nCS + x] = fillL;
     if (img->get_chroma_format() != de265_chroma_mono) {
       int cW = nPbW / SubWidthC;
       int cH = nPbH / SubHeightC;
       for (int y = 0; y < cH; y++)
         for (int x = 0; x < cW; x++) {
-          predSamplesC[0][l][y * nCS + x] = fill;
-          predSamplesC[1][l][y * nCS + x] = fill;
+          predSamplesC[0][l][y * nCS + x] = fillC;
+          predSamplesC[1][l][y * nCS + x] = fillC;
         }
     }
   };
@@ -556,16 +590,16 @@ void generate_inter_prediction_samples(base_context* ctx,
         //const int shift2  = 15-8; // TODO: real bit depth
         //const int offset2 = 1<<(shift2-1);
 
-        int16_t* in0 = predSamplesL[0];
-        int16_t* in1 = predSamplesL[1];
+        inter_t* in0 = predSamplesL[0];
+        inter_t* in1 = predSamplesL[1];
 
         ctx->acceleration.put_weighted_pred_avg(pixels[0], stride[0],
                                                 in0,in1, nCS, nPbW, nPbH, bit_depth_L);
 
-        int16_t* in00 = predSamplesC[0][0];
-        int16_t* in01 = predSamplesC[0][1];
-        int16_t* in10 = predSamplesC[1][0];
-        int16_t* in11 = predSamplesC[1][1];
+        inter_t* in00 = predSamplesC[0][0];
+        inter_t* in01 = predSamplesC[0][1];
+        inter_t* in10 = predSamplesC[1][0];
+        inter_t* in11 = predSamplesC[1][1];
 
         if (img->get_chroma_format() != de265_chroma_mono) {
           ctx->acceleration.put_weighted_pred_avg(pixels[1], stride[1],
@@ -602,8 +636,8 @@ void generate_inter_prediction_samples(base_context* ctx,
         logtrace(LogMotion,"weighted-BI-0 [%d] %d %d %d  %dx%d\n", refIdx0, luma_log2WD-6,luma_w0,luma_o0,nPbW,nPbH);
         logtrace(LogMotion,"weighted-BI-1 [%d] %d %d %d  %dx%d\n", refIdx1, luma_log2WD-6,luma_w1,luma_o1,nPbW,nPbH);
 
-        int16_t* in0 = predSamplesL[0];
-        int16_t* in1 = predSamplesL[1];
+        inter_t* in0 = predSamplesL[0];
+        inter_t* in1 = predSamplesL[1];
 
         ctx->acceleration.put_weighted_bipred(pixels[0], stride[0],
                                               in0,in1, nCS, nPbW, nPbH,
@@ -611,10 +645,10 @@ void generate_inter_prediction_samples(base_context* ctx,
                                               luma_w1,luma_o1,
                                               luma_log2WD, bit_depth_L);
 
-        int16_t* in00 = predSamplesC[0][0];
-        int16_t* in01 = predSamplesC[0][1];
-        int16_t* in10 = predSamplesC[1][0];
-        int16_t* in11 = predSamplesC[1][1];
+        inter_t* in00 = predSamplesC[0][0];
+        inter_t* in01 = predSamplesC[0][1];
+        inter_t* in10 = predSamplesC[1][0];
+        inter_t* in11 = predSamplesC[1][1];
 
         if (img->get_chroma_format() != de265_chroma_mono) {
           ctx->acceleration.put_weighted_bipred(pixels[1], stride[1],
@@ -726,6 +760,26 @@ void generate_inter_prediction_samples(base_context* ctx,
     logtrace(LogTransform,"*\n");
   }
 #endif
+}
+
+
+void generate_inter_prediction_samples(base_context* ctx,
+                                       const slice_segment_header* shdr,
+                                       de265_image* img,
+                                       int xC,int yC,
+                                       int xB,int yB,
+                                       int nCS, int nPbW,int nPbH,
+                                       const PBMotion* vi)
+{
+  const seq_parameter_set* sps = shdr->pps->sps.get();
+
+  if (sps->BitDepth_Y > MC_MAX_BIT_DEPTH_INT16 ||
+      sps->BitDepth_C > MC_MAX_BIT_DEPTH_INT16) {
+    generate_inter_prediction_samples_impl<int32_t>(ctx,shdr,img, xC,yC, xB,yB, nCS, nPbW,nPbH, vi);
+  }
+  else {
+    generate_inter_prediction_samples_impl<int16_t>(ctx,shdr,img, xC,yC, xB,yB, nCS, nPbW,nPbH, vi);
+  }
 }
 
 
