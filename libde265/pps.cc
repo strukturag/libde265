@@ -55,10 +55,24 @@ bool pps_range_extension::read(bitreader* br, decoder_context* ctx, const pic_pa
 
   if (pps->transform_skip_enabled_flag) {
     uvlc = br->get_uvlc();
-    if (uvlc == UVLC_ERROR ||
-        uvlc > static_cast<uint32_t>(sps->Log2MaxTrafoSize) - 2) {
+    if (uvlc == UVLC_ERROR) {
       ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
       return false;
+    }
+
+    // The standard requires log2_max_transform_skip_block_size_minus2 <=
+    // Log2MaxTrafoSize-2, but real-world RExt streams (e.g. the conformance
+    // stream PERSIST_RPARAM_A_RExt_Sony_2) code a larger value. This field
+    // only gates whether transform_skip_flag may be present for a TU of a
+    // given size (log2TrafoSize <= Log2MaxTransformSkipSize); since
+    // log2TrafoSize can never exceed Log2MaxTrafoSize, clamping to the
+    // maximum in-range value reproduces the same "always present" decoding
+    // behavior as any larger out-of-range value, so it is safe to clamp
+    // instead of rejecting the whole PPS.
+    uint32_t maxAllowed = static_cast<uint32_t>(sps->Log2MaxTrafoSize) - 2;
+    if (uvlc > maxAllowed) {
+      ctx->add_warning(DE265_WARNING_PPS_HEADER_INVALID, false);
+      uvlc = maxAllowed;
     }
 
     log2_max_transform_skip_block_size = uvlc+2;
