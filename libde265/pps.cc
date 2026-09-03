@@ -522,11 +522,20 @@ bool pic_parameter_set::read(bitreader* br, decoder_context* ctx)
       }
     }
 
-    // Multilayer extension and the 6 reserved extension bits would carry
-    // additional payload that we do not parse. Reject the stream.
-    if (pps_multilayer_extension_flag || pps_extension_6bits) {
+    // The reserved extension bits could carry a 3D/SCC PPS extension whose
+    // payload changes base-layer decoding (e.g. SCC palette / adaptive
+    // colour transform). We do not parse it, so reject the stream.
+    if (pps_extension_6bits) {
       ctx->add_warning(DE265_ERROR_NOT_IMPLEMENTED_YET, false);
       return false;
+    }
+
+    // The multilayer extension only describes enhancement layers appended
+    // at the end of the PPS RBSP; skipping its payload does not affect
+    // base-layer decoding or the parsing of subsequent NAL units, so we
+    // just warn and continue decoding the base layer.
+    if (pps_multilayer_extension_flag) {
+      ctx->add_warning(DE265_ERROR_NOT_IMPLEMENTED_YET, false);
     }
   }
 
