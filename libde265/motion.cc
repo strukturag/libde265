@@ -474,7 +474,10 @@ void generate_inter_prediction_samples(base_context* ctx,
   // Identify this case and use only one MV. This is not possible with explicit
   // weighted prediction, where the two lists may have different weights/offsets.
 
-  if (pps->weighted_pred_flag==0) {
+  const bool weightedPredFlag = (shdr->slice_type == SLICE_TYPE_P ?
+                                 pps->weighted_pred_flag : pps->weighted_bipred_flag);
+
+  if (!weightedPredFlag) {
     if (predFlag[0] && predFlag[1]) {
       if (vi->mv[0].x == vi->mv[1].x &&
           vi->mv[0].y == vi->mv[1].y &&
