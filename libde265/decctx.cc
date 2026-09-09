@@ -25,6 +25,7 @@
 #include "deblock.h"
 
 #include <algorithm>
+#include <utility>
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -92,7 +93,9 @@ slice_unit::slice_unit(decoder_context* decctx)
 
 slice_unit::~slice_unit()
 {
-  ctx->nal_parser.free_NAL_unit(nal);
+  // Return our NAL to the reuse pool. (Letting the unique_ptr delete it would be
+  // memory-safe too, but would bypass pooling.)
+  ctx->nal_parser.free_NAL_unit(std::move(nal));
 
   if (thread_contexts) {
     delete[] thread_contexts;
@@ -503,7 +506,7 @@ bool decoder_context::slice_segment_order_is_valid(image_unit* imgunit,
 }
 
 
-de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, nal_header& nal_hdr)
+de265_error decoder_context::read_slice_NAL(bitreader& reader, std::unique_ptr<NAL_unit> nal, nal_header& nal_hdr)
 {
   logdebug(LogHeaders,"---> read slice segment header\n");
 
@@ -515,7 +518,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   de265_error err = shdr->read(&reader,this, &continueDecoding);
   if (!continueDecoding) {
     if (img) { img->integrity = INTEGRITY_NOT_DECODED; }
-    nal_parser.free_NAL_unit(nal);
+    nal_parser.free_NAL_unit(std::move(nal));
     delete shdr;
     return err;
   }
@@ -528,7 +531,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
   if (process_slice_segment_header(shdr, &err, nal->pts, &nal_hdr, nal->user_data) == false)
     {
       if (img!=nullptr) img->integrity = INTEGRITY_NOT_DECODED;
-      nal_parser.free_NAL_unit(nal);
+      nal_parser.free_NAL_unit(std::move(nal));
       delete shdr;
       return err;
     }
@@ -545,7 +548,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
                                                      headerLength);
     if (skipped > shdr->entry_point_offset[i]) {
       add_warning(DE265_WARNING_SLICEHEADER_INVALID, false);
-      nal_parser.free_NAL_unit(nal);
+      nal_parser.free_NAL_unit(std::move(nal));
       delete shdr;
       return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
     }
@@ -585,7 +588,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
     previous_slice_header = shdr;
 
     slice_unit* sliceunit = new slice_unit(this);
-    sliceunit->nal = nal;
+    sliceunit->nal = std::move(nal);
     sliceunit->shdr = shdr;
     sliceunit->reader = reader;
 
@@ -595,7 +598,7 @@ de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, na
     image_units.back()->slice_units.push_back(sliceunit);
   }
   else {
-    nal_parser.free_NAL_unit(nal);
+    nal_parser.free_NAL_unit(std::move(nal));
     delete shdr;
   }
 
@@ -1133,12 +1136,13 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 }
 
 
-// Ownership: decode_NAL() takes ownership of 'nal' and releases it on every
-// return path. Parameter-set, SEI and discarded NALs are freed directly here;
-// slice NALs are passed to read_slice_NAL(), which either frees the NAL or hands
-// it to a slice_unit that owns it for the rest of the image_unit's lifetime.
-// The caller (decode()) must therefore NOT free the NAL again.
-de265_error decoder_context::decode_NAL(NAL_unit* nal)
+// Ownership: decode_NAL() receives the NAL by moved-in unique_ptr and releases
+// it on every return path. Parameter-set, SEI and discarded NALs are returned to
+// the pool directly here; slice NALs are moved into read_slice_NAL(), which
+// either releases the NAL or moves it into a slice_unit that owns it for the rest
+// of the image_unit's lifetime. Because ownership is a unique_ptr, the NAL cannot
+// be released twice.
+de265_error decoder_context::decode_NAL(std::unique_ptr<NAL_unit> nal)
 {
   //return decode_NAL_OLD(nal);
 
@@ -1151,7 +1155,7 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
   nal_header nal_hdr;
   err = nal_hdr.read(&reader);
   if (err != DE265_OK) {
-    nal_parser.free_NAL_unit(nal);
+    nal_parser.free_NAL_unit(std::move(nal));
     return err;
   }
   ctx->process_nal_hdr(&nal_hdr);
@@ -1159,7 +1163,7 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
   if (nal_hdr.nuh_layer_id > 0) {
     // Discard all NAL units with nuh_layer_id > 0
     // These will have to be handled by an SHVC decoder.
-    nal_parser.free_NAL_unit(nal);
+    nal_parser.free_NAL_unit(std::move(nal));
     return DE265_OK;
   }
 
@@ -1181,43 +1185,43 @@ de265_error decoder_context::decode_NAL(NAL_unit* nal)
   //printf("hTid: %d\n", current_HighestTid);
 
   if (nal_hdr.nuh_temporal_id > current_HighestTid) {
-    nal_parser.free_NAL_unit(nal);
+    nal_parser.free_NAL_unit(std::move(nal));
     return DE265_OK;
   }
 
 
   if (nal_hdr.nal_unit_type<32) {
-    err = read_slice_NAL(reader, nal, nal_hdr);
+    err = read_slice_NAL(reader, std::move(nal), nal_hdr);
   }
   else switch (nal_hdr.nal_unit_type) {
     case NAL_UNIT_VPS_NUT:
       err = read_vps_NAL(reader);
-      nal_parser.free_NAL_unit(nal);
+      nal_parser.free_NAL_unit(std::move(nal));
       break;
 
     case NAL_UNIT_SPS_NUT:
       err = read_sps_NAL(reader);
-      nal_parser.free_NAL_unit(nal);
+      nal_parser.free_NAL_unit(std::move(nal));
       break;
 
     case NAL_UNIT_PPS_NUT:
       err = read_pps_NAL(reader);
-      nal_parser.free_NAL_unit(nal);
+      nal_parser.free_NAL_unit(std::move(nal));
       break;
 
     case NAL_UNIT_PREFIX_SEI_NUT:
     case NAL_UNIT_SUFFIX_SEI_NUT:
       err = read_sei_NAL(reader, nal_hdr.nal_unit_type==NAL_UNIT_SUFFIX_SEI_NUT);
-      nal_parser.free_NAL_unit(nal);
+      nal_parser.free_NAL_unit(std::move(nal));
       break;
 
     case NAL_UNIT_EOS_NUT:
       ctx->FirstAfterEndOfSequenceNAL = true;
-      nal_parser.free_NAL_unit(nal);
+      nal_parser.free_NAL_unit(std::move(nal));
       break;
 
     default:
-      nal_parser.free_NAL_unit(nal);
+      nal_parser.free_NAL_unit(std::move(nal));
       break;
     }
 
@@ -1273,14 +1277,13 @@ de265_error decoder_context::decode(int* more)
   bool did_work = false;
 
   if (ctx->nal_parser.get_NAL_queue_length()) { // number_of_NAL_units_pending()) {
-    NAL_unit* nal = ctx->nal_parser.pop_from_NAL_queue();
+    std::unique_ptr<NAL_unit> nal = ctx->nal_parser.pop_from_NAL_queue();
     assert(nal);
 
-    // decode_NAL() takes ownership of the dequeued NAL: it releases the NAL on
-    // every path (directly via free_NAL_unit(), or by handing it to a slice_unit
-    // that frees it when the image_unit is destroyed). Do NOT free the NAL here
-    // as well; that would release it twice.
-    err = ctx->decode_NAL(nal);
+    // Ownership of the dequeued NAL moves into decode_NAL(), which releases it on
+    // every path (directly, or via a slice_unit that returns it to the pool when
+    // the image_unit is destroyed). Nothing to free here.
+    err = ctx->decode_NAL(std::move(nal));
     did_work=true;
   }
   else if (ctx->nal_parser.is_end_of_frame() == true &&

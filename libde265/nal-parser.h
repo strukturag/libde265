@@ -29,14 +29,12 @@
 
 #include <vector>
 #include <queue>
-
-constexpr int DE265_NAL_FREE_LIST_SIZE = 16;
-constexpr int DE265_SKIPPED_BYTES_INITIAL_SIZE = 16;
+#include <memory>
 
 
 class NAL_unit {
  public:
-  NAL_unit();
+  NAL_unit() = default;
   ~NAL_unit();
 
   nal_header header;
@@ -44,8 +42,6 @@ class NAL_unit {
   de265_PTS  pts = 0;
   void*      user_data = nullptr;
 
-
-  void clear();
 
   // --- rbsp data ---
 
@@ -101,7 +97,7 @@ class NAL_Parser
   de265_error push_NAL(const unsigned char* data, int len,
                        de265_PTS pts, void* user_data = nullptr);
 
-  NAL_unit*   pop_from_NAL_queue();
+  std::unique_ptr<NAL_unit> pop_from_NAL_queue();
   de265_error flush_data();
   void        mark_end_of_stream() { end_of_stream=true; }
   void        mark_end_of_frame() { end_of_frame=true; }
@@ -123,7 +119,11 @@ class NAL_Parser
     return NAL_queue.size();
   }
 
-  void free_NAL_unit(NAL_unit*);
+  // Release a NAL. Takes ownership by value, so a move transfers the object here
+  // and leaves the caller holding nullptr; a redundant release therefore passes
+  // nullptr and is a harmless no-op, which is what makes a double release
+  // impossible to express.
+  void free_NAL_unit(std::unique_ptr<NAL_unit> nal);
 
 
   int get_NAL_queue_length() const { return NAL_queue.size(); }
@@ -137,17 +137,17 @@ class NAL_Parser
   bool end_of_frame = false;  // data in pending_input_data is end of frame
   int  input_push_state = 0;
 
-  NAL_unit* pending_input_NAL = nullptr;
+  std::unique_ptr<NAL_unit> pending_input_NAL;
 
   const de265_security_limits* m_security_limits = nullptr;
 
 
   // NAL level
 
-  std::queue<NAL_unit*> NAL_queue;  // enqueued NALs have suffing bytes removed
+  std::queue<std::unique_ptr<NAL_unit>> NAL_queue;  // enqueued NALs have suffing bytes removed
   int nBytes_in_NAL_queue = 0; // data bytes currently in NAL_queue
 
-  void push_to_NAL_queue(NAL_unit*);
+  void push_to_NAL_queue(std::unique_ptr<NAL_unit>);
 
   // Returns true if a NAL unit of the given size is within the configured
   // security limit (or if no limit is set).
@@ -158,11 +158,7 @@ class NAL_Parser
   }
 
 
-  // pool of unused NAL memory
-
-  std::vector<NAL_unit*> NAL_free_list;  // maximum size: DE265_NAL_FREE_LIST_SIZE
-
-  LIBDE265_CHECK_RESULT NAL_unit* alloc_NAL_unit(int size);
+  LIBDE265_CHECK_RESULT std::unique_ptr<NAL_unit> alloc_NAL_unit(int size);
 };
 
 

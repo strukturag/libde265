@@ -26,32 +26,16 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <limits.h>
+#include <utility>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 
-NAL_unit::NAL_unit()
-  : skipped_bytes(DE265_SKIPPED_BYTES_INITIAL_SIZE)
-{
-}
-
 NAL_unit::~NAL_unit()
 {
   free(nal_data);
-}
-
-void NAL_unit::clear()
-{
-  header = nal_header();
-  pts = 0;
-  user_data = nullptr;
-
-  // set size to zero but keep memory
-  data_size = 0;
-
-  skipped_bytes.clear();
 }
 
 LIBDE265_CHECK_RESULT bool NAL_unit::resize(int new_size)
@@ -174,91 +158,39 @@ NAL_Parser::NAL_Parser() = default;
 
 NAL_Parser::~NAL_Parser()
 {
-  // --- free NAL queues ---
-
-  // empty NAL queue
-
-  NAL_unit* nal;
-  while ( (nal = pop_from_NAL_queue()) ) {
-    free_NAL_unit(nal);
-  }
-
-  // free the pending input NAL
-
-  if (pending_input_NAL != nullptr) {
-    free_NAL_unit(pending_input_NAL);
-  }
-
-  // free all NALs in free-list
-
-  for (size_t i=0;i<NAL_free_list.size();i++) {
-    delete NAL_free_list[i];
-  }
+  // The NAL queue and the pending input NAL hold owning unique_ptrs, so their
+  // contents are released automatically. Nothing to do.
 }
 
 
-LIBDE265_CHECK_RESULT NAL_unit* NAL_Parser::alloc_NAL_unit(int size)
+LIBDE265_CHECK_RESULT std::unique_ptr<NAL_unit> NAL_Parser::alloc_NAL_unit(int size)
 {
-  NAL_unit* nal;
+  // A freshly constructed NAL_unit is already in the cleared state (empty
+  // buffer, empty skipped-byte list), so no clear() is needed here.
+  auto nal = std::make_unique<NAL_unit>();
 
-  // --- get NAL-unit object ---
-
-  if (NAL_free_list.size() > 0) {
-    nal = NAL_free_list.back();
-    NAL_free_list.pop_back();
-  }
-  else {
-    nal = new NAL_unit;
-  }
-
-  nal->clear();
   if (!nal->resize(size)) {
-    free_NAL_unit(nal);
-    return nullptr;
+    return nullptr;   // 'nal' is deleted as it goes out of scope
   }
 
   return nal;
 }
 
-void NAL_Parser::free_NAL_unit(NAL_unit* nal)
+void NAL_Parser::free_NAL_unit(std::unique_ptr<NAL_unit> /*nal*/)
 {
-  if (nal == nullptr) {
-    // Allow calling with nullptr just like regular "free()"
-    return;
-  }
-
-  // Defense-in-depth against a double release of the same NAL_unit (CWE-416).
-  //
-  // The ownership contract (see decoder_context::decode_NAL()) frees every NAL
-  // exactly once. Should a caller ever violate it, the same pointer would be
-  // stored in the reuse free-list twice and ~NAL_Parser() would then run
-  // 'delete' on it twice, corrupting the heap at decoder destruction. Detect a
-  // pointer that is already queued for reuse and turn the redundant release into
-  // a safe no-op: both callers have relinquished ownership, so a single entry in
-  // the free-list is the correct end state. The free-list is bounded by
-  // DE265_NAL_FREE_LIST_SIZE (16), so this scan is negligible.
-  for (size_t i=0; i<NAL_free_list.size(); i++) {
-    if (NAL_free_list[i] == nal) {
-      assert(false && "double free of NAL_unit");
-      return;
-    }
-  }
-
-  if (NAL_free_list.size() < DE265_NAL_FREE_LIST_SIZE) {
-    NAL_free_list.push_back(nal);
-  }
-  else {
-    delete nal;
-  }
+  // Releasing a NAL is just destroying it: ownership is moved in by value, so the
+  // NAL is deleted when the argument goes out of scope here (a moved-from / null
+  // argument is a harmless no-op). Kept as a named operation so call sites read as
+  // an explicit release, and because it makes a double release impossible to express.
 }
 
-NAL_unit* NAL_Parser::pop_from_NAL_queue()
+std::unique_ptr<NAL_unit> NAL_Parser::pop_from_NAL_queue()
 {
   if (NAL_queue.empty()) {
     return nullptr;
   }
   else {
-    NAL_unit* nal = NAL_queue.front();
+    std::unique_ptr<NAL_unit> nal = std::move(NAL_queue.front());
     NAL_queue.pop();
 
     nBytes_in_NAL_queue -= nal->size();
@@ -267,10 +199,10 @@ NAL_unit* NAL_Parser::pop_from_NAL_queue()
   }
 }
 
-void NAL_Parser::push_to_NAL_queue(NAL_unit* nal)
+void NAL_Parser::push_to_NAL_queue(std::unique_ptr<NAL_unit> nal)
 {
-  NAL_queue.push(nal);
   nBytes_in_NAL_queue += nal->size();
+  NAL_queue.push(std::move(nal));
 }
 
 de265_error NAL_Parser::push_data(const unsigned char* data, int len,
@@ -287,7 +219,8 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
     pending_input_NAL->user_data = user_data;
   }
 
-  NAL_unit* nal = pending_input_NAL; // shortcut
+  // Raw working pointer for byte access; ownership stays in pending_input_NAL.
+  NAL_unit* nal = pending_input_NAL.get(); // shortcut
 
   // Resize output buffer so that complete input would fit.
   // We add 3, because in the worst case 3 extra bytes are created for an input byte.
@@ -359,16 +292,15 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
 
         // enforce the maximum NAL size: drop an oversized NAL and resync
         if (!nal_size_within_limit(out - nal->data())) {
-          free_NAL_unit(pending_input_NAL);
-          pending_input_NAL = nullptr;
+          free_NAL_unit(std::move(pending_input_NAL));
           input_push_state = 0;
           return DE265_ERROR_NAL_SIZE_EXCEEDS_SECURITY_LIMIT;
         }
 
         nal->set_size(out - nal->data());;
 
-        // push this NAL decoder queue
-        push_to_NAL_queue(nal);
+        // push this completed NAL onto the decoder queue (transfers ownership)
+        push_to_NAL_queue(std::move(pending_input_NAL));
 
 
         // initialize new, empty NAL unit
@@ -379,7 +311,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
         }
         pending_input_NAL->pts = pts;
         pending_input_NAL->user_data = user_data;
-        nal = pending_input_NAL;
+        nal = pending_input_NAL.get();
         out = nal->data();
 
         input_push_state=3;
@@ -405,8 +337,7 @@ de265_error NAL_Parser::push_data(const unsigned char* data, int len,
   // reaching a start code. The oversized pending NAL is dropped and the parser
   // resyncs at the next start code.
   if (!nal_size_within_limit(nal->size())) {
-    free_NAL_unit(pending_input_NAL);
-    pending_input_NAL = nullptr;
+    free_NAL_unit(std::move(pending_input_NAL));
     input_push_state = 0;
     return DE265_ERROR_NAL_SIZE_EXCEEDS_SECURITY_LIMIT;
   }
@@ -437,9 +368,9 @@ de265_error NAL_Parser::push_NAL(const unsigned char* data, int len,
     return DE265_ERROR_NAL_SIZE_EXCEEDS_SECURITY_LIMIT;
   }
 
-  NAL_unit* nal = alloc_NAL_unit(len);
+  std::unique_ptr<NAL_unit> nal = alloc_NAL_unit(len);
   if (nal == nullptr || !nal->set_data(data, len)) {
-    free_NAL_unit(nal);
+    free_NAL_unit(std::move(nal));
     return DE265_ERROR_OUT_OF_MEMORY;
   }
   nal->pts = pts;
@@ -447,7 +378,7 @@ de265_error NAL_Parser::push_NAL(const unsigned char* data, int len,
 
   nal->remove_stuffing_bytes();
 
-  push_to_NAL_queue(nal);
+  push_to_NAL_queue(std::move(nal));
 
   return DE265_OK;
 }
@@ -456,7 +387,7 @@ de265_error NAL_Parser::push_NAL(const unsigned char* data, int len,
 de265_error NAL_Parser::flush_data()
 {
   if (pending_input_NAL) {
-    NAL_unit* nal = pending_input_NAL;
+    NAL_unit* nal = pending_input_NAL.get();
     uint8_t null[2] = { 0,0 };
 
     // append bytes that are implied by the push state
@@ -476,8 +407,7 @@ de265_error NAL_Parser::flush_data()
     // only push the NAL if it contains at least the NAL header
 
     if (input_push_state>=5) {
-      push_to_NAL_queue(nal);
-      pending_input_NAL = nullptr;
+      push_to_NAL_queue(std::move(pending_input_NAL));
     }
 
     input_push_state = 0;
@@ -492,13 +422,12 @@ void NAL_Parser::remove_pending_input_data()
   // --- remove pending input data ---
 
   if (pending_input_NAL) {
-    free_NAL_unit(pending_input_NAL);
-    pending_input_NAL = nullptr;
+    free_NAL_unit(std::move(pending_input_NAL));
   }
 
   for (;;) {
-    NAL_unit* nal = pop_from_NAL_queue();
-    if (nal) { free_NAL_unit(nal); }
+    std::unique_ptr<NAL_unit> nal = pop_from_NAL_queue();
+    if (nal) { free_NAL_unit(std::move(nal)); }
     else break;
   }
 

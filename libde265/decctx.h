@@ -145,7 +145,7 @@ public:
   slice_unit(decoder_context* decctx);
   ~slice_unit();
 
-  NAL_unit* nal;   // we are the owner
+  std::unique_ptr<NAL_unit> nal;   // we are the owner
   slice_segment_header* shdr;  // not the owner (de265_image is owner)
   bitreader reader;
 
@@ -333,7 +333,7 @@ class decoder_context : public base_context {
   uint8_t get_nal_unit_type() const { return nal_unit_type; }
   bool    get_RapPicFlag() const { return RapPicFlag; }
 
-  de265_error decode_NAL(NAL_unit* nal);
+  de265_error decode_NAL(std::unique_ptr<NAL_unit> nal);
 
   de265_error decode(int* more);
   de265_error decode_some(bool* did_work);
@@ -405,7 +405,7 @@ class decoder_context : public base_context {
   de265_error read_pps_NAL(bitreader&);
   de265_error read_sei_NAL(bitreader& reader, bool suffix);
   de265_error read_eos_NAL(bitreader& reader);
-  de265_error read_slice_NAL(bitreader&, NAL_unit* nal, nal_header& nal_hdr);
+  de265_error read_slice_NAL(bitreader&, std::unique_ptr<NAL_unit> nal, nal_header& nal_hdr);
 
  private:
   // --- internal data ---
