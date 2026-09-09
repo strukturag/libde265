@@ -88,7 +88,7 @@ template <class DataUnit> class MetaDataArray
   MetaDataArray() = default;
   ~MetaDataArray() { free(data); }
 
-  LIBDE265_CHECK_RESULT bool alloc(int w,int h, uint8_t _log2unitSize) {
+  [[nodiscard]] bool alloc(int w,int h, uint8_t _log2unitSize) {
     int size = w*h;
 
     if (size != data_size) {

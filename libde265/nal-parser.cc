@@ -38,7 +38,7 @@ NAL_unit::~NAL_unit()
   free(nal_data);
 }
 
-LIBDE265_CHECK_RESULT bool NAL_unit::resize(int new_size)
+[[nodiscard]] bool NAL_unit::resize(int new_size)
 {
   if (capacity < new_size) {
     // Grow the buffer geometrically (1.5x) rather than to the exact requested
@@ -71,7 +71,7 @@ LIBDE265_CHECK_RESULT bool NAL_unit::resize(int new_size)
   return true;
 }
 
-LIBDE265_CHECK_RESULT bool NAL_unit::append(const unsigned char* in_data, int n)
+[[nodiscard]] bool NAL_unit::append(const unsigned char* in_data, int n)
 {
   if (!resize(data_size + n)) {
     return false;
@@ -83,7 +83,7 @@ LIBDE265_CHECK_RESULT bool NAL_unit::append(const unsigned char* in_data, int n)
   return true;
 }
 
-bool LIBDE265_CHECK_RESULT NAL_unit::set_data(const unsigned char* in_data, int n)
+[[nodiscard]] bool NAL_unit::set_data(const unsigned char* in_data, int n)
 {
   if (!resize(n)) {
     return false;
@@ -163,7 +163,7 @@ NAL_Parser::~NAL_Parser()
 }
 
 
-LIBDE265_CHECK_RESULT std::unique_ptr<NAL_unit> NAL_Parser::alloc_NAL_unit(int size)
+[[nodiscard]] std::unique_ptr<NAL_unit> NAL_Parser::alloc_NAL_unit(int size)
 {
   // A freshly constructed NAL_unit is already in the cleared state (empty
   // buffer, empty skipped-byte list), so no clear() is needed here.

@@ -49,14 +49,6 @@
 #define unlikely(x)    __builtin_expect(!!(x), 0)
 #endif
 
-#if defined(__GNUC__) && (__GNUC__ >= 4)
-#define LIBDE265_CHECK_RESULT __attribute__ ((warn_unused_result))
-#elif defined(_MSC_VER) && (_MSC_VER >= 1700)
-#define LIBDE265_CHECK_RESULT _Check_return_
-#else
-#define LIBDE265_CHECK_RESULT
-#endif
-
 // Be careful with these alignment instructions. They only specify the alignment within
 // a struct. But they cannot make sure that the base address of the struct has the same alignment
 // when it is dynamically allocated.

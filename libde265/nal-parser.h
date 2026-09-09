@@ -45,9 +45,9 @@ class NAL_unit {
 
   // --- rbsp data ---
 
-  LIBDE265_CHECK_RESULT bool resize(int new_size);
-  LIBDE265_CHECK_RESULT bool append(const unsigned char* data, int n);
-  LIBDE265_CHECK_RESULT bool set_data(const unsigned char* data, int n);
+  [[nodiscard]] bool resize(int new_size);
+  [[nodiscard]] bool append(const unsigned char* data, int n);
+  [[nodiscard]] bool set_data(const unsigned char* data, int n);
 
   int size() const { return data_size; }
   void set_size(int s) { data_size=s; }
@@ -158,7 +158,7 @@ class NAL_Parser
   }
 
 
-  LIBDE265_CHECK_RESULT std::unique_ptr<NAL_unit> alloc_NAL_unit(int size);
+  [[nodiscard]] std::unique_ptr<NAL_unit> alloc_NAL_unit(int size);
 };
 
 
