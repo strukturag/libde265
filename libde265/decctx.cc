@@ -1133,6 +1133,11 @@ de265_error decoder_context::decode_slice_unit_tiles(image_unit* imgunit,
 }
 
 
+// Ownership: decode_NAL() takes ownership of 'nal' and releases it on every
+// return path. Parameter-set, SEI and discarded NALs are freed directly here;
+// slice NALs are passed to read_slice_NAL(), which either frees the NAL or hands
+// it to a slice_unit that owns it for the rest of the image_unit's lifetime.
+// The caller (decode()) must therefore NOT free the NAL again.
 de265_error decoder_context::decode_NAL(NAL_unit* nal)
 {
   //return decode_NAL_OLD(nal);
@@ -1270,8 +1275,12 @@ de265_error decoder_context::decode(int* more)
   if (ctx->nal_parser.get_NAL_queue_length()) { // number_of_NAL_units_pending()) {
     NAL_unit* nal = ctx->nal_parser.pop_from_NAL_queue();
     assert(nal);
+
+    // decode_NAL() takes ownership of the dequeued NAL: it releases the NAL on
+    // every path (directly via free_NAL_unit(), or by handing it to a slice_unit
+    // that frees it when the image_unit is destroyed). Do NOT free the NAL here
+    // as well; that would release it twice.
     err = ctx->decode_NAL(nal);
-    // ctx->nal_parser.free_NAL_unit(nal); TODO: do not free NAL with new loop
     did_work=true;
   }
   else if (ctx->nal_parser.is_end_of_frame() == true &&

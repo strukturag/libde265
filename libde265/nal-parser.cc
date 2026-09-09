@@ -226,6 +226,24 @@ void NAL_Parser::free_NAL_unit(NAL_unit* nal)
     // Allow calling with nullptr just like regular "free()"
     return;
   }
+
+  // Defense-in-depth against a double release of the same NAL_unit (CWE-416).
+  //
+  // The ownership contract (see decoder_context::decode_NAL()) frees every NAL
+  // exactly once. Should a caller ever violate it, the same pointer would be
+  // stored in the reuse free-list twice and ~NAL_Parser() would then run
+  // 'delete' on it twice, corrupting the heap at decoder destruction. Detect a
+  // pointer that is already queued for reuse and turn the redundant release into
+  // a safe no-op: both callers have relinquished ownership, so a single entry in
+  // the free-list is the correct end state. The free-list is bounded by
+  // DE265_NAL_FREE_LIST_SIZE (16), so this scan is negligible.
+  for (size_t i=0; i<NAL_free_list.size(); i++) {
+    if (NAL_free_list[i] == nal) {
+      assert(false && "double free of NAL_unit");
+      return;
+    }
+  }
+
   if (NAL_free_list.size() < DE265_NAL_FREE_LIST_SIZE) {
     NAL_free_list.push_back(nal);
   }
