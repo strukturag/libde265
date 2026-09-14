@@ -3266,11 +3266,22 @@ int residual_coding(thread_context* tctx,
       c1 = 1;
 
 
+      /* Whether this sub-block codes any escape data, i.e. any coeff_abs_level_remaining.
+         Only used for cabac_bypass_alignment_enabled_flag (see below). */
+
+      bool escapeDataPresent = false;
+
+
       // --- decode greater-1 flags ---
 
       int newLastGreater1ScanPos = -1;
 
       int lastGreater1Coefficient = std::min(8, nCoefficients);
+
+      // significant coefficients past the first eight carry no greater-1 flag and are escape coded
+      if (nCoefficients > 8) {
+        escapeDataPresent = true;
+      }
       for (int c = 0; c < lastGreater1Coefficient; c++) {
         int greater1_flag =
             decode_coeff_abs_level_greater1(tctx, cIdx, i,
@@ -3288,6 +3299,9 @@ int residual_coding(thread_context* tctx,
 
           if (newLastGreater1ScanPos == -1) {
             newLastGreater1ScanPos = c;
+          }
+          else {
+            escapeDataPresent = true;
           }
         }
         else {
@@ -3309,6 +3323,10 @@ int residual_coding(thread_context* tctx,
         int flag = decode_coeff_abs_level_greater2(tctx, cIdx, lastInvocation_ctxSet);
         coeff_value[newLastGreater1ScanPos] += flag;
         coeff_has_max_base_level[newLastGreater1ScanPos] = flag;
+
+        if (flag) {
+          escapeDataPresent = true;
+        }
       }
 
 
@@ -3334,6 +3352,14 @@ int residual_coding(thread_context* tctx,
         signHidden = (coeff_scan_pos[0] - coeff_scan_pos[nCoefficients - 1] > 3);
       }
 
+
+      /* (9.3.4.3.6) Align the CABAC engine before the bypass-coded sign flags and
+         remaining levels of a sub-block that carries escape data. No context-coded bin
+         follows until the end of the sub-block, so aligning once here covers both. */
+
+      if (sps.range_extension.cabac_bypass_alignment_enabled_flag && escapeDataPresent) {
+        tctx->cabac_decoder.align_bypass();
+      }
 
       for (int n = 0; n < nCoefficients - 1; n++) {
         coeff_sign[n] = tctx->cabac_decoder.decode_bypass();

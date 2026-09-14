@@ -371,6 +371,17 @@ int  CABAC_decoder::decode_term_bit()
 
 // When we read past the end of the bitstream (which should only happen on faulty bitstreams),
 // we will eventually only return zeros.
+/* (9.3.4.3.6) Alignment process prior to aligned bypass decoding. Invoked before the
+   bypass-coded coeff_sign_flag / coeff_abs_level_remaining of a sub-block carrying escape
+   data when cabac_bypass_alignment_enabled_flag is set. Bypass decoding leaves
+   ivlCurrRange untouched, so a single call covers the whole run of bypass bins after it.
+*/
+void CABAC_decoder::align_bypass()
+{
+  range = 256;
+}
+
+
 int  CABAC_decoder::decode_bypass()
 {
 #ifdef DE265_CABAC_ASM_X86_64

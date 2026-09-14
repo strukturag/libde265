@@ -34,6 +34,7 @@ public:
   int  decode_term_bit();
 
   int  decode_bypass();
+  void align_bypass();
   int  decode_TU_bypass(int cMax);
   uint32_t  decode_FL_bypass(int nBits);
   int  decode_TR_bypass(int cRiceParam, int cTRMax);
