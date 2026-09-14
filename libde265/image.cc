@@ -511,33 +511,26 @@ void de265_image::fill_plane(int channel, int value)
     assert(bytes_per_pixel == 2);
 
     // if we fill the same byte value to all bytes, we can still use memset()
-    memset(pixels[channel], 0, plane_bytes + MEMORY_PADDING);
+    memset(pixels[channel], value & 0xFF, plane_bytes + MEMORY_PADDING);
   }
   else {
     assert(bytes_per_pixel == 2);
     uint16_t v = value;
 
-    if (channel==0) {
-      // copy value into first row
-      for (int x = 0; x < width; x++) {
-        *reinterpret_cast<uint16_t*>(&pixels[channel][2 * x]) = v;
-      }
+    // Fill whole rows including the stride padding. This covers every byte of the
+    // plane, so no part of it is left with whatever the image allocator handed us.
 
-      // copy first row into remaining rows
-      for (int y = 1; y < height; y++) {
-        memcpy(pixels[channel] + y * stride * 2, pixels[channel], chroma_width * 2);
-      }
+    const ptrdiff_t row_width  = (channel==0 ? stride        : chroma_stride);
+    const int       nRows      = (channel==0 ? height        : chroma_height);
+
+    // copy value into first row
+    for (ptrdiff_t x = 0; x < row_width; x++) {
+      *reinterpret_cast<uint16_t*>(&pixels[channel][2 * x]) = v;
     }
-    else {
-      // copy value into first row
-      for (int x = 0; x < chroma_width; x++) {
-        *reinterpret_cast<uint16_t*>(&pixels[channel][2 * x]) = v;
-      }
 
-      // copy first row into remaining rows
-      for (int y = 1; y < chroma_height; y++) {
-        memcpy(pixels[channel] + y * chroma_stride * 2, pixels[channel], chroma_width * 2);
-      }
+    // copy first row into remaining rows
+    for (int y = 1; y < nRows; y++) {
+      memcpy(pixels[channel] + y * row_width * 2, pixels[channel], row_width * 2);
     }
 
 #if MEMORY_PADDING > 0
