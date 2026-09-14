@@ -37,6 +37,8 @@
 #ifdef HAVE_SSE4_1
 // SSE code processes 128bit per iteration and thus might read more data
 // than is later actually used.
+// NOTE: custom image allocators have to provide this padding too. When increasing
+// it, update the de265_image_allocation documentation in de265.h accordingly.
 #define MEMORY_PADDING  16
 #else
 #define MEMORY_PADDING  0

@@ -352,6 +352,25 @@ typedef struct de265_image_spec
   int visible_height; // convenience, height - crop_top - crop_bottom
 } de265_image_spec;
 
+/* Custom image buffer allocation.
+
+   get_buffer() has to provide the image planes by calling de265_set_image_plane()
+   for each of them. The buffers have to be large enough for the image described by
+   'spec', taking spec->alignment into account when computing the stride, plus at
+   least 16 trailing bytes beyond the last row. The SIMD code processes whole vectors
+   and may read up to a vector past the pixels it actually uses, so a plane allocated
+   with no slack is read out of bounds. Allocate the trailing bytes unconditionally;
+   whether they are touched depends on which SIMD paths libde265 was built with and
+   on the CPU it runs on.
+
+   The memory handed back has to be zero-initialized (or otherwise fully initialized).
+   libde265 does not clear buffers obtained from get_buffer(); only the built-in
+   allocator returned by de265_get_default_image_allocation_functions() clears them
+   itself. If an allocator returns uninitialized memory, any part of an image that the
+   decoder does not write -- for example a picture that a corrupted stream covers only
+   partially with slices -- shows up in the decoded output, exposing whatever the
+   application previously kept in that memory.
+*/
 typedef struct de265_image_allocation
 {
   int  (*get_buffer)(de265_decoder_context* ctx, // first parameter deprecated
