@@ -8,9 +8,13 @@ libde265 is an open source implementation of the h.265 video codec.
 It is written from scratch and has a plain C API to enable
 a simple integration into other software.
 
-libde265 supports WPP and tile-based multithreading and includes SSE optimizations.
-The decoder includes all features of the Main profile and correctly decodes almost all
-conformance streams (see [[wiki page](https://github.com/strukturag/libde265/wiki/Decoder-conformance)]).
+libde265 supports WPP and tile-based multithreading and includes SSE, AVX2 and AVX-512
+optimizations.
+The decoder includes all features of the Main profile, and it supports Main 10 and the
+Range Extensions: bit depths from 8 to 16 bit (independently for luma and chroma), the
+4:2:0, 4:2:2, 4:4:4 and monochrome chroma formats, and the Range Extensions coding tools.
+It correctly decodes almost all conformance streams (see
+[[wiki page](https://github.com/strukturag/libde265/wiki/Decoder-conformance)]).
 
 A list of supported features are available in the [wiki](https://github.com/strukturag/libde265/wiki/Supported-decoding-features).
 
