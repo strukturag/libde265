@@ -245,18 +245,32 @@ void cross_comp_pred(const thread_context* tctx, int32_t* residual, int nT)
 {
   const int BitDepthC = tctx->img->get_sps().BitDepth_C;
   const int BitDepthY = tctx->img->get_sps().BitDepth_Y;
+  const int ResScaleVal = tctx->ResScaleVal;
 
-  for (int y=0;y<nT;y++)
-    for (int x=0;x<nT;x++) {
-      /* TODO: the most usual case is definitely BitDepthY == BitDepthC, in which case
-         we could just omit two shifts. The second most common case is probably
-         BitDepthY>BitDepthC, for which we could also eliminate one shift. The remaining
-         case is also one shift only.
-      */
+  /* (8.6.6): r[x][y] += ( ResScaleVal * ( ( rY[x][y] << BitDepthC ) >> BitDepthY ) ) >> 3
+     Both shifts operate on a signed value, so together they are a single signed rescaling
+     by (BitDepthC - BitDepthY). It must not be evaluated on an unsigned type: the right
+     shift would then be logical and turn every negative luma residual into a large
+     positive value. Shifting left is expressed as a multiplication because shifting a
+     negative value left is undefined behaviour before C++20.
+  */
 
-      residual[y*nT+x] += (tctx->ResScaleVal *
-                           static_cast<int32_t>((static_cast<uint32_t>(tctx->residual_luma[y*nT+x]) << BitDepthC ) >> BitDepthY ) ) >> 3;
-    }
+  const int shift = BitDepthY - BitDepthC;
+
+  if (shift >= 0) {
+    for (int y=0;y<nT;y++)
+      for (int x=0;x<nT;x++) {
+        residual[y*nT+x] += (ResScaleVal * (tctx->residual_luma[y*nT+x] >> shift)) >> 3;
+      }
+  }
+  else {
+    const int32_t factor = 1 << (-shift);
+
+    for (int y=0;y<nT;y++)
+      for (int x=0;x<nT;x++) {
+        residual[y*nT+x] += (ResScaleVal * (tctx->residual_luma[y*nT+x] * factor)) >> 3;
+      }
+  }
 }
 
 
