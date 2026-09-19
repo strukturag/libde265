@@ -260,15 +260,26 @@ void transform_32x32_add_8_avx512(uint8_t *dst, const int16_t *coeffs, ptrdiff_t
   idct32_vpass_512(S, add_2nd, shift_2nd);
   transpose32x32_z(S);
 
-  // index to gather the low qword of each 128-bit lane into a contiguous 256
+  // Two rows per iteration. packus interleaves per 128-bit lane as
+  // [8 bytes of row r | 8 bytes of row r+1]; the qword permute then gathers
+  // row r into the low 256 bits and row r+1 into the high 256 bits.
+  // Both pack operands are used on purpose: packing a row with itself lets the
+  // optimizer replace the unused operand with poison, which MemorySanitizer
+  // (no precise handler for the AVX-512 word->byte pack) reports as a
+  // use-of-uninitialized-value. Reported by libheif's CIFuzz MSan job:
+  // https://github.com/strukturag/libheif/actions/runs/35403642955/job/105788738234
   const __m512i gather = _mm512_setr_epi64(0,2,4,6, 1,3,5,7);
-  for (int r=0;r<32;r++) {
-    uint8_t* d = dst + r*stride;
-    __m512i pred = _mm512_cvtepu8_epi16(_mm256_loadu_si256((const __m256i*)d)); // 32 int16
-    __m512i sum  = _mm512_adds_epi16(S[r], pred);
-    __m512i pk   = _mm512_packus_epi16(sum, sum);          // per lane: [c|c]
-    pk = _mm512_permutexvar_epi64(gather, pk);             // low 256 = c0..c31
-    _mm256_storeu_si256((__m256i*)d, _mm512_castsi512_si256(pk));
+  for (int r=0;r<32;r+=2) {
+    uint8_t* d0 = dst + r*stride;
+    uint8_t* d1 = d0 + stride;
+    __m512i pred0 = _mm512_cvtepu8_epi16(_mm256_loadu_si256((const __m256i*)d0)); // 32 int16
+    __m512i pred1 = _mm512_cvtepu8_epi16(_mm256_loadu_si256((const __m256i*)d1));
+    __m512i sum0  = _mm512_adds_epi16(S[r],   pred0);
+    __m512i sum1  = _mm512_adds_epi16(S[r+1], pred1);
+    __m512i pk    = _mm512_packus_epi16(sum0, sum1);       // per lane: [row r | row r+1]
+    pk = _mm512_permutexvar_epi64(gather, pk);             // low 256 = row r, high 256 = row r+1
+    _mm256_storeu_si256((__m256i*)d0, _mm512_castsi512_si256(pk));
+    _mm256_storeu_si256((__m256i*)d1, _mm512_extracti64x4_epi64(pk, 1));
   }
 }
 
